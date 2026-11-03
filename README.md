@@ -52,6 +52,8 @@ The E2E suite needs Playwright with a Chromium build available (`require('playwr
 
 Build a loadable ZIP with `npm run package` (produces `RepoVibe-Extension.zip`) and check it with `npm run verify:package`.
 
+Live github.com acceptance (real site, logged out, no credentials) runs separately with `npm run test:live` and in `.github/workflows/live-github.yml` (pull requests touching extension files, weekly, manual dispatch). It reports BLOCKED, not PASS, when GitHub or its assets are unreachable. Results: `docs/ACCEPTANCE_REPORT.md`.
+
 CI (`.github/workflows/ci.yml`) runs all of the above on every pull request and push to `main`. Install dev dependencies with `npm ci` and Chromium with `npx playwright install --with-deps chromium`.
 
 ## Project files
