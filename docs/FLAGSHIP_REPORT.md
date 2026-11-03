@@ -2,6 +2,94 @@
 
 Branch `feature/phase1b-immersive-themes` (PR #2, stacked on PR #1). Not merged.
 
+## 0. P0 defect: "actual wallpapers are invisible on GitHub" — root cause, fix, evidence
+
+**Reported:** on a real, logged-in GitHub account the four flagship themes changed only the interface colours. The forest and the galaxy were not recognisable.
+
+**Diagnosis.** It was confirmed on real github.com, not assumed:
+- `tests/live/diagnose.live.js` samples the layer stack (`elementsFromPoint` with each element's computed background) and checks that the image decodes.
+- It captures MHTML snapshots of real Code / Issues / Pull request pages.
+- `tests/e2e/real-snapshot.js` replays those snapshots offline, with GitHub's real DOM and CSS.
+
+**The snapshots stay local.** They contain GitHub-owned CSS and content, so they are gitignored and never committed.
+
+| Hypothesis | Finding |
+|---|---|
+| Wallpaper behind an opaque root background | **No.** `body::before` (z-index −1 in the root stacking context) painted *above* `<html>`'s background, and the image decoded at 2560×1440. |
+| Asset URLs not resolving | **No.** The `chrome-extension://…/wallpapers/*.webp` images loaded on github.com. |
+| Glass making the interface effectively opaque | **Yes, root cause.** See below. |
+
+**Root cause.** GitHub's current React layout wraps the whole page in `.prc-PageLayout-PageLayoutWrapper-*`, which is 1366 px wide at 1366 px. The old "content column" selector `[class*="PageLayout-PageLayoutWrapper"]` matched it. So everything below the header sat under **60–90 % guarded glass plus `backdrop-filter: blur(12px)`**:
+- Inner "muted" surfaces stacked further layers on top (e.g. `bgColor-muted` boxes at 0.74).
+- The defaults also dimmed the art (brightness 80 %, overlay 20 %).
+
+The scene was reduced to a blurred colour wash. The old offline fixture used a narrow `.container-xl` column and never reproduced this.
+
+**Fix: new rendering model (`content.js`).**
+1. **The scene is painted as the fixed root background** of `<html>`. It sits on the canvas under every element, with no negative z-index.
+   - Opacity, overlay darkness and brightness are colour veils in the same background stack, so every slider changes visible pixels.
+   - Blur, and Cinematic parallax, use a `body::before` copy above it. The root layer remains as the fallback.
+2. **Page shells and GitHub's surface tokens are transparent**, so nothing stacks.
+3. **One layer of guarded glass, on targeted panels only:**
+   - header strips and side navigation;
+   - the bordered boxes and rounded list containers GitHub draws (file table, README, issue/PR lists, comment cards).
+
+   GitHub's class names are hashed, so these are **detected at runtime from computed styles** and tagged `data-repv-panel`. The tags are removed when RepoVibe is inactive or disabled. Panels nested inside panels are transparent. Gaps between panels show the scene at full strength.
+4. **Loose text outside panels** (repository title, About, toolbar links, badges, invisible buttons) gets a small guard-computed backing plus a halo.
+   - GitHub's semantic colours (success, danger, attention) are raised for contrast.
+   - Label chips get a theme-tone wash.
+   - The logged-out marketing header, whose text is always white, keeps a dark backdrop.
+5. **Readability guard (`RepoVibeCore.panelOpacity`)**:
+   - Single-layer model with a 4.8:1 target (0.3 above AA).
+   - Loose items are guarded against pure white.
+   - It reports when it raises the user's panel opacity, and the Studio says so explicitly (no silent opaque panels).
+   - New **Scene visibility** presets: Immersive / Balanced / Readable.
+6. Flagship palettes use lighter secondary and accent colours, so less glass is needed:
+
+   | Theme | Panel opacity before → after |
+   |---|---|
+   | Cyberpunk | 0.86 → 0.65 |
+   | Galaxy | 0.78 → 0.65 |
+   | Sci-Fi | 0.72 → 0.62 |
+
+**Evidence: real github.com pages replayed offline** (`actions/checkout` Code / Issues / Pull requests).
+
+| Measure (four flagships) | Before (pre-fix renderer) | After |
+|---|---|---|
+| Correlation of page luminance structure with the wallpaper itself, 1366×768 | −0.03 … 0.50 (cyberpunk ≈ 0, forest 0.14–0.19) | 0.32 … 0.70 |
+| Same, 1920×1080 | — | 0.49 … 0.77 |
+| Viewport showing the scene unobstructed, 1366×768 | **0 %** | 12–37 % (lists … code) |
+| Same, 1920×1080 | — | 23–50 % |
+| Text contrast (screenshot-measured, 109–144 elements per page) | — | **min 4.52–4.63:1, 0 below 4.5:1**, identical to native GitHub's own minimum on these pages |
+
+Before/after on the real Code page at 1920×1080: `docs/screenshots/flagship/real-github-before-after-1920.jpg`.
+
+**Visual inspection (stated explicitly).** In every "after" image the scene is recognisable without the gallery:
+- **Cyberpunk Neon:** the neon tower canyon and signs.
+- **Enchanted Forest:** trunks, the glowing ground plants and the clearing.
+- **Cosmic Galaxy:** the ringed planet, asteroids, stars and the spiral galaxy.
+- **Futuristic Sci-Fi:** the white arched hall.
+
+In every "before" image only the tint is recognisable.
+
+**Honest limits.**
+- On dense list pages at 1366×768, the Issues and Pull request lists fill most of the viewport. There the scene shows in the header band, gaps and margins, and at about 35–42 % through the single glass layer. It is recognisable, but less dominant than on the Code page or at 1920 px.
+- The **Readable** preset trades scene for calm. **Immersive** removes the overlay, and the guard still keeps text at AA.
+- Logged-in pages were not tested: the suite never signs in. Their layout uses the same `prc-PageLayout` wrappers and bordered boxes, which the runtime detection targets, but **real logged-in visuals remain UNVERIFIED**.
+
+**Regression tests.**
+- `tests/e2e/scene.e2e.js` (6 tests) runs on `fixture-layout.html`, which reproduces GitHub's current React structure. It checks:
+  - recognisability (correlation ≥ 0.45, diagnostic config ≥ 0.6);
+  - unobstructed area ≥ 45 % and median transmission ≥ 0.6;
+  - **never more than one glass layer**;
+  - ≥ 30 % of pixels changed vs the same theme in solid colour;
+  - AA text;
+  - every control changing the pixels (opacity, overlay, brightness up/down, blur, position, size, panel opacity, glass blur);
+  - repository switching;
+  - pixel-exact restore on disable.
+- **These tests fail on the pre-fix renderer.** Measured: correlation 0.38–0.52, median transmission 0.27–0.44, stacked glass down to 0.10.
+- **LIVE 9** repeats the visibility, contrast, diagnostic-config, motion and restore checks on real github.com at both resolutions. Its results are below in §5.
+
 ## 1. Architecture
 
 | Area | Implementation |
