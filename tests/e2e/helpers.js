@@ -21,14 +21,15 @@ const EXT_ID = [...crypto.createHash('sha256').update(EXT).digest('hex').slice(0
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
-async function launch({ extension = true, mode = 'dark' } = {}) {
+// fixture=false lets requests reach the real network (used only by the live github.com suite).
+async function launch({ extension = true, mode = 'dark', fixture = true, colorScheme = 'light' } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'repovibe-e2e-'));
   // Pin text rasterization so screenshots do not depend on the host's fontconfig antialiasing/subpixel
   // settings (these differed between the authoring machine and GitHub's runners).
   const RENDER_ARGS = ['--disable-lcd-text', '--font-render-hinting=none'];
   const args = [...RENDER_ARGS, ...(extension ? [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`] : ['--disable-extensions'])];
   const context = await chromium.launchPersistentContext(dir, {
-    channel: 'chromium', headless: true, viewport: VIEWPORT, deviceScaleFactor: 1, args, acceptDownloads: true,
+    channel: 'chromium', headless: true, viewport: VIEWPORT, deviceScaleFactor: 1, args, acceptDownloads: true, colorScheme,
     env: { ...process.env, FONTCONFIG_FILE: path.join(__dirname, 'fonts', 'fonts.conf') }
   });
   const errors = [];
@@ -38,7 +39,7 @@ async function launch({ extension = true, mode = 'dark' } = {}) {
   };
   context.on('page', watch);
   context.pages().forEach(watch);
-  await context.route('https://github.com/**', route => {
+  if (fixture) await context.route('https://github.com/**', route => {
     const url = new URL(route.request().url());
     const title = url.pathname.split('/').filter(Boolean).slice(0, 2).join('/') || 'GitHub';
     route.fulfill({ contentType: 'text/html; charset=utf-8', body: FIXTURE.replaceAll('__TITLE__', title).replace('__MODE__', mode) });

@@ -211,3 +211,25 @@ test('orphaned content script (extension reloaded/disabled) stops observing and 
     assert.deepEqual(errors.filter(e => e.startsWith('https://github.com')), []);
   } finally { await close(); }
 });
+
+test('"Wide coding space" is never narrower than GitHub\'s own layout and is wider on large screens', async () => {
+  const { context, errors, close } = await launch();
+  try {
+    const width = page => page.evaluate(() => Math.round(document.querySelector('.container-xl').getBoundingClientRect().width));
+    const page = await openGitHub(context);
+    const results = {};
+    for (const vw of [1100, 1280, 1600]) {
+      await page.setViewportSize({ width: vw, height: 800 });
+      await setConfig(context, { enabled: true, defaultThemeId: 'native' });
+      await page.waitForFunction(() => !document.documentElement.classList.contains('repv-active'));
+      const native = await width(page);
+      const wide = { id: 'custom-wide', name: 'W', layout: 'wide' };
+      await setConfig(context, { enabled: true, defaultThemeId: 'custom-wide', customThemes: { 'custom-wide': wide } });
+      await page.waitForFunction(() => document.documentElement.classList.contains('repv-active'));
+      results[vw] = [native, await width(page)];
+      assert.ok(results[vw][1] >= native, `at ${vw}px viewport wide layout is narrower: ${native}px → ${results[vw][1]}px`);
+    }
+    assert.ok(results[1600][1] > results[1600][0], `wide layout should widen the container at 1600px: ${results[1600].join(' → ')}`);
+    assert.deepEqual(errors, []);
+  } finally { await close(); }
+});

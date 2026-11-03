@@ -75,7 +75,7 @@ html.repv-active :is(.blob-code, .react-code-text, .react-code-line, .markdown-b
  font-family:ui-monospace, SFMono-Regular, Consolas, monospace !important; font-size:${v.codeFontSize}px !important; }
 html.repv-active :is(.Box, .markdown-body, .Layout-sidebar .BorderGrid) {
  backdrop-filter:blur(var(--repv-blur)); }
-${v.layout === 'wide' ? `html.repv-active :is(.container-xl, .container-lg) { max-width:min(96vw, 1800px) !important; }` : ''}
+${v.layout === 'wide' ? `html.repv-active :is(.container-xl, .container-lg) { max-width:1800px !important; }` : ''}
 ${compact ? `html.repv-active :is(.Box-row, .react-directory-row) {padding-top:5px !important;padding-bottom:5px !important;}
 html.repv-active .Layout {gap:12px !important;}` : ''}
 @media (prefers-reduced-motion:no-preference) {
