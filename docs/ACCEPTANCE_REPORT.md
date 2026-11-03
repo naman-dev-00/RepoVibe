@@ -42,5 +42,6 @@ E2E coverage: no-effect when disabled/native (pixel-identical to a browser witho
 
 - Selectors and tokens still need verification against live GitHub (see README checklist); the fixture cannot prove GitHub's current DOM.
 - Visual baselines are rendered by Linux Chromium; other platforms may need `UPDATE_SNAPSHOTS=1` locally.
-- Wallpapers still live in `chrome.storage.local` (≈10 MB quota); IndexedDB migration remains a Phase 2 item.
+- Fix #3 writes GitHub's own `data-color-mode` attribute on `<html>` (original value saved in `data-repv-original-color-mode` and restored when RepoVibe is inactive). Unverified on live GitHub: interaction with GitHub's appearance-settings JS if the user changes GitHub's theme while a RepoVibe theme is active, and with high-contrast/colorblind GitHub themes.
+- Wallpapers still live in `chrome.storage.local` (≈10 MB quota). **IndexedDB wallpaper persistence is not implemented and its verification is PENDING** (Phase 2).
 - Editing a saved custom theme updates every repository using it (second-assignment item).
