@@ -12,7 +12,7 @@
   const UNSAFE_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
   const ROWS = [
     // name, tagline, primary background, panel, brighter panel, foreground, muted, accent, border, gradient 2, gradient 3, code, vibe
-    ['Cyberpunk Neon', 'Neon rain canyon', '#100c25', '#1b1538', '#292044', '#f3edff', '#aaa0cc', '#a879ff', '#49337e', '#25104c', '#051f31', '#15122a', 'neon'],
+    ['Cyberpunk Neon', 'Neon rain canyon', '#100c25', '#1b1538', '#292044', '#f3edff', '#c4bbe3', '#c6a8ff', '#49337e', '#25104c', '#051f31', '#15122a', 'neon'],
     ['Midnight Developer', 'Deep focus', '#0b1220', '#151e30', '#1e2b40', '#ebf1ff', '#9aabc6', '#6eacff', '#34445e', '#132b47', '#0b1828', '#101c30', 'minimal'],
     ['Sakura Dreams', 'Soft blossom light', '#fff1f6', '#fff8fb', '#ffe7ef', '#4b2540', '#7a5669', '#a8366d', '#e9bed3', '#ffe2f0', '#f8e9ff', '#fff0f8', 'soft'],
     ['Cozy Coding', 'Warm and familiar', '#241c1b', '#342926', '#47352e', '#fff1dc', '#c4a998', '#f1ac72', '#725345', '#4a2e24', '#261d2b', '#28201f', 'soft'],
@@ -26,19 +26,20 @@
     ['Arctic Frost', 'Alpine golden hour', '#eaf5fc', '#fbfdff', '#deecf6', '#213952', '#4b6178', '#2a5f9e', '#bfd7e8', '#e1f5ff', '#d6e4ff', '#f2f8fd', 'glass'],
     ['Lavender Nights', 'A gentle glow', '#1e1837', '#2c2448', '#3a305c', '#f8efff', '#b9abcd', '#d0a6ff', '#5b4d78', '#392252', '#221a43', '#29203f', 'soft'],
     ['Dark Academia', 'Timeless and thoughtful', '#241d19', '#362b23', '#45362b', '#f2e8d3', '#bcb09b', '#d4b47d', '#69513a', '#30221a', '#221a17', '#2e251e', 'minimal'],
-    ['Futuristic Sci-Fi', 'Holographic AI core', '#eaf2f9', '#fbfdff', '#e4edf6', '#12233a', '#44576f', '#0866ad', '#c6d6e6', '#dcf1ff', '#e6ebf8', '#f3f7fc', 'glass'],
+    ['Futuristic Sci-Fi', 'Holographic AI core', '#eaf2f9', '#fbfdff', '#e4edf6', '#12233a', '#3a4b61', '#075a99', '#c6d6e6', '#dcf1ff', '#e6ebf8', '#f3f7fc', 'glass'],
     ['Obsidian', 'Pure concentration', '#0d0e11', '#18191e', '#202228', '#f4f4f7', '#a1a1ad', '#a5a9bd', '#3b3e48', '#15161a', '#0d0e11', '#17181c', 'minimal'],
     ['Aurora', 'Northern lights over a fjord', '#0c1724', '#122b34', '#1b3b45', '#e8fff8', '#9dcbc6', '#7eedd7', '#355d5c', '#113b4b', '#2d2557', '#142633', 'glass'],
     ['Sunset Boulevard', 'Golden hour', '#301b32', '#4c294a', '#60375b', '#fff1f1', '#d5b0c7', '#ff9d82', '#7d4d73', '#9a4d61', '#442b6e', '#3c2540', 'soft'],
-    ['Cosmic Galaxy', 'Ringed giant, nebula, deep space', '#0b0b25', '#17183d', '#24244e', '#f0edff', '#a5a6d3', '#979bff', '#464784', '#251d53', '#102c4b', '#141433', 'glass'],
+    ['Cosmic Galaxy', 'Ringed giant, nebula, deep space', '#0b0b25', '#17183d', '#24244e', '#f0edff', '#c0c1e8', '#b9bcff', '#464784', '#251d53', '#102c4b', '#141433', 'glass'],
     ['Synthwave', 'Neon valley drive', '#210c37', '#33194a', '#462359', '#fff1ff', '#c9a1df', '#ff65c3', '#76438d', '#551b6c', '#102e5d', '#2b1342', 'neon']
   ];
   // Wallpaper catalogue generated from wallpapers/manifest.json (shared/wallpaper-catalog.js, loaded first).
   const CATALOG = root.RepoVibeWallpaperCatalog || [];
   const WORST_CASE_TONE = ['#ffffff', '#000000']; // unknown (uploaded) images
   const WALLPAPERS = CATALOG.map(w => ({ slug: w.slug, name: w.name, category: w.category, style: w.style,
-    ref: `builtin:${w.slug}`, path: `wallpapers/${w.slug}.webp`, thumb: `wallpapers/thumbs/${w.slug}.webp`, tone: w.tone }));
+    ref: `builtin:${w.slug}`, path: `wallpapers/${w.slug}.webp`, thumb: `wallpapers/thumbs/${w.slug}.webp`, tone: w.tone, toneSoft: w.toneSoft || w.tone }));
   const WALLPAPER_TONES = Object.fromEntries(WALLPAPERS.map(w => [w.slug, w.tone]));
+  const WALLPAPER_TONES_SOFT = Object.fromEntries(WALLPAPERS.map(w => [w.slug, w.toneSoft]));
   // Preset N → wallpaper. 3D cinematic renders where available; the rest use the illustrated (2D) scenes.
   const PRESET_WALLPAPERS = ['neon-city-3d', 'midnight-skyline', 'sakura-street', 'cozy-room', 'digital-rain', 'gothic-castle',
     'ocean-twilight', 'enchanted-forest', 'pixel-dusk', 'pixel-island', 'desert-dunes', 'alpine-lake', 'lavender-fantasy',
@@ -72,8 +73,8 @@
     bg: row[2], surface: row[3], surface2: row[4], text: row[5], muted: row[6], accent: row[7], border: row[8],
     gradientTo: row[9], gradientThird: row[10], codeBg: row[11], vibe: row[12],
     radius: row[12] === 'pixel' ? 3 : row[12] === 'minimal' ? 8 : 16,
-    glass: 12,
-    glassOpacity: isLightHex(row[2]) ? 66 : 60, // starting point; the readability guard raises it per wallpaper
+    glass: 8,
+    glassOpacity: isLightHex(row[2]) ? 62 : 55, // starting point; the readability guard raises it per wallpaper (single layer)
     gradientAngle: 135,
     backgroundMode: 'image',
     wallpaper: '',
@@ -81,8 +82,8 @@
     wallpaperStyle: (WALLPAPERS.find(w => w.slug === PRESET_WALLPAPERS[index]) || {}).style || 'illustrated',
     wallpaperOpacity: 100,
     wallpaperBlur: 0,
-    wallpaperBrightness: isLightHex(row[2]) ? 100 : 80, // dim the art itself so more of it can show through glass
-    wallpaperOverlay: isLightHex(row[2]) ? 15 : 20,
+    wallpaperBrightness: isLightHex(row[2]) ? 100 : 92, // scenes stay recognisable; panels carry readability
+    wallpaperOverlay: isLightHex(row[2]) ? 8 : 12,
     wallpaperPosition: 'center',
     wallpaperSize: 'cover',
     font: row[12] === 'pixel' ? 'mono' : 'system',
@@ -203,17 +204,35 @@
     const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
     const bg = rgb(theme.bg), surface = rgb(theme.surface);
     const o = theme.wallpaperOverlay / 100, b = theme.wallpaperBrightness / 100, op = theme.wallpaperOpacity / 100;
-    const backdrops = tone.map(h => { const px = rgb(h).map(v => Math.min(255, v * b)); return mix(mix(bg, px, o), bg, op); });
-    const fgs = [theme.text, theme.muted, theme.accent].map(rgb);
+    // Same stack as the page paints (content.js sceneLayers): brightness veil (black below 100 %, white above),
+    // then overlay (theme bg at o), then opacity veil (theme bg at 1 - op).
+    const bright = px => b <= 1 ? px.map(v => v * b) : mix([255, 255, 255], px, Math.min(0.6, (b - 1) * 0.5));
+    const backdrops = tone.map(h => { const px = bright(rgb(h)); return mix(mix(bg, px, o), bg, op); });
+    const fgs = [theme.text, theme.muted, theme.accent].map(rgb); // GitHub's semantic colours are raised in content.js
     for (let g = Math.max(0, theme.glassOpacity / 100); g <= 1.0001; g += 0.01) {
       const ok = backdrops.every(back => { const panel = mix(surface, back, g); return fgs.every(fg => ratio(fg, panel) >= minRatio); });
       if (ok) return Math.min(1, Math.round(g * 100) / 100);
     }
     return 1;
   }
-  function wallpaperTone(ref) {
+  /** Brightest/darkest measured colours of a bundled scene. soft=true: measured after a 6 px-equivalent blur, used when
+      panels blur their backdrop by ≥ 6 px (text then sits on the blurred scene, never on single sharp pixels).
+      Uploaded images always use the worst case (white/black). */
+  function wallpaperTone(ref, soft = false) {
     const m = /^builtin:(.+)$/.exec(ref || '');
-    return (m && WALLPAPER_TONES[m[1]]) || WORST_CASE_TONE;
+    return (m && (soft ? WALLPAPER_TONES_SOFT : WALLPAPER_TONES)[m[1]]) || WORST_CASE_TONE;
+  }
+  /** Panel opacity the page actually uses (the guard's result) and whether it raised the user's choice. */
+  function panelOpacity(theme) {
+    const t = normalizeTheme(theme);
+    // 4.8:1 target (0.3 above AA) absorbs anti-aliasing and GitHub's own nested tints measured on real pages.
+    const needed = requiredGlass(t, wallpaperTone(t.wallpaperRef, t.glass >= 6), 4.8);
+    // Loose items outside panels (headings, links, badges) get an unblurred backing in the theme background colour.
+    // They are small and can sit on any pixel (including the brightest 2 % the tone excludes), so their bright extreme is
+    // pure white.
+    const darkest = wallpaperTone(t.wallpaperRef)[1];
+    const loose = requiredGlass({ ...t, surface: t.bg, glassOpacity: 60 }, ['#ffffff', darkest], 4.8);
+    return { opacity: needed, loose, chosen: t.glassOpacity / 100, raised: needed > t.glassOpacity / 100 + 0.001 };
   }
 
   /** 32-bit FNV-1a hash of a normalized string (stable across browsers and sessions). */
@@ -316,7 +335,7 @@
   root.RepoVibeCore = Object.freeze({
     STORAGE_KEY, PRESETS, DEFAULT, MAX_CUSTOM_THEMES, CONFIG_VERSION, WALLPAPERS, POSITIONS, SIZES,
     MOTIONS, MOTION_MODES, FLAGSHIP_MOTION, DEFAULT_REPO_MAPPINGS, seedDefaultMappings, motionFor,
-    safeWallpaperRef, fnv1a, pickAutoTheme, requiredGlass, wallpaperTone, normalizeConfig, normalizeTheme, safeWallpaper,
+    safeWallpaperRef, fnv1a, pickAutoTheme, requiredGlass, wallpaperTone, panelOpacity, normalizeConfig, normalizeTheme, safeWallpaper,
     repositoryFromUrl, themeById, themeResolution, loadConfig, saveConfig, updateConfig, themeUsage, assignTheme, isPreset,
     contrastRatio, isLightColor
   });

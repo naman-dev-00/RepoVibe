@@ -31,11 +31,17 @@ const STYLES = ['3d', 'illustrated', 'photo'];
       for (let k = 0; k < d.length; k += 4) { ch[0].push(d[k]); ch[1].push(d[k + 1]); ch[2].push(d[k + 2]); }
       const pct = (a, q) => { a.sort((x, y) => x - y); return a[Math.floor(a.length * q)]; };
       const hex = v => `#${v.map(x => x.toString(16).padStart(2, '0')).join('')}`;
-      return { width: i.naturalWidth, height: i.naturalHeight, tone: [hex(ch.map(a => pct(a.slice(), 0.98))), hex(ch.map(a => pct(a.slice(), 0.02)))] };
+      // toneSoft: the same percentiles after a blur equivalent to RepoVibe's minimum panel backdrop blur (6 px at
+      // 1920 px ≈ 1.5 px at this 480 px size): what text on blurred glass can actually sit on.
+      const cs = new OffscreenCanvas(480, 270); const gs = cs.getContext('2d'); gs.filter = 'blur(1.5px)'; gs.drawImage(i, 0, 0, 480, 270);
+      const ds = gs.getImageData(8, 8, 464, 254).data; const cs3 = [[], [], []];
+      for (let k = 0; k < ds.length; k += 4) { cs3[0].push(ds[k]); cs3[1].push(ds[k + 1]); cs3[2].push(ds[k + 2]); }
+      return { width: i.naturalWidth, height: i.naturalHeight, tone: [hex(ch.map(a => pct(a.slice(), 0.98))), hex(ch.map(a => pct(a.slice(), 0.02)))],
+        toneSoft: [hex(cs3.map(a => pct(a.slice(), 0.98))), hex(cs3.map(a => pct(a.slice(), 0.02)))] };
     }, `data:image/webp;base64,${fs.readFileSync(file).toString('base64')}`);
     if (w.width && (info.width !== w.width || info.height !== w.height)) problems.push(`${w.slug}: is ${info.width}x${info.height}, manifest says ${w.width}x${w.height}`);
     if (info.width < 1920) problems.push(`${w.slug}: below 1920px wide`);
-    out.push({ slug: w.slug, name: w.name, category: w.category, style: w.style, tone: info.tone });
+    out.push({ slug: w.slug, name: w.name, category: w.category, style: w.style, tone: info.tone, toneSoft: info.toneSoft });
   }
   await browser.close();
   if (problems.length) { console.error(`Wallpaper catalog FAILED:\n - ${problems.join('\n - ')}`); process.exit(1); }

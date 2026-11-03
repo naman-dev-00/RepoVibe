@@ -27,80 +27,106 @@
   }
 
   const POSITION = { center: 'center center', top: 'center top', bottom: 'center bottom', left: 'left center', right: 'right center' };
-  // Outer page *shells* only: fully transparent in wallpaper mode so the artwork shows in margins and gaps.
-  // Content wrappers (main, PageLayout, lists) deliberately keep translucent glass (--bgColor-default): live
-  // github.com testing showed un-paneled text (issue/PR list metadata) dropping to ~1.7:1 contrast when those
-  // wrappers were transparent too.
-  const CANVAS = 'body, .application-main, main, #js-repo-pjax-container, turbo-frame#repo-content-turbo-frame';
-  // Native GitHub paints the page background on <body> only; layout wrappers, sidebars and list rows have none.
-  // With <body> transparent, that text would sit directly on the artwork, so the width-limited content column gets
-  // guarded glass. Side margins (desktop widths) show the wallpaper at full strength.
-  const COLUMN = '.container-xl, .container-lg, .container-md, [class*="PageLayout-PageLayoutWrapper"], .PageLayout';
+  /* Wallpaper rendering model (v0.2.1; replaces the full-width glass column that hid the scene on real GitHub).
+     1. The scene is painted as the ROOT background (<html>, background-attachment:fixed): it sits on the canvas
+        under every element, needs no negative z-index and cannot be hidden behind a root colour. Overlay, brightness
+        and opacity are colour layers in the same background stack, so every slider changes the visible pixels.
+        Blur (optional) adds a blurred copy on body::before above the root layer.
+     2. Page shells and GitHub's surface tokens become transparent, so nothing stacks into an opaque wash.
+     3. Readability comes from ONE layer of guarded glass on targeted panels only: header strips, side panes and the
+        bordered boxes GitHub draws (file table, README, lists, comments). GitHub's React class names are hashed,
+        so bordered boxes are detected at runtime from computed styles and tagged data-repv-panel. Panels nested in
+        a panel are transparent. Gaps between panels show the scene at full strength.
+     4. Loose text outside panels (repository title, About, toolbar labels) gets a theme-coloured halo.
+     5. Menus, dialogs and popovers stay opaque; code stays ≥ 90 % opaque. */
+  const SHELLS = 'body, .application-main, main, #js-repo-pjax-container, turbo-frame, .container-xl, .container-lg, .container-md, [class*="PageLayout-PageLayoutWrapper"], [class*="PageLayout-PageLayoutContent"], .PageLayout, [class*="PageLayout-Content"], .Layout, .Layout-main';
+  const PANELS = '.AppHeader, header.GlobalNav, .Header, .js-header-wrapper header, #repository-container-header, .Box, .markdown-body, .Layout-sidebar, aside[class*="sidebar"], .Flash, [class*="Flash-Flash"], .blob-wrapper, .file, [data-testid="code-viewer"], .timeline-comment, [data-repv-panel]';
   // Floating UI must stay opaque and readable over any wallpaper.
   const FLOATING = '.Overlay, .Overlay-backdrop--center > *, .dropdown-menu, .SelectMenu-modal, .Popover-message, details-dialog, .Box--overlay, [role="menu"], [role="listbox"], [role="dialog"], [popover], .tooltipped::after';
 
-  /** @param hasImage  true when a wallpaper image is available → translucent "glass" surfaces. */
+  /** Root background stack: veils (top) over the image over the theme colour. Mirrors RepoVibeCore.sceneBackdrop. */
+  function sceneLayers(v) {
+    const layer = c => `linear-gradient(${c}, ${c}) fixed`;
+    const out = [];
+    if (v.wallpaperOpacity < 100) out.push(layer(rgba(v.bg, 1 - v.wallpaperOpacity / 100)));
+    if (v.wallpaperOverlay > 0) out.push(layer(rgba(v.bg, v.wallpaperOverlay / 100)));
+    const b = v.wallpaperBrightness / 100;
+    if (b < 1) out.push(layer(`rgba(0,0,0,${(1 - b).toFixed(3)})`));
+    else if (b > 1) out.push(layer(`rgba(255,255,255,${Math.min(0.6, (b - 1) * 0.5).toFixed(3)})`));
+    return out;
+  }
+
+  /** @param hasImage  true when a wallpaper image is available → scene mode with targeted glass panels. */
   function buildCss(t, hasImage) {
     const v = C.normalizeTheme(t);
     const light = C.isLightColor(v.bg);
     const glass = hasImage;
-    // Readability guard: never let panels get so transparent that text over the brightest/darkest part of this
-    // wallpaper drops below ~4.5:1 (see RepoVibeCore.requiredGlass). Uploaded images assume worst case.
-    const a = glass ? C.requiredGlass(v, C.wallpaperTone(v.wallpaperRef)) : v.glassOpacity / 100;
-    const surface = glass ? rgba(v.surface, a) : v.surface;
-    const surface2 = glass ? rgba(v.surface2, Math.min(1, a + 0.08)) : v.surface2;
-    const inset = glass ? rgba(v.codeBg, Math.max(0.9, a)) : v.codeBg;
+    // Readability guard: the smallest single-layer panel opacity ≥ the user's choice at which text, secondary text and
+    // links stay ≥ 4.6:1 over the brightest and darkest measured pixels of this scene (see RepoVibeCore.requiredGlass).
+    const guard = glass ? C.panelOpacity(v) : null;
+    const a = glass ? guard.opacity : v.glassOpacity / 100;
+    const looseA = glass ? guard.loose : 1;
     const panel = rgba(v.surface, a);
-    const base = v.backgroundMode === 'solid' || glass ? v.bg : `linear-gradient(${v.gradientAngle}deg, ${v.bg} 0%, ${v.gradientTo} 58%, ${v.gradientThird} 100%)`;
-    const blur = glass && v.glass > 0 ? `backdrop-filter:blur(${v.glass}px) saturate(1.15); -webkit-backdrop-filter:blur(${v.glass}px) saturate(1.15);` : '';
+    const inset = glass ? rgba(v.codeBg, Math.max(0.9, a)) : v.codeBg;
+    const control = glass ? rgba(v.surface2, Math.max(0.85, a)) : v.surface2;
+    const tint = rgba(v.bg, 0.3); // inner "muted" surfaces deepen the panel towards the theme background (more contrast, never another full glass layer)
+    const gradient = `linear-gradient(${v.gradientAngle}deg, ${v.bg} 0%, ${v.gradientTo} 58%, ${v.gradientThird} 100%)`;
+    const veils = glass ? sceneLayers(v) : [];
+    const rootBackground = glass
+      ? [...veils, `var(--repv-wallpaper, none) ${POSITION[v.wallpaperPosition]} / ${v.wallpaperSize} no-repeat fixed`, v.bg].join(', ')
+      : v.backgroundMode === 'solid' ? v.bg : `${gradient} fixed`;
+    const blur = glass && v.glass > 0 ? `backdrop-filter:blur(${v.glass}px) saturate(1.1); -webkit-backdrop-filter:blur(${v.glass}px) saturate(1.1);` : '';
+    const halo = `0 0 1px ${rgba(v.bg, 1)}, 0 0 3px ${rgba(v.bg, 0.95)}, 0 0 8px ${rgba(v.bg, 0.9)}, 0 0 16px ${rgba(v.bg, 0.75)}`;
     const compact = v.layout === 'compact';
     // Whitelist only constrained colors, numbers and enum values. The wallpaper URL itself lives in a
     // separate style element (see renderWallpaper) and is either a bundled extension URL or a validated data URL.
     // --bgColor-emphasis is GitHub's *neutral* emphasis (tooltips, counters) paired with white text: not overridden.
     return `
-html.repv-active { --bgColor-default:${surface} !important; --bgColor-muted:${surface2} !important;
+html.repv-active { --bgColor-default:${glass ? 'transparent' : v.surface} !important; --bgColor-muted:${glass ? tint : v.surface2} !important;
  --bgColor-inset:${inset} !important;
  --fgColor-default:${v.text} !important; --fgColor-muted:${v.muted} !important;
  --fgColor-accent:${v.accent} !important; --fgColor-link:${v.accent} !important;
  --borderColor-default:${v.border} !important; --borderColor-muted:${v.border} !important;
  --overlay-bgColor:${v.surface} !important; --overlay-borderColor:${v.border} !important;
  --underlineNav-borderColor-active:${v.accent} !important; --focus-outlineColor:${v.accent} !important;
- --button-default-bgColor-rest:${surface2} !important;
+ --button-default-bgColor-rest:${control} !important;
  --button-default-fgColor-rest:${v.text} !important;
  --button-default-borderColor-rest:${v.border} !important;
- --control-borderColor-rest:${v.border} !important;
- --color-canvas-default:${surface} !important; --color-canvas-subtle:${surface2} !important;
+ --control-borderColor-rest:${v.border} !important; --control-bgColor-rest:${control} !important;
+ --color-canvas-default:${glass ? 'transparent' : v.surface} !important; --color-canvas-subtle:${glass ? tint : v.surface2} !important;
  --color-canvas-inset:${inset} !important; --color-fg-default:${v.text} !important;
  --color-fg-muted:${v.muted} !important; --color-accent-fg:${v.accent} !important;
  --color-border-default:${v.border} !important;
+ ${glass ? (light ? '--fgColor-success:#0f5c27 !important; --fgColor-danger:#a0111f !important; --fgColor-attention:#6b4700 !important; --fgColor-done:#6a2fc2 !important;'
+   : '--fgColor-success:#6ee787 !important; --fgColor-danger:#ff9492 !important; --fgColor-attention:#f2cc60 !important; --fgColor-done:#d2a8ff !important;') : ''}
  --repv-bg:${v.bg}; --repv-panel:${v.surface}; --repv-panel2:${v.surface2};
  --repv-text:${v.text}; --repv-muted:${v.muted}; --repv-accent:${v.accent}; --repv-border:${v.border};
  --repv-radius:${v.radius}px; --repv-blur:${v.glass}px; --repv-panel-opacity:${a};
- background:${base} fixed !important; color-scheme:${light ? 'light' : 'dark'}; }
+ background:${rootBackground} !important; color-scheme:${light ? 'light' : 'dark'}; }
 html.repv-active body { background:transparent !important; color:var(--repv-text) !important; font-family:${cssFont(v.font)} !important; }
-${glass ? `html.repv-active :is(${CANVAS}) { background-color:transparent !important; }
-html.repv-active :is(${COLUMN}) { background-color:${panel} !important; ${blur} }
-html.repv-active :is(${COLUMN}) :is(${COLUMN}) { background-color:transparent !important; backdrop-filter:none !important; }` : ''}
-html.repv-active body::before { content:""; position:fixed; inset:${glass && v.wallpaperBlur ? `-${v.wallpaperBlur * 2}px` : '0'}; z-index:-1; pointer-events:none;
- background-color:${v.bg};
- background-image:${glass ? `linear-gradient(${rgba(v.bg, v.wallpaperOverlay / 100)}, ${rgba(v.bg, v.wallpaperOverlay / 100)}), var(--repv-wallpaper, none)` : 'none'};
- background-position:center, ${POSITION[v.wallpaperPosition]}; background-size:auto, ${v.wallpaperSize}; background-repeat:no-repeat;
- opacity:${glass ? v.wallpaperOpacity / 100 : 0}; filter:${glass ? `blur(${v.wallpaperBlur}px) brightness(${v.wallpaperBrightness / 100})` : 'none'}; }
-html.repv-active :is(.AppHeader, .Header, #repository-container-header, .UnderlineNav, .js-header-wrapper) {
- background-color:${panel} !important; color:${v.text} !important; border-color:${v.border} !important; ${blur} }
-html.repv-active :is(.Box, .Box-row, .markdown-body, .Layout-sidebar .BorderGrid, .react-directory-row,
- .react-code-view-bottom-padding, .react-code-lines, .blob-wrapper, .file, .commit-tease,
- .js-navigation-container, .repository-content .container-lg, [data-testid="code-viewer"])
- { background-color:${panel} !important; color:${v.text} !important; border-color:${v.border} !important; }
-html.repv-active :is(.Box, .markdown-body, .Layout-sidebar .BorderGrid, .blob-wrapper, .file) {
- border-radius:var(--repv-radius) !important; ${blur} }
-html.repv-active :is(${FLOATING}) { background-color:${v.surface} !important; backdrop-filter:none !important; }
+${glass ? `html.repv-active :is(${SHELLS}) { background-color:transparent !important; backdrop-filter:none !important; }
+html.repv-active :where(${PANELS}) { background-color:${panel} !important; ${blur} border-radius:var(--repv-radius); text-shadow:none; }
+html.repv-active :is(.HeaderMktg, header.header-logged-out) { background-color:rgba(1,4,9,${Math.max(0.85, a)}) !important; } /* logged-out header text is always white */
+html.repv-active :where(${PANELS}) :where(${PANELS}) { background-color:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+html.repv-active :is(main, .application-main, [class*="PageLayout-Pane"]) { text-shadow:${halo}; }
+html.repv-active :is(${PANELS}, ${FLOATING}, input, textarea, select, button, .btn, .Button, pre, code) { text-shadow:none; }
+html.repv-active :is(input[type="text"], input[type="search"], textarea, select, .form-control, .FormControl-input, [class*="TextInputWrapper"]) { background-color:${control} !important; }
+html.repv-active :is(main, .application-main) :is(a, h1, h2, h3, p, .Label, [class*="prc-Label"], [data-variant="invisible"], .Button--invisible, .btn-octicon):not(:where(${PANELS}) *):not(.btn):not(:has(img)):not(:is([class*="ButtonBase"], .btn, button)[data-variant]:not([data-variant="invisible"])) { background-color:${rgba(v.bg, looseA)} !important; border-radius:6px; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
+html.repv-active :is(main, .application-main) a:has(img):not(:where(${PANELS}) *) > :is(span, strong):not(:has(img)) { background-color:${rgba(v.bg, looseA)} !important; border-radius:6px; padding:0 4px; }
+html.repv-active :is(main, .application-main) :is(a, h1, h2, h3, p):not(:where(${PANELS}) *):not(.btn):not([class*="Button"]):not(:has(img)) { padding-left:4px; padding-right:4px; margin-left:-4px; margin-right:-4px; }
+${light ? '' : `html.repv-active :is(.IssueLabel, [class*="IssueLabel"], [class*="TokenBase"], [class*="Token__"]) { box-shadow:inset 0 0 0 100vmax ${rgba(v.bg, 0.45)}; }`}
+${v.wallpaperBlur > 0 ? `html.repv-active body::before { content:""; position:fixed; inset:-${v.wallpaperBlur * 2}px; z-index:-1; pointer-events:none;
+ background:${[...veils.map(l => l.replace(' fixed', '')), `var(--repv-wallpaper, none) ${POSITION[v.wallpaperPosition]} / ${v.wallpaperSize} no-repeat`, v.bg].join(', ')};
+ filter:blur(${v.wallpaperBlur}px); }` : ''}` : `html.repv-active :is(.AppHeader, .Header, #repository-container-header, .Box, .markdown-body) { background-color:${v.surface} !important; }`}
+html.repv-active :is(.AppHeader, .Header, #repository-container-header, .UnderlineNav, .js-header-wrapper, header.GlobalNav) { color:${v.text} !important; border-color:${v.border} !important; }
+html.repv-active :is(.Box, .markdown-body, .blob-wrapper, .file, [data-repv-panel]) { border-color:${v.border} !important; }
+html.repv-active :is(${FLOATING}) { background-color:${v.surface} !important; backdrop-filter:none !important; text-shadow:none; }
 html.repv-active :is(.btn, .Button, button:not([class]), input[type="text"], input[type="search"], textarea) {
  border-radius:calc(var(--repv-radius) * .65) !important; }
 html.repv-active :is(.btn, .Button, .form-control, .FormControl-input, .form-select) {
  border-color:${v.border} !important; }
 html.repv-active :is(.color-fg-muted, .text-color-muted, .fgColor-muted) { color:${v.muted} !important; }
-html.repv-active :is(.markdown-body pre, .highlight pre, .blob-code, .react-code-text, .react-code-line, .diff-table) {
+html.repv-active :is(.markdown-body pre, .highlight pre, .blob-code, .react-code-text, .react-code-line, .diff-table, .react-code-lines) {
  background-color:${inset} !important; }
 html.repv-active :is(.blob-code, .react-code-text, .react-code-line, .markdown-body pre code, .highlight pre, .diff-table,
  #read-only-cursor-text-area, [data-testid="read-only-cursor-text-area"]) {
@@ -113,8 +139,49 @@ ${glass ? MOTION_CSS : ''}
  html.repv-active :is(.Box, .btn, .Button) { transition:border-color .18s ease, box-shadow .18s ease; }
  ${v.vibe === 'neon' ? `html.repv-active :is(.Box:hover, .Button:hover) { box-shadow:0 0 14px ${v.accent}45; }` : ''}
 }
+@media (forced-colors:active) { html.repv-active { background:Canvas !important; } html.repv-active * { text-shadow:none !important; } }
 `;
   }
+
+  /* ---- Runtime panel detection: GitHub's React UI draws its boxes (file table, README, issue lists, comment cards)
+     with hashed CSS-module classes, so they are found by their computed border instead: a visible border on all four
+     sides, rounded corners and a reasonable size, not inside another panel or floating UI. Tagged data-repv-panel;
+     the attribute is removed when RepoVibe is inactive or disabled. Throttled; scans only the main content. */
+  const PANEL_ATTR = 'data-repv-panel';
+  let panelScanQueued = false;
+  let panelChecked = new WeakSet(); // each element's computed style is read once (reset when the theme changes)
+  function isBoxed(el) {
+    const r = el.getBoundingClientRect();
+    if (r.width < 200 || r.height < 30) return false;
+    if (el.tagName === 'TABLE') return true; // data tables (repository file list) draw borders per cell
+    const cs = getComputedStyle(el);
+    const sides = ['Top', 'Right', 'Bottom', 'Left'].filter(k => cs[`border${k}Style`] !== 'none' && parseFloat(cs[`border${k}Width`]) >= 1).length;
+    const rounded = ['TopLeft', 'TopRight', 'BottomLeft', 'BottomRight'].some(k => parseFloat(cs[`border${k}Radius`]) >= 3);
+    if (sides >= 3 && rounded) return true; // boxes, and box headers/footers rounded on one end
+    // list views (issues, pull requests): a rounded clipping container whose outline is drawn by its children
+    return rounded && (cs.overflow === 'hidden' || cs.overflowY === 'hidden') && r.width >= 300 && r.height >= 60;
+  }
+  function scanPanels() {
+    panelScanQueued = false;
+    if (tornDown || !document.documentElement.classList.contains('repv-active') || !lastWallpaperUrl) return;
+    const scope = document.querySelector('main, .application-main, [data-turbo-body]') || document.body;
+    if (!scope) return;
+    const candidates = scope.querySelectorAll('div, section, table, ul, ol, nav, article, form, details');
+    const limit = Math.min(candidates.length, 6000);
+    for (let i = 0; i < limit; i++) {
+      const el = candidates[i];
+      if (panelChecked.has(el) || el.hasAttribute(PANEL_ATTR)) continue;
+      panelChecked.add(el);
+      if (el.closest(`[${PANEL_ATTR}], ${FLOATING}`) || el.closest(PANELS.replace(', [data-repv-panel]', ''))) continue;
+      if (isBoxed(el)) el.setAttribute(PANEL_ATTR, '');
+    }
+  }
+  function queuePanelScan() {
+    if (panelScanQueued) return;
+    panelScanQueued = true;
+    setTimeout(() => requestAnimationFrame(scanPanels), 120);
+  }
+  function clearPanels() { panelChecked = new WeakSet(); for (const el of document.querySelectorAll(`[${PANEL_ATTR}]`)) el.removeAttribute(PANEL_ATTR); }
 
   /* ---- Live wallpapers: lightweight ambient motion drawn with two fixed, pointer-events:none pseudo-element layers
      (html::after, body::after) between the wallpaper and the page. Only transform/opacity are animated (compositor
@@ -392,6 +459,7 @@ li[data-repv-card]:focus-within { outline:2px solid var(--repv-card-accent); out
     if (!theme) {
       root.classList.remove('repv-active', ...MOTION_CLASSES);
       lastMotion = '';
+      clearPanels();
       if (style) style.remove();
       renderWallpaper(null);
       applyColorMode(root, null);
@@ -411,6 +479,7 @@ li[data-repv-card]:focus-within { outline:2px solid var(--repv-card-accent); out
     root.classList.add('repv-active');
     lastMotion = applyMotion(root, theme, Boolean(url));
     applyColorMode(root, lastMode);
+    if (url) queuePanelScan(); else clearPanels();
     renderCards();
   }
   // GitHub navigations can swap <head> or reset <html> attributes; restore our state if lost.
@@ -439,6 +508,7 @@ li[data-repv-card]:focus-within { outline:2px solid var(--repv-card-accent); out
     document.getElementById(STYLE_ID)?.remove();
     document.getElementById(WALLPAPER_STYLE_ID)?.remove();
     clearCards();
+    clearPanels();
     reducedQuery?.removeEventListener?.('change', onReducedMotionChange);
     if (document.documentElement) { document.documentElement.classList.remove('repv-active', ...MOTION_CLASSES); applyColorMode(document.documentElement, null); }
   }
@@ -466,7 +536,7 @@ li[data-repv-card]:focus-within { outline:2px solid var(--repv-card-accent); out
   const observer = new MutationObserver(guard(() => {
     if (scheduled) return;
     scheduled = true;
-    requestAnimationFrame(() => { scheduled = false; if (!tornDown) { updateForNavigation(); ensureApplied(); if (isHome()) renderCards(); } });
+    requestAnimationFrame(() => { scheduled = false; if (!tornDown) { updateForNavigation(); ensureApplied(); if (lastWallpaperUrl) queuePanelScan(); if (isHome()) renderCards(); } });
   }));
   const rootObserver = new MutationObserver(guard(ensureApplied));
   const startObserver = () => {

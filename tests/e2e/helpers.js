@@ -220,7 +220,7 @@ async function visualContrast(context, page, limit = 150) {
   await helper.close();
   const sorted = ratios.map(r => r.ratio).sort((a, b) => a - b);
   return { count: ratios.length, min: sorted[0], p10: sorted[Math.floor(sorted.length * 0.1)], median: sorted[Math.floor(sorted.length / 2)],
-    below3: ratios.filter(r => r.ratio < 3), below45: ratios.filter(r => r.ratio < 4.5).length };
+    below3: ratios.filter(r => r.ratio < 3), below45: ratios.filter(r => r.ratio < 4.5).length, low: ratios.filter(r => r.ratio < 4.5) };
 }
 
 module.exports = { HOME_REPOS, visualContrast, EXT, EXT_ID, KEY, OUT_DIR, launch, extPage, setConfig, getConfig, openGitHub, state, hexToRgb, diffRatio, matchSnapshot, openStudioFor, pixelAt };
