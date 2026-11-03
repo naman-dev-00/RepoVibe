@@ -322,7 +322,21 @@ L.liveTest('LIVE 6: wallpapers are visibly rendered on real GitHub pages (bundle
       c.check(okC, name, `screenshot-measured text contrast over wallpaper: min ${vc.min.toFixed(2)}, p10 ${vc.p10.toFixed(2)}, median ${vc.median.toFixed(2)} across ${vc.count} elements; <3:1 ${vc.below3.length} (native ${nativeContrast.below3.length})${vc.below3.length ? ` e.g. ${vc.below3.slice(0, 4).map(x => `"${x.text}" ${x.ratio.toFixed(2)}`).join('; ')}` : ''}`);
       await L.logShot(context, page, `after-sunset-${name}`);
     }
+    // Screenshot evidence of the 3D cinematic themes on the real site (logged to the job log, 1600px desktop width).
+    for (const [id, slug, label] of [['preset-1', 'neon-city-3d', 'cyberpunk-3d'], ['preset-19', 'alien-world', 'galaxy-3d'], ['preset-17', 'aurora-fjord', 'aurora-3d']]) {
+      await setConfig(context, { enabled: true, defaultThemeId: id });
+      for (const [pageName, url] of [['overview', `https://github.com/${A}`], ['issues', `https://github.com/${A}/issues`]]) {
+        const response = await L.gotoLive(page, url);
+        const ev = await L.liveEvidence(page, response, new URL(url).pathname, A);
+        await page.waitForFunction(s => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes(`${s}.webp`), slug, { timeout: 8000 }).catch(() => {});
+        await L.settleAnimations(page); await page.waitForTimeout(400);
+        const vc = await visualContrast(context, page);
+        c.check(ev.ok && vc.below3.length === 0, `3D theme ${slug} · ${pageName}`, `3D wallpaper on real github.com: evidence ${ev.ok ? 'ok' : 'FAILED'}; screenshot contrast min ${vc.min.toFixed(2)}, p10 ${vc.p10.toFixed(2)}, <3:1 ${vc.below3.length}`);
+        await L.logShot(context, page, `${label}-${pageName}`);
+      }
+    }
     // Opaque floating UI on the real page: open the repository "Code" menu (available logged out).
+    await setConfig(context, { enabled: true, defaultThemeId: VIVID.id });
     await L.gotoLive(page, `https://github.com/${A}`);
     await waitTheme(page, VIVID.surface);
     const codeButton = page.locator('button:has-text("Code")').filter({ has: page.locator('svg') }).first();
