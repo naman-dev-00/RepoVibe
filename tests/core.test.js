@@ -47,3 +47,27 @@ test('safe image data is accepted only with image MIME and base64', () => {
   assert.equal(C.safeWallpaper('data:image/png;base64,aGVsbG8='), 'data:image/png;base64,aGVsbG8=');
   assert.equal(C.safeWallpaper('data:image/svg+xml;base64,aGVsbG8='), '');
 });
+test('every preset meets WCAG AA (4.5:1) for text, secondary text and links on all surfaces', () => {
+  for (const t of C.PRESETS) {
+    for (const fg of ['text', 'muted', 'accent']) {
+      for (const bg of ['surface', 'surface2', 'codeBg']) {
+        const ratio = C.contrastRatio(t[fg], t[bg]);
+        assert.ok(ratio >= 4.5, `${t.name}: ${fg} on ${bg} is ${ratio.toFixed(2)}:1`);
+      }
+    }
+  }
+});
+test('light/dark detection uses luminance, not string prefixes', () => {
+  const light = [...C.PRESETS.filter(t => C.isLightColor(t.bg)).map(t => t.name)].sort();
+  assert.deepEqual(light, ['Arctic Frost', 'Minimal White', 'Sakura Dreams']);
+  assert.equal(C.isLightColor('not a color'), false);
+});
+test('prototype-like keys never resolve to inherited Object members', () => {
+  const cfg = C.normalizeConfig(JSON.parse('{"defaultThemeId":"preset-2","ownerAssignments":{"__proto__":"preset-1","constructor":"preset-1"},"repoAssignments":{"constructor/x":"preset-3"}}'));
+  assert.equal(Object.keys(cfg.ownerAssignments).length, 0);
+  assert.equal(Object.getPrototypeOf(cfg.ownerAssignments), Object.prototype);
+  assert.equal(C.themeResolution(cfg, 'https://github.com/toString/repo').theme.name, 'Midnight Developer');
+  assert.equal(C.themeResolution(cfg, 'https://github.com/hasOwnProperty/repo').scope, 'global');
+  assert.equal(C.themeById(cfg, 'constructor'), null);
+  assert.equal(C.normalizeConfig([1, 2]).defaultThemeId, 'native');
+});

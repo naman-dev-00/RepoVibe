@@ -22,27 +22,36 @@
 
   function buildCss(t) {
     const v = C.normalizeTheme(t);
+    const light = C.isLightColor(v.bg);
     const bg = v.backgroundMode === 'solid' ? v.bg : `linear-gradient(${v.gradientAngle}deg, ${v.bg} 0%, ${v.gradientTo} 58%, ${v.gradientThird} 100%)`;
     const image = v.backgroundMode === 'image' && v.wallpaper ? `url("${v.wallpaper}")` : 'none';
-    const wide = v.layout === 'wide' ? 'min(98vw, 1800px)' : 'none';
     const compact = v.layout === 'compact';
     const panel = rgba(v.surface, v.glassOpacity / 100);
     // Whitelist only constrained colors, numbers, enum values and validated PNG/JPEG/WebP data URLs.
+    // Note: --bgColor-emphasis is GitHub's *neutral* emphasis (tooltips, counters) paired with white
+    // --fgColor-onEmphasis text, so it is intentionally not overridden with the accent.
     return `
 html.repv-active { --bgColor-default:${v.surface} !important; --bgColor-muted:${v.surface2} !important;
- --bgColor-inset:${v.codeBg} !important; --bgColor-emphasis:${v.accent} !important;
+ --bgColor-inset:${v.codeBg} !important;
  --fgColor-default:${v.text} !important; --fgColor-muted:${v.muted} !important;
- --fgColor-accent:${v.accent} !important; --borderColor-default:${v.border} !important;
+ --fgColor-accent:${v.accent} !important; --fgColor-link:${v.accent} !important;
+ --borderColor-default:${v.border} !important; --borderColor-muted:${v.border} !important;
+ --overlay-bgColor:${v.surface} !important; --overlay-borderColor:${v.border} !important;
+ --underlineNav-borderColor-active:${v.accent} !important; --focus-outlineColor:${v.accent} !important;
  --button-default-bgColor-rest:${v.surface2} !important;
  --button-default-fgColor-rest:${v.text} !important;
  --button-default-borderColor-rest:${v.border} !important;
  --control-borderColor-rest:${v.border} !important;
+ --color-canvas-default:${v.surface} !important; --color-canvas-subtle:${v.surface2} !important;
+ --color-canvas-inset:${v.codeBg} !important; --color-fg-default:${v.text} !important;
+ --color-fg-muted:${v.muted} !important; --color-accent-fg:${v.accent} !important;
+ --color-border-default:${v.border} !important;
  --repv-bg:${v.bg}; --repv-panel:${v.surface}; --repv-panel2:${v.surface2};
  --repv-text:${v.text}; --repv-muted:${v.muted}; --repv-accent:${v.accent}; --repv-border:${v.border};
  --repv-radius:${v.radius}px; --repv-blur:${v.glass}px;
- --repv-panel-opacity:${v.glassOpacity / 100}; background:${bg} fixed !important; color-scheme:${['#fff', '#f6'].some(x => v.bg.toLowerCase().startsWith(x)) ? 'light' : 'dark'}; }
+ --repv-panel-opacity:${v.glassOpacity / 100}; background:${bg} fixed !important; color-scheme:${light ? 'light' : 'dark'}; }
 html.repv-active body { background:transparent !important; color:var(--repv-text) !important; font-family:${cssFont(v.font)} !important; }
-html.repv-active body::before { content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+html.repv-active body::before { content:""; position:fixed; inset:${v.wallpaperBlur ? `-${v.wallpaperBlur * 2}px` : '0'}; z-index:-1; pointer-events:none;
  background-image:${image}; background-position:center; background-size:cover; background-repeat:no-repeat;
  opacity:${v.wallpaperOpacity / 100}; filter:blur(${v.wallpaperBlur}px); }
 html.repv-active :is(.AppHeader, .Header, #repository-container-header, .UnderlineNav, .js-header-wrapper) {
@@ -58,14 +67,14 @@ html.repv-active :is(.btn, .Button, button:not([class]), input[type="text"], inp
 html.repv-active :is(.btn, .Button, .form-control, .FormControl-input, .form-select) {
  border-color:${v.border} !important; }
 html.repv-active :is(.color-fg-muted, .text-color-muted, .fgColor-muted) { color:${v.muted} !important; }
-html.repv-active :is(a:not(.btn), .Link--primary:hover, .Link--secondary:hover) { --fgColor-accent:${v.accent}; }
 html.repv-active :is(.markdown-body pre, .highlight pre, .blob-code, .react-code-text, .react-code-line, .diff-table) {
  background-color:${v.codeBg} !important; }
-html.repv-active :is(.blob-code, .react-code-text, .react-code-line, .markdown-body pre code, .highlight pre, .diff-table) {
+html.repv-active :is(.blob-code, .react-code-text, .react-code-line, .markdown-body pre code, .highlight pre, .diff-table,
+ #read-only-cursor-text-area, [data-testid="read-only-cursor-text-area"]) {
  font-family:ui-monospace, SFMono-Regular, Consolas, monospace !important; font-size:${v.codeFontSize}px !important; }
 html.repv-active :is(.Box, .markdown-body, .Layout-sidebar .BorderGrid) {
  backdrop-filter:blur(var(--repv-blur)); }
-html.repv-active :is(.Layout, .container-xl, .container-lg) { max-width:${wide} !important; }
+${v.layout === 'wide' ? `html.repv-active :is(.container-xl, .container-lg) { max-width:min(96vw, 1800px) !important; }` : ''}
 ${compact ? `html.repv-active :is(.Box-row, .react-directory-row) {padding-top:5px !important;padding-bottom:5px !important;}
 html.repv-active .Layout {gap:12px !important;}` : ''}
 @media (prefers-reduced-motion:no-preference) {
@@ -75,14 +84,33 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
 `;
   }
 
+  // GitHub picks its base token set from data-color-mode. A light RepoVibe theme on a dark-mode
+  // account (or vice versa) would otherwise keep the wrong mode for every token we do not override.
+  const MODE_ATTR = 'data-color-mode';
+  const ORIGINAL_MODE_ATTR = 'data-repv-original-color-mode';
+  function applyColorMode(root, theme) {
+    if (theme) {
+      if (!root.hasAttribute(ORIGINAL_MODE_ATTR)) root.setAttribute(ORIGINAL_MODE_ATTR, root.getAttribute(MODE_ATTR) ?? '');
+      const mode = C.isLightColor(C.normalizeTheme(theme).bg) ? 'light' : 'dark';
+      if (root.getAttribute(MODE_ATTR) !== mode) root.setAttribute(MODE_ATTR, mode);
+    } else if (root.hasAttribute(ORIGINAL_MODE_ATTR)) {
+      const original = root.getAttribute(ORIGINAL_MODE_ATTR);
+      root.removeAttribute(ORIGINAL_MODE_ATTR);
+      if (original) root.setAttribute(MODE_ATTR, original); else root.removeAttribute(MODE_ATTR);
+    }
+  }
+
+  let lastTheme = null;
   function render() {
     const theme = activePreview || C.themeResolution(config, location.href).theme;
+    lastTheme = theme;
     const root = document.documentElement;
     if (!root) return;
     let style = document.getElementById(STYLE_ID);
     if (!theme) {
       root.classList.remove('repv-active');
       if (style) style.remove();
+      applyColorMode(root, null);
       return;
     }
     if (!style) {
@@ -92,12 +120,20 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
     }
     style.textContent = buildCss(theme);
     root.classList.add('repv-active');
+    applyColorMode(root, theme);
+  }
+  // GitHub navigations can swap <head> or reset <html> attributes; restore our state if lost.
+  function ensureApplied() {
+    const root = document.documentElement;
+    if (!lastTheme || !root) return;
+    if (!document.getElementById(STYLE_ID) || !root.classList.contains('repv-active')) render();
+    else applyColorMode(root, lastTheme);
   }
 
   function updateForNavigation() {
     if (location.href === currentHref) return;
     currentHref = location.href;
-    activePreview = null;
+    // Keep an active Studio preview across in-page navigation; it ends when the Studio disconnects.
     render();
   }
   function onNavigation() { queueMicrotask(updateForNavigation); }
@@ -106,16 +142,21 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
   document.addEventListener('pjax:end', onNavigation);
   window.addEventListener('popstate', onNavigation);
   window.addEventListener('pageshow', onNavigation);
+  if (globalThis.navigation?.addEventListener) globalThis.navigation.addEventListener('navigatesuccess', onNavigation);
   // URL fallback for GitHub SPA navigation that does not fire a standard event.
   // The observer only checks the URL; it does not restyle per DOM mutation.
   let scheduled = false;
   const observer = new MutationObserver(() => {
     if (scheduled) return;
     scheduled = true;
-    requestAnimationFrame(() => { scheduled = false; updateForNavigation(); });
+    requestAnimationFrame(() => { scheduled = false; updateForNavigation(); ensureApplied(); });
   });
+  const rootObserver = new MutationObserver(ensureApplied);
   const startObserver = () => {
-    if (document.documentElement) observer.observe(document.documentElement, { childList:true, subtree:true });
+    if (document.documentElement) {
+      observer.observe(document.documentElement, { childList:true, subtree:true });
+      rootObserver.observe(document.documentElement, { attributes:true, attributeFilter:['class', 'data-color-mode'] });
+    }
   };
   if (document.documentElement) startObserver();
   else document.addEventListener('DOMContentLoaded', startObserver, {once:true});

@@ -1,8 +1,16 @@
 {
   "name": "repovibe",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local-first Chrome MV3 GitHub theme customization extension",
   "private": true,
-  "scripts": {"test": "node --test tests/*.test.js", "check": "node --check shared/core.js && node --check content.js && node --check popup.js && node --check studio.js"},
-  "engines": {"node": ">=18"}
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node --check shared/core.js && node --check content.js && node --check popup.js && node --check studio.js",
+    "test:e2e": "node --test --test-concurrency=1 tests/e2e/*.e2e.js",
+    "test:all": "npm test && npm run test:e2e",
+    "package": "rm -f RepoVibe-Extension.zip && zip -r -X RepoVibe-Extension.zip manifest.json shared content.js popup.html popup.js studio.html studio.js ui.css icons README.md"
+  },
+  "engines": {
+    "node": ">=18"
+  }
 }

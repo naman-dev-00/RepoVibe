@@ -33,8 +33,8 @@
   }
   function newId() { return `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`; }
   function selectedScopeThemeId() {
-    if (scope === 'repository' && repo && config.repoAssignments[repo.key]) return config.repoAssignments[repo.key];
-    if (scope !== 'global' && repo && config.ownerAssignments[repo.owner]) return config.ownerAssignments[repo.owner];
+    if (scope === 'repository' && repo && Object.hasOwn(config.repoAssignments, repo.key)) return config.repoAssignments[repo.key];
+    if (scope !== 'global' && repo && Object.hasOwn(config.ownerAssignments, repo.owner)) return config.ownerAssignments[repo.owner];
     return config.defaultThemeId;
   }
   function prepareForScope() {
@@ -90,6 +90,7 @@
     try {
       port = chrome.tabs.connect(tabId, {name:'repovibe-preview'});
       port.onDisconnect.addListener(() => {
+        void chrome.runtime.lastError; // e.g. tab was opened before the extension was installed/reloaded
         port = null;
         $('previewState').textContent = 'Preview disconnected · saved themes still work';
       });
@@ -251,6 +252,7 @@
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) throw new Error('Theme file exceeds the 2 MB limit.');
     const parsed = JSON.parse(await file.text());
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Theme file is missing theme data.');
     if (parsed.format && parsed.format !== 'repovibe-theme') throw new Error('Not a RepoVibe theme file.');
     const input = parsed.theme || parsed;
     if (!input || typeof input !== 'object' || typeof input.name !== 'string') throw new Error('Theme file is missing theme data.');
@@ -303,7 +305,8 @@
       }
       if (tabId === null) {
         const tabs = await chrome.tabs.query({url:'https://github.com/*'});
-        const gitTab = tabs.find(t => Number.isInteger(t.id));
+        // Prefer the GitHub tab the user looked at most recently.
+        const gitTab = tabs.filter(t => Number.isInteger(t.id)).sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))[0];
         if (gitTab) { tabId = gitTab.id; repo = C.repositoryFromUrl(gitTab.url || ''); }
       }
       for (const option of $('scopeSelect').options) {
