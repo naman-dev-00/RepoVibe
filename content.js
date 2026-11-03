@@ -7,6 +7,7 @@
   let activePreview = null;
   let currentHref = location.href;
   let requestedId = 0;
+  let configChanges = 0;
 
   const cssFont = font => ({
     system: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -86,24 +87,44 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
 
   // GitHub picks its base token set from data-color-mode. A light RepoVibe theme on a dark-mode
   // account (or vice versa) would otherwise keep the wrong mode for every token we do not override.
+  // Rules: only touch the attribute when GitHub's effective mode differs from the theme's; remember
+  // the user's value in the DOM; if GitHub/the user changes appearance while we are active, adopt that
+  // as the new value to restore (never restore a stale one).
   const MODE_ATTR = 'data-color-mode';
   const ORIGINAL_MODE_ATTR = 'data-repv-original-color-mode';
-  function applyColorMode(root, theme) {
-    if (theme) {
-      if (!root.hasAttribute(ORIGINAL_MODE_ATTR)) root.setAttribute(ORIGINAL_MODE_ATTR, root.getAttribute(MODE_ATTR) ?? '');
-      const mode = C.isLightColor(C.normalizeTheme(theme).bg) ? 'light' : 'dark';
-      if (root.getAttribute(MODE_ATTR) !== mode) root.setAttribute(MODE_ATTR, mode);
-    } else if (root.hasAttribute(ORIGINAL_MODE_ATTR)) {
-      const original = root.getAttribute(ORIGINAL_MODE_ATTR);
-      root.removeAttribute(ORIGINAL_MODE_ATTR);
-      if (original) root.setAttribute(MODE_ATTR, original); else root.removeAttribute(MODE_ATTR);
+  const WRITTEN_MODE_ATTR = 'data-repv-color-mode';
+  const darkQuery = globalThis.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+  const effectiveMode = value => value === 'light' || value === 'dark' ? value : (darkQuery?.matches ? 'dark' : 'light');
+  const themeMode = theme => theme ? (C.isLightColor(theme.bg) ? 'light' : 'dark') : null;
+  // `wanted` is 'light' | 'dark' | null (inactive). Kept cheap: this runs on observer ticks.
+  function applyColorMode(root, wanted) {
+    const current = root.getAttribute(MODE_ATTR);
+    const written = root.getAttribute(WRITTEN_MODE_ATTR);
+    if (written !== null && current !== written) {
+      root.setAttribute(ORIGINAL_MODE_ATTR, current ?? '');
+      root.removeAttribute(WRITTEN_MODE_ATTR);
     }
+    const touched = root.hasAttribute(WRITTEN_MODE_ATTR);
+    const userMode = touched ? root.getAttribute(ORIGINAL_MODE_ATTR) || null : current;
+    if (wanted && effectiveMode(userMode) !== wanted) {
+      if (!touched) root.setAttribute(ORIGINAL_MODE_ATTR, userMode ?? '');
+      root.setAttribute(WRITTEN_MODE_ATTR, wanted);
+      if (current !== wanted) root.setAttribute(MODE_ATTR, wanted);
+      return;
+    }
+    if (touched) {
+      if (userMode) root.setAttribute(MODE_ATTR, userMode); else root.removeAttribute(MODE_ATTR);
+    }
+    root.removeAttribute(WRITTEN_MODE_ATTR);
+    root.removeAttribute(ORIGINAL_MODE_ATTR);
   }
 
   let lastTheme = null;
+  let lastMode = null;
   function render() {
     const theme = activePreview || C.themeResolution(config, location.href).theme;
     lastTheme = theme;
+    lastMode = themeMode(theme);
     const root = document.documentElement;
     if (!root) return;
     let style = document.getElementById(STYLE_ID);
@@ -118,17 +139,41 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
       style.id = STYLE_ID;
       (document.head || root).appendChild(style);
     }
-    style.textContent = buildCss(theme);
+    const css = buildCss(theme);
+    if (style.textContent !== css) style.textContent = css;
     root.classList.add('repv-active');
-    applyColorMode(root, theme);
+    applyColorMode(root, lastMode);
   }
   // GitHub navigations can swap <head> or reset <html> attributes; restore our state if lost.
   function ensureApplied() {
     const root = document.documentElement;
     if (!lastTheme || !root) return;
     if (!document.getElementById(STYLE_ID) || !root.classList.contains('repv-active')) render();
-    else applyColorMode(root, lastTheme);
+    else applyColorMode(root, lastMode);
   }
+
+  // After the extension is reloaded, updated, disabled or removed, this script is orphaned: chrome.*
+  // calls throw and no new script replaces it. Stop observing and restore GitHub's own appearance.
+  let tornDown = false;
+  function extensionAlive() {
+    try { return Boolean(chrome.runtime?.id); } catch (_) { return false; }
+  }
+  function teardown() {
+    if (tornDown) return;
+    tornDown = true;
+    observer.disconnect();
+    rootObserver.disconnect();
+    for (const [target, type] of NAV_EVENTS) target.removeEventListener(type, onNavigation);
+    globalThis.navigation?.removeEventListener?.('navigatesuccess', onNavigation);
+    darkQuery?.removeEventListener?.('change', onSystemModeChange);
+    activePreview = null; lastTheme = null; lastMode = null;
+    document.getElementById(STYLE_ID)?.remove();
+    if (document.documentElement) { document.documentElement.classList.remove('repv-active'); applyColorMode(document.documentElement, null); }
+  }
+  function guard(fn) {
+    return (...args) => { if (tornDown) return; if (!extensionAlive()) { teardown(); return; } fn(...args); };
+  }
+  function onSystemModeChange() { if (lastMode && document.documentElement) applyColorMode(document.documentElement, lastMode); }
 
   function updateForNavigation() {
     if (location.href === currentHref) return;
@@ -136,22 +181,20 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
     // Keep an active Studio preview across in-page navigation; it ends when the Studio disconnects.
     render();
   }
-  function onNavigation() { queueMicrotask(updateForNavigation); }
-  document.addEventListener('turbo:load', onNavigation);
-  document.addEventListener('turbo:render', onNavigation);
-  document.addEventListener('pjax:end', onNavigation);
-  window.addEventListener('popstate', onNavigation);
-  window.addEventListener('pageshow', onNavigation);
-  if (globalThis.navigation?.addEventListener) globalThis.navigation.addEventListener('navigatesuccess', onNavigation);
+  const onNavigation = guard(() => queueMicrotask(updateForNavigation));
+  const NAV_EVENTS = [[document, 'turbo:load'], [document, 'turbo:render'], [document, 'pjax:end'], [window, 'popstate'], [window, 'pageshow']];
+  for (const [target, type] of NAV_EVENTS) target.addEventListener(type, onNavigation);
+  globalThis.navigation?.addEventListener?.('navigatesuccess', onNavigation);
+  darkQuery?.addEventListener?.('change', onSystemModeChange);
   // URL fallback for GitHub SPA navigation that does not fire a standard event.
   // The observer only checks the URL; it does not restyle per DOM mutation.
   let scheduled = false;
-  const observer = new MutationObserver(() => {
+  const observer = new MutationObserver(guard(() => {
     if (scheduled) return;
     scheduled = true;
-    requestAnimationFrame(() => { scheduled = false; updateForNavigation(); ensureApplied(); });
-  });
-  const rootObserver = new MutationObserver(ensureApplied);
+    requestAnimationFrame(() => { scheduled = false; if (!tornDown) { updateForNavigation(); ensureApplied(); } });
+  }));
+  const rootObserver = new MutationObserver(guard(ensureApplied));
   const startObserver = () => {
     if (document.documentElement) {
       observer.observe(document.documentElement, { childList:true, subtree:true });
@@ -161,11 +204,12 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
   if (document.documentElement) startObserver();
   else document.addEventListener('DOMContentLoaded', startObserver, {once:true});
 
-  chrome.storage.onChanged.addListener((changes, area) => {
+  chrome.storage.onChanged.addListener(guard((changes, area) => {
     if (area !== 'local' || !changes[C.STORAGE_KEY]) return;
     config = C.normalizeConfig(changes[C.STORAGE_KEY].newValue);
+    configChanges++;
     if (!activePreview) render();
-  });
+  }));
   chrome.runtime.onConnect.addListener(port => {
     if (port.name !== 'repovibe-preview') return;
     port.onMessage.addListener(message => {
@@ -183,7 +227,9 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
   });
   async function init() {
     const thisRequest = ++requestedId;
-    try { const loaded = await C.loadConfig(); if (thisRequest === requestedId) config = loaded; }
+    const changesBefore = configChanges;
+    // Ignore the initial read if storage changed meanwhile: onChanged already holds newer data.
+    try { const loaded = await C.loadConfig(); if (thisRequest === requestedId && configChanges === changesBefore) config = loaded; }
     catch (e) { console.warn('[RepoVibe] Unable to load preferences', e); }
     render();
   }

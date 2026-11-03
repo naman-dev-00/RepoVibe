@@ -1,4 +1,4 @@
-# Acceptance & defect report — v0.1.1
+# Acceptance & defect report — v0.1.1 (Phase 1A, PR #1)
 
 ## Environment and what was (and was not) executed
 
@@ -24,24 +24,85 @@
 | 12 | Low | Studio opened from the options page linked an arbitrary GitHub tab | Multiple GitHub tabs → preview went to the first found | Most recently accessed GitHub tab is preferred |
 | 13 | Low | Blurred wallpaper showed soft transparent edges | Wallpaper blur > 0 | Wallpaper layer oversized by 2× the blur radius |
 
+### Round 2 — CI integration and hardening review
+
+| # | Severity | Defect | Reproduction (before fix) | Fix | Regression test |
+|---|---|---|---|---|---|
+| 14 | High | Studio/popup wrote back a stale in-memory config (data loss) | Open Studio, assign a theme in the popup, save in Studio → popup change silently lost | `updateConfig()` read-modify-write against latest storage, serialized per page; Studio/popup refresh on `storage.onChanged` | E2E "Studio save does not overwrite…", unit "updateConfig merges…" |
+| 15 | High | User/GitHub appearance change overwritten while active, then a stale mode restored | Light theme on dark account; switch GitHub to "auto"; RepoVibe forced it back and later restored "dark" | Mode is only overridden when GitHub's *effective* mode differs from the theme; an external change becomes the value to restore; follows OS scheme changes for "auto" | E2E "GitHub appearance changes…" |
+| 16 | Medium | 81st custom theme silently dropped by `normalizeConfig(...).slice(0, 80)` while still assigned | Save a theme with 80 already stored | `saveConfig` refuses with a clear "library is full" error; nothing partially saved | unit "saveConfig refuses…" |
+| 17 | Medium | Orphaned content script after extension reload/update/disable kept observers running and left a stale theme | Reload extension; page keeps old theme, observers keep firing into a dead context | Detects invalidated context, disconnects both observers and all listeners, removes styling and restores `data-color-mode` | E2E "orphaned content script…" |
+| 18 | Medium | Per-frame performance: observer ticks re-normalized the theme, regex-scanning a wallpaper data URL of up to ~750 KB each frame with DOM churn | Wallpaper theme on a busy GitHub page | Resolved mode cached at render; style text only rewritten when changed | code review only (no timing test) |
+| 19 | Low | Storage quota failures surfaced raw Chrome errors | Exceed `storage.local` quota with wallpapers | Actionable "storage is full… nothing was saved" message | unit "storage quota failures…" |
+| 20 | Low | Initial config read could overwrite a newer `storage.onChanged` value | Change settings while a GitHub tab is loading | Initial read ignored if a change arrived meanwhile | code review only |
+| 21 | Low | Editing a custom theme shared by several targets changed all of them without telling the user | Two repos share a custom theme; edit from one | Save message states how many other assignments also change | E2E "editing a custom theme shared…" |
+
+Previously untested round-1 fixes now covered: #9 head/style/class restoration, #11/#12 Studio target handling (unavailable target, tab closed mid-session, most-recently-used tab), #13 blurred wallpaper edges (edge pixels sampled).
+
 No permission changes were needed: `tabs.query`/`tabs.get` URLs and `tabs.connect` work for github.com tabs with the existing `host_permissions`.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on pull requests, pushes to `main` and manual dispatch (Ubuntu, Node 22, `contents: read`): `npm ci` → `npx playwright install --with-deps chromium` → `npm run check` → `npm test` → `npm run test:e2e` → `npm run package` → `npm run verify:package` (MV3, exact permissions, all manifest/page-referenced files present, no remote resources, no test/dev files). The ZIP is uploaded as a workflow artifact; E2E screenshots are uploaded on failure. Playwright is a pinned dev dependency (`1.63.0`) with a lockfile; it is not part of the extension package.
 
 ## Automated tests
 
 | Command | Result |
 |---|---|
 | `npm run check` | pass |
-| `npm test` (unit) | 9 / 9 pass |
-| `npm run test:e2e` (Chromium + extension) | 11 / 11 pass |
+| `npm test` (unit) | 13 / 13 pass |
+| `npm run test:e2e` (Chromium + extension, offline fixture) | 20 / 20 pass (11 acceptance + 9 hardening) |
+| `npm run package` + `npm run verify:package` | pass (MV3, 13 files, `storage` + `https://github.com/*` only) |
 
-The E2E suite was also run against the **original v0.1.0 source**: 6 of 11 tests fail there (emphasis/accent, light-on-dark mode, prototype owners, layout/code textarea, preview across navigation, null import), confirming the tests detect the defects above.
+Negative controls (same tests, older source):
+- Acceptance suite vs original v0.1.0: 6 / 11 fail.
+- Hardening suite vs original v0.1.0: 7 / 9 fail; vs round-1 PR head `8d6f514`: 4 / 9 fail (#14, #15, #17, #21).
+- Two hardening tests (unavailable Studio target; enable/disable during navigation) also pass on v0.1.0. They are robustness checks, not proof of a fix.
 
-E2E coverage: no-effect when disabled/native (pixel-identical to a browser without the extension), preset token application, light/dark base mode switch and restore, repo > owner > global priority, wide/compact/code-size controls, pushState + `turbo:load` + back navigation, popup quick theme + engine toggle, Studio preview → close reverts → save persists after reload, color/slider edits with undo/redo, custom theme save, JSON export download, JSON import (sanitized, prototype-safe, error path), wallpaper upload compression/blur/persistence, 390px-wide Studio without horizontal scroll, and zero console/page errors in every test. Visual baselines live in `tests/e2e/__screenshots__` (refresh with `UPDATE_SNAPSHOTS=1`).
+## Security review (full PR diff)
+
+- Permissions unchanged (`storage`, `https://github.com/*`); no `content_security_policy` override; no remote scripts/styles (verified in package check).
+- No `eval`, `new Function`, `fetch`/XHR, or new `innerHTML` with dynamic data in extension code.
+- Theme import remains data-only through `normalizeTheme` (hex colors, clamped numbers, enums, base64 PNG/JPEG/WebP only); names stripped of `<>`/control characters and rendered with `textContent`; `__proto__`/`constructor`/`prototype` keys dropped; lookups use own properties.
+- Wallpaper URLs are only validated `data:` URLs inside `url("...")`; the base64 alphabet cannot break out of the CSS string.
+- The content script writes to GitHub's DOM only: one `<style>`, the `repv-active` class, and `data-color-mode` (+ two `data-repv-*` bookkeeping attributes), all removed/restored when inactive or orphaned.
+- No findings requiring further change.
 
 ## Known limitations
 
 - Selectors and tokens still need verification against live GitHub (see README checklist); the fixture cannot prove GitHub's current DOM.
 - Visual baselines are rendered by Linux Chromium; other platforms may need `UPDATE_SNAPSHOTS=1` locally.
-- Fix #3 writes GitHub's own `data-color-mode` attribute on `<html>` (original value saved in `data-repv-original-color-mode` and restored when RepoVibe is inactive). Unverified on live GitHub: interaction with GitHub's appearance-settings JS if the user changes GitHub's theme while a RepoVibe theme is active, and with high-contrast/colorblind GitHub themes.
+- `data-color-mode` handling (#3, #15) is verified only against the fixture's simulation of GitHub changing the attribute. Live GitHub's appearance-settings flow, `data-light-theme`/`data-dark-theme` variants (high contrast, colorblind, dimmed) and any GitHub code that reads `data-color-mode` (e.g. embedded renderers) are UNVERIFIED.
+- #18 and #20 have no automated test (performance timing and a load-time race are not reliably testable here).
+- Visual baselines are rendered by Linux Chromium; if CI's Chromium renders fonts differently, baselines may need regenerating in CI.
 - Wallpapers still live in `chrome.storage.local` (≈10 MB quota). **IndexedDB wallpaper persistence is not implemented and its verification is PENDING** (Phase 2).
-- Editing a saved custom theme updates every repository using it (second-assignment item).
+- Editing a saved custom theme still updates every target using it by design; the Studio now says so, but per-target forking is a second-assignment item.
+
+## Acceptance matrix
+
+PASS = verified by an automated test in this PR · FAIL = known failing · BLOCKED = could not be executed in this environment · UNVERIFIED = not yet executed anywhere.
+
+| Area | Offline Chromium fixture | Live GitHub |
+|---|---|---|
+| Extension loads (unpacked + packaged ZIP), no manifest errors | PASS | BLOCKED |
+| No effect when disabled/native | PASS | BLOCKED |
+| Token theming, overlays, WCAG AA preset contrast | PASS | BLOCKED |
+| `data-color-mode` switching, user appearance change, OS scheme change, restore | PASS | BLOCKED |
+| Repo > owner > global priority (incl. prototype-like names) | PASS | BLOCKED |
+| Layout (standard/wide/compact), code size + cursor textarea | PASS | BLOCKED |
+| SPA / Turbo / back navigation; enable/disable mid-navigation | PASS (simulated) | BLOCKED |
+| Head/style/class replacement recovery | PASS (simulated) | BLOCKED |
+| Orphaned script cleanup after extension reload | PASS | BLOCKED |
+| Popup quick themes and toggle | PASS | BLOCKED |
+| Studio preview / revert / save; unavailable or closed target; MRU tab | PASS | BLOCKED |
+| Concurrent popup + Studio edits (no data loss) | PASS | n/a (extension-only) |
+| Undo/redo, import/export, custom themes, shared custom theme | PASS | n/a (extension-only) |
+| Wallpaper upload, blur edges (storage.local) | PASS | BLOCKED |
+| Library limit / quota errors | PASS (unit, mocked storage) | UNVERIFIED (real quota) |
+| Rendering performance with large wallpaper | UNVERIFIED (code review only) | UNVERIFIED |
+| IndexedDB wallpaper persistence | UNVERIFIED (not implemented; PENDING) | UNVERIFIED |
+| Code / Issues / PRs / Actions / Discussions / Releases / commits views | — | BLOCKED |
+| Logged-in vs logged-out; high-contrast/colorblind/dimmed GitHub themes | — | BLOCKED |
+| Chrome stable (headed), Windows/macOS rendering | — | UNVERIFIED |
+
+No FAIL entries are known. Live GitHub is BLOCKED from the automated environment (HTTP 403) and must be executed manually; see the checklist in README and PR #1.

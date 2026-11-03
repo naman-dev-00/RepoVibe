@@ -44,12 +44,15 @@ Requires Node.js 18+ (Node.js 22 recommended):
 ```sh
 npm test            # unit tests (no dependencies)
 npm run check       # syntax check of all scripts
+npm ci && npx playwright install chromium   # once: dev dependency + browser
 npm run test:e2e    # Chromium E2E with the unpacked extension loaded
 ```
 
 The E2E suite needs Playwright with a Chromium build available (`require('playwright')`). It intercepts `https://github.com/*` and serves `tests/e2e/fixture.html`, so it runs offline and does not replace manual testing on live GitHub. Visual baselines are in `tests/e2e/__screenshots__`; refresh them with `UPDATE_SNAPSHOTS=1 npm run test:e2e`. Latest results and the defect list are in `docs/ACCEPTANCE_REPORT.md`.
 
-Build a loadable ZIP with `npm run package` (produces `RepoVibe-Extension.zip`).
+Build a loadable ZIP with `npm run package` (produces `RepoVibe-Extension.zip`) and check it with `npm run verify:package`.
+
+CI (`.github/workflows/ci.yml`) runs all of the above on every pull request and push to `main`. Install dev dependencies with `npm ci` and Chromium with `npx playwright install --with-deps chromium`.
 
 ## Project files
 

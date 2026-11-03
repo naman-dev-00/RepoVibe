@@ -5,6 +5,7 @@
   const STORAGE_KEY = 'repovibe.v1';
   const HEX = /^#[0-9a-fA-F]{6}$/;
   const MAX_WALLPAPER_LENGTH = 1050000;
+  const MAX_CUSTOM_THEMES = 80;
   const FONT_VALUES = ['system', 'rounded', 'serif', 'mono'];
   const LAYOUTS = ['standard', 'wide', 'compact'];
   const RESERVED = new Set(['about', 'account', 'apps', 'blog', 'codespaces', 'collections', 'contact', 'dashboard', 'enterprise', 'events', 'explore', 'features', 'gist', 'issues', 'join', 'login', 'logout', 'marketplace', 'new', 'notifications', 'organizations', 'orgs', 'pricing', 'pulls', 'search', 'security', 'settings', 'site', 'sponsors', 'stars', 'topics', 'trending', 'users']);
@@ -115,7 +116,7 @@
       }
     }
     if (raw.customThemes && typeof raw.customThemes === 'object') {
-      for (const [id, theme] of Object.entries(raw.customThemes).slice(0, 80)) {
+      for (const [id, theme] of Object.entries(raw.customThemes).slice(0, MAX_CUSTOM_THEMES)) {
         if (id.startsWith('custom-') && /^[-a-zA-Z0-9_]{1,90}$/.test(id)) {
           try { config.customThemes[id] = normalizeTheme({...theme, id}); } catch (_) { /* Ignore invalid entry */ }
         }
@@ -150,9 +151,36 @@
     return normalizeConfig(obj[STORAGE_KEY]);
   }
   async function saveConfig(config) {
+    if (config && config.customThemes && Object.keys(config.customThemes).length > MAX_CUSTOM_THEMES) {
+      throw new Error(`Your theme library is full (${MAX_CUSTOM_THEMES} themes). Nothing was saved.`);
+    }
     const safe = normalizeConfig(config);
-    await chrome.storage.local.set({ [STORAGE_KEY]: safe });
+    try { await chrome.storage.local.set({ [STORAGE_KEY]: safe }); }
+    catch (e) {
+      if (/quota/i.test(String(e && e.message))) throw new Error('Extension storage is full (wallpapers use most of it). Remove a wallpaper or custom theme. Nothing was saved.');
+      throw e;
+    }
     return safe;
+  }
+  // Read-modify-write against the latest stored config so concurrent extension pages (popup, Studio,
+  // multiple Studio tabs) do not overwrite each other's changes with a stale in-memory copy.
+  // Writes are serialized within a page.
+  let writeQueue = Promise.resolve();
+  function updateConfig(mutator) {
+    const run = writeQueue.then(async () => {
+      const latest = await loadConfig();
+      const result = mutator(latest);
+      return saveConfig(result === undefined ? latest : result);
+    });
+    writeQueue = run.catch(() => {});
+    return run;
+  }
+  function themeUsage(config, id) {
+    const uses = [];
+    if (config.defaultThemeId === id) uses.push({scope:'global', key:''});
+    for (const [key, value] of Object.entries(config.ownerAssignments)) if (value === id) uses.push({scope:'owner', key});
+    for (const [key, value] of Object.entries(config.repoAssignments)) if (value === id) uses.push({scope:'repository', key});
+    return uses;
   }
   function assignTheme(config, scope, repo, themeId) {
     if (scope === 'repository') {
@@ -166,8 +194,8 @@
   }
   function isPreset(id) { return PRESETS.some(theme => theme.id === id); }
   root.RepoVibeCore = Object.freeze({
-    STORAGE_KEY, PRESETS, DEFAULT, normalizeConfig, normalizeTheme, safeWallpaper,
-    repositoryFromUrl, themeById, themeResolution, loadConfig, saveConfig, assignTheme, isPreset,
+    STORAGE_KEY, PRESETS, DEFAULT, MAX_CUSTOM_THEMES, normalizeConfig, normalizeTheme, safeWallpaper,
+    repositoryFromUrl, themeById, themeResolution, loadConfig, saveConfig, updateConfig, themeUsage, assignTheme, isPreset,
     contrastRatio, isLightColor
   });
 })(globalThis);
