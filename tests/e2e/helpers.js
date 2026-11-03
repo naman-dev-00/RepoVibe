@@ -195,6 +195,8 @@ async function visualContrast(context, page, limit = 150) {
       if (out.length >= lim) break;
       if (!(el instanceof HTMLElement) || ['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA'].includes(el.tagName)) continue;
       if (![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 1)) continue;
+      // Screen-reader-only text (clipped to 1 px) is never painted visibly: not a contrast target.
+      if (el.closest('.sr-only, [class*="VisuallyHidden"], .visually-hidden')) continue;
       const r = el.getBoundingClientRect();
       if (r.width < 8 || r.height < 8 || r.top < 0 || r.bottom > innerHeight || r.left < 0 || r.right > innerWidth) continue;
       const cs = getComputedStyle(el);
@@ -219,7 +221,7 @@ async function visualContrast(context, page, limit = 150) {
       ls.sort((a, b) => a - b); const bg = ls[Math.floor(ls.length / 2)];
       const [r, gg, b, a = 1] = parse(it.color);
       const fg = lum([r, gg, b]) * a + bg * (1 - a);
-      return { ratio: (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05), text: it.text };
+      return { ratio: (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05), text: it.text, at: `${it.x},${it.y} ${it.w}x${it.h}` };
     });
   }, [`data:image/png;base64,${shot.toString('base64')}`, items]);
   await helper.close();

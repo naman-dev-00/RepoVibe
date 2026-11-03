@@ -40,7 +40,7 @@
      4. Loose text outside panels (repository title, About, toolbar labels) gets a theme-coloured halo.
      5. Menus, dialogs and popovers stay opaque; code stays ≥ 90 % opaque. */
   const SHELLS = 'body, .application-main, main, #js-repo-pjax-container, turbo-frame, .container-xl, .container-lg, .container-md, [class*="PageLayout-PageLayoutWrapper"], [class*="PageLayout-PageLayoutContent"], .PageLayout, [class*="PageLayout-Content"], .Layout, .Layout-main';
-  const PANELS = '.AppHeader, header.GlobalNav, .Header, .js-header-wrapper header, #repository-container-header, .Box, .markdown-body, .Layout-sidebar, aside[class*="sidebar"], .Flash, [class*="Flash-Flash"], .blob-wrapper, .file, [data-testid="code-viewer"], .timeline-comment, [data-repv-panel]';
+  const PANELS = '.AppHeader, header.GlobalNav, .Header, .js-header-wrapper header, #repository-container-header, .Box, .markdown-body, .Layout-sidebar, aside[class*="sidebar"], [class*="sidebarSection"], .BorderGrid-row, .Flash, [class*="Flash-Flash"], .blob-wrapper, .file, [data-testid="code-viewer"], .timeline-comment, [data-repv-panel]';
   // Floating UI must stay opaque and readable over any wallpaper.
   const FLOATING = '.Overlay, .Overlay-backdrop--center > *, .dropdown-menu, .SelectMenu-modal, .Popover-message, details-dialog, .Box--overlay, [role="menu"], [role="listbox"], [role="dialog"], [popover], .tooltipped::after';
 
@@ -111,9 +111,10 @@ html.repv-active :where(${PANELS}) :where(${PANELS}) { background-color:transpar
 html.repv-active :is(main, .application-main, [class*="PageLayout-Pane"]) { text-shadow:${halo}; }
 html.repv-active :is(${PANELS}, ${FLOATING}, input, textarea, select, button, .btn, .Button, pre, code) { text-shadow:none; }
 html.repv-active :is(input[type="text"], input[type="search"], textarea, select, .form-control, .FormControl-input, [class*="TextInputWrapper"]) { background-color:${control} !important; }
-html.repv-active :is(main, .application-main) :is(a, h1, h2, h3, p, .Label, [class*="prc-Label"], [data-variant="invisible"], .Button--invisible, .btn-octicon):not(:where(${PANELS}) *):not(.btn):not(:has(img)):not(:is([class*="ButtonBase"], .btn, button)[data-variant]:not([data-variant="invisible"])) { background-color:${rgba(v.bg, looseA)} !important; border-radius:6px; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
+html.repv-active :is(main, .application-main) :is(a, h1, h2, h3, p, .Label, [class*="prc-Label"], .Counter, [class*="CounterLabel"], [data-variant="invisible"], .Button--invisible, .btn-octicon):not(:where(${PANELS}) *):not(.btn):not(:has(img)):not(:is([class*="ButtonBase"], .btn, button)[data-variant]:not([data-variant="invisible"])) { background-color:${rgba(v.bg, looseA)} !important; border-radius:6px; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
 html.repv-active :is(main, .application-main) a:has(img):not(:where(${PANELS}) *) > :is(span, strong):not(:has(img)) { background-color:${rgba(v.bg, looseA)} !important; border-radius:6px; padding:0 4px; }
 html.repv-active :is(main, .application-main) :is(a, h1, h2, h3, p):not(:where(${PANELS}) *):not(.btn):not([class*="Button"]):not(:has(img)) { padding-left:4px; padding-right:4px; margin-left:-4px; margin-right:-4px; }
+html.repv-active :where(${PANELS}) :not(pre) > code { background-color:${rgba(v.bg, 0.5)} !important; }
 ${light ? '' : `html.repv-active :is(.IssueLabel, [class*="IssueLabel"], [class*="TokenBase"], [class*="Token__"]) { box-shadow:inset 0 0 0 100vmax ${rgba(v.bg, 0.45)}; }`}
 html.repv-active:is(.repv-motion-cinematic${v.wallpaperBlur > 0 ? ', *' : ''}) body::before { content:""; position:fixed; inset:${v.wallpaperBlur > 0 ? `-${v.wallpaperBlur * 2}px` : '-4%'}; z-index:-1; pointer-events:none;
  background:${[...veils.map(l => l.replace(' fixed', '')), `var(--repv-wallpaper, none) ${POSITION[v.wallpaperPosition]} / ${v.wallpaperSize} no-repeat`, v.bg].join(', ')};

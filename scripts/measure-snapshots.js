@@ -7,7 +7,7 @@ const R = require('../tests/e2e/real-snapshot');
   const [size = '1366x768', ...ids] = process.argv.slice(2);
   const [w, h] = size.split('x').map(Number);
   const presets = ids.length ? ids : ['preset-1', 'preset-8', 'preset-19', 'preset-15'];
-  for (const snapName of R.available()) {
+  for (const snapName of R.available().filter(n => !process.env.SNAP || n.includes(process.env.SNAP))) {
     const snap = R.load(snapName);
     const { context, close } = await launch({ colorScheme: 'dark' });
     try {
@@ -24,7 +24,7 @@ const R = require('../tests/e2e/real-snapshot');
         const art = await page.screenshot();
         const changed = await diffRatio(context, solid, art);
         const vc = await visualContrast(context, page, 400);
-        console.log(`${snapName} ${id} ${size}: scene changes ${(changed * 100).toFixed(1)}% of pixels vs solid; text n=${vc.count} min ${vc.min.toFixed(2)} p10 ${vc.p10.toFixed(2)} <4.5:${vc.below45} <3:${vc.below3.length} ${vc.low.slice(0, 6).map(x => `"${x.text}" ${x.ratio.toFixed(2)}`).join('; ')}`);
+        console.log(`${snapName} ${id} ${size}: scene changes ${(changed * 100).toFixed(1)}% of pixels vs solid; text n=${vc.count} min ${vc.min.toFixed(2)} p10 ${vc.p10.toFixed(2)} <4.5:${vc.below45} <3:${vc.below3.length} ${vc.low.slice(0, 6).map(x => `"${x.text}" ${x.ratio.toFixed(2)} @${x.at}`).join('; ')}`);
       }
     } finally { await close(); }
   }

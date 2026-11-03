@@ -32,9 +32,9 @@ async function gotoLiveInner(page, url, failedAssets) {
   catch (e) { throw new Blocked(`navigation to ${url} failed: ${e.message.split('\n')[0]}`); }
   await assertNotBlocked(page, response, url);
   await settle(page);
-  // A page is only valid evidence if GitHub's own stylesheets loaded. --fgColor-danger is a Primer token
+  // A page is only valid evidence if GitHub's own stylesheets loaded. --fgColor-sponsors is a Primer token
   // RepoVibe never sets, so it is empty exactly when GitHub's CSS (github.githubassets.com) is missing.
-  const styled = await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--fgColor-danger').trim() !== '', null, { timeout: 15000 }).then(() => true, () => false);
+  const styled = await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--fgColor-sponsors').trim() !== '', null, { timeout: 15000 }).then(() => true, () => false);
   if (!styled) throw new Blocked(`GitHub HTML loaded but its stylesheets did not (degraded page is not valid evidence)${failedAssets.length ? `; failed assets: ${[...new Set(failedAssets)].slice(0, 3).join(', ')}` : ''}`);
   return response;
 }
@@ -62,12 +62,12 @@ async function liveEvidence(page, response, expectedPath, repo) {
     const meta = n => document.querySelector(`meta[name="${n}"], meta[property="${n}"]`)?.getAttribute('content') || null;
     const sheets = [...document.styleSheets].map(s => s.href).filter(Boolean).map(h => new URL(h).hostname);
     return { host: location.hostname, path: location.pathname, site: meta('og:site_name'), nwo: meta('octolytics-dimension-repository_nwo'),
-      primerToken: getComputedStyle(document.documentElement).getPropertyValue('--fgColor-danger').trim(),
+      primerToken: getComputedStyle(document.documentElement).getPropertyValue('--fgColor-sponsors').trim(),
       githubSheets: sheets.filter(h => h.endsWith('githubassets.com')).length };
   });
   const status = response ? response.status() : 0;
   const ok = status === 200 && ev.host === 'github.com' && ev.path.replace(/\/$/, '') === expectedPath.replace(/\/$/, '') && ev.site === 'GitHub' && ev.primerToken !== '' && ev.githubSheets > 0 && (!repo || (ev.nwo || '').toLowerCase() === repo.toLowerCase());
-  return { ok, detail: `HTTP ${status} https://${ev.host}${ev.path} · og:site_name=${ev.site} · repository meta=${ev.nwo} · ${ev.githubSheets} GitHub stylesheets · --fgColor-danger=${ev.primerToken}` };
+  return { ok, detail: `HTTP ${status} https://${ev.host}${ev.path} · og:site_name=${ev.site} · repository meta=${ev.nwo} · ${ev.githubSheets} GitHub stylesheets · --fgColor-sponsors=${ev.primerToken}` };
 }
 
 /** Everything RepoVibe ever writes into GitHub's DOM, searched across the whole document. */
@@ -99,7 +99,7 @@ const themeState = page => page.evaluate(() => {
     colorScheme: cs.colorScheme,
     bgDefault: v('--bgColor-default'), surface: v('--repv-panel'), fgDefault: v('--fgColor-default'), accent: v('--fgColor-accent'),
     wallpaperVar: v('--repv-wallpaper').slice(0, 60),
-    fgDanger: v('--fgColor-danger'), fgSuccess: v('--fgColor-success'),
+    fgDanger: v('--fgColor-danger'), fgSuccess: v('--fgColor-success'), fgSponsors: v('--fgColor-sponsors'),
     htmlBgImage: cs.backgroundImage.slice(0, 60),
     bodyColor: getComputedStyle(document.body).color,
     bodyBg: getComputedStyle(document.body).backgroundColor,

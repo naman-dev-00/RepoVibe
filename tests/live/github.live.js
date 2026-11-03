@@ -65,7 +65,7 @@ L.liveTest('LIVE 1: native baseline, theme application, readability and exact re
       c.check(!native.active && !native.style && !native.writtenMode, name, `native (default settings): no RepoVibe class/style/attributes; GitHub data-color-mode="${native.mode}"`);
       const nativePrint = await L.fingerprint(page);
       const nativeAudit = await L.readability(page, native.bodyBg);
-      shared.nativeLight[name] = { fgDanger: native.fgDanger, audit: nativeAudit };
+      shared.nativeLight[name] = { fgSponsors: native.fgSponsors, audit: nativeAudit };
       await L.shot(page, `light-native-${name}`);
 
       await setConfig(context, { enabled: true, defaultThemeId: T.cyber.id });
@@ -73,7 +73,7 @@ L.liveTest('LIVE 1: native baseline, theme application, readability and exact re
       const s = await L.themeState(page);
       c.check(themed(s, T.cyber), name, `Cyberpunk applied: surface ${s.surface}, glass --bgColor-default ${s.bgDefault}, body color ${s.bodyColor}, wallpaper ${s.wallpaperVar.slice(0, 50)}`);
       c.check(s.mode === 'dark' && s.writtenMode === 'dark' && s.colorScheme === 'dark', name, `dark theme on light GitHub switches base mode: data-color-mode=${s.mode} (was ${native.mode}), color-scheme=${s.colorScheme}`);
-      c.check(s.fgDanger !== native.fgDanger, name, `GitHub's own (non-overridden) tokens follow the switched mode: --fgColor-danger ${native.fgDanger} → ${s.fgDanger}`);
+      c.check(s.fgSponsors !== native.fgSponsors, name, `GitHub's own (never overridden) tokens follow the switched mode: --fgColor-sponsors ${native.fgSponsors} → ${s.fgSponsors}`);
       if (s.headerFound) c.check(s.headerBg !== native.headerBg, name, `signed-in .AppHeader themed: ${native.headerBg} → ${s.headerBg}`);
       else c.info(name, `logged-out page: GitHub's marketing header has its own fixed data-color-mode="${s.loggedOutHeader?.mode}" (bg ${s.loggedOutHeader?.bg}, text ${s.loggedOutHeader?.color}) and is intentionally not themed; signed-in .AppHeader theming needs a logged-in session (manual)`);
       await readable(c, page, name, nativeAudit, T.cyber);
@@ -106,14 +106,15 @@ L.liveTest('LIVE 2: GitHub dark mode on six page types — light theme switches 
       const native = await L.themeState(page);
       const nativePrint = await L.fingerprint(page);
       const nativeAudit = await L.readability(page, native.bodyBg);
-      c.check(!native.active, name, `native dark: data-color-mode="${native.mode}", color-scheme=${native.colorScheme}, --fgColor-danger ${native.fgDanger}`);
+      c.check(!native.active, name, `native dark: data-color-mode="${native.mode}", color-scheme=${native.colorScheme}, --fgColor-sponsors ${native.fgSponsors}`);
       await setConfig(context, { enabled: true, defaultThemeId: T.arctic.id });
       await waitTheme(page, T.arctic.surface);
       const s = await L.themeState(page);
       c.check(themed(s, T.arctic), name, `Arctic Frost (light) applied on dark GitHub: surface ${s.surface}, body ${s.bodyColor}`);
       c.check(s.mode === 'light' && s.originalMode === (native.mode ?? ''), name, `base mode switched to light, original "${s.originalMode}" remembered`);
-      const lightDanger = shared.nativeLight[name]?.fgDanger;
-      if (lightDanger) c.check(s.fgDanger === lightDanger, name, `GitHub light token set is active: --fgColor-danger ${s.fgDanger} (native light ${lightDanger})`);
+      // --fgColor-sponsors is never overridden by RepoVibe (danger/success/attention are raised for contrast on scenes).
+      const lightSponsors = shared.nativeLight[name]?.fgSponsors;
+      if (lightSponsors) c.check(s.fgSponsors === lightSponsors, name, `GitHub light token set is active: --fgColor-sponsors ${s.fgSponsors} (native light ${lightSponsors})`);
       await readable(c, page, name, nativeAudit, T.arctic);
       await L.shot(page, `dark-arctic-${name}`);
       await setConfig(context, { enabled: false, defaultThemeId: T.arctic.id });
@@ -508,10 +509,10 @@ L.liveTest('LIVE 8: four flagship worlds with live wallpapers on real pages; def
    1366×768 and 1920×1080, each flagship world: scene visible and recognisable (luminance-structure correlation with the
    wallpaper itself, unobstructed area, single glass layer), compared with the same theme in solid colour, text at
    WCAG AA (screenshot-measured, never below native GitHub), diagnostic configuration, live motion over the scene. */
-L.liveTest('LIVE 9: the four scenes are visible and recognisable on real repository pages; text stays AA', async (t, ctx) => {
+for (const [, id, slug, motion, label] of FLAGSHIPS) L.liveTest(`LIVE 9 (${label}): scene visible and recognisable on real Code / Issues / Pull request pages; text stays AA`, async (t, ctx) => {
   const { context, close } = await launch({ fixture: false, colorScheme: 'dark' });
   const errors = L.watchErrors(context);
-  const c = checker('Scene visibility');
+  const c = checker(`Scene visibility · ${label}`);
   const pages = [['code', `https://github.com/${A}`], ['issues', `https://github.com/${A}/issues`], ['pulls', `https://github.com/${A}/pulls`]];
   try {
     const page = await context.newPage(); ctx.pages.push(page);
@@ -520,7 +521,7 @@ L.liveTest('LIVE 9: the four scenes are visible and recognisable on real reposit
     await setConfig(context, { enabled: true, defaultThemeId: 'native', motionMode: 'static' });
     await page.setViewportSize({ width: 1366, height: 768 });
     for (const [name, url] of pages) { await L.gotoLive(page, url); await L.settleAnimations(page); native[name] = await visualContrast(context, page, 300); }
-    for (const [, id, slug, motion, label] of FLAGSHIPS) {
+    {
       const preset = await presetOf(id);
       for (const [w, h] of [[1366, 768], [1920, 1080]]) {
         await page.setViewportSize({ width: w, height: h });
@@ -558,12 +559,29 @@ L.liveTest('LIVE 9: the four scenes are visible and recognisable on real reposit
       const mv = await page.evaluate(() => ({ cls: document.documentElement.className, anims: [...new Set(document.getAnimations().map(a => a.animationName).filter(n => /^repv-/.test(n || '')))] }));
       c.check(mv.cls.includes(`repv-motion-${motion}`) && mv.anims.length > 0, `${label} · live layer`, `ambient ${motion}: ${mv.anims.join(', ')}`);
     }
+    errorCheck(c, errors);
+    c.done();
+  } finally { await close(); }
+});
+
+L.liveTest('LIVE 9 (restore): disabling RepoVibe after a scene theme leaves no classes, styles, panel markers or root image', async (t, ctx) => {
+  const { context, close } = await launch({ fixture: false, colorScheme: 'dark' });
+  const c = checker('Scene visibility · restore');
+  try {
+    const page = await context.newPage(); ctx.pages.push(page);
+    await setConfig(context, { enabled: true, motionMode: 'ambient', defaultThemeId: 'preset-8' });
+    await L.gotoLive(page, `https://github.com/${A}`);
+    await page.waitForFunction(() => document.querySelectorAll('[data-repv-panel]').length > 0, null, { timeout: 8000 }).catch(() => {});
+    c.check(await page.evaluate(() => document.querySelectorAll('[data-repv-panel]').length > 0 && /url\(/.test(getComputedStyle(document.documentElement).backgroundImage)), 'Active', 'scene on the root and panels detected before disabling');
+    await setConfig(context, { enabled: false, defaultThemeId: 'preset-8' });
+    await page.waitForFunction(() => !document.documentElement.classList.contains('repv-active'), null, { timeout: 8000 }).catch(() => {});
+    const inPlace = await page.evaluate(() => ({ panels: document.querySelectorAll('[data-repv-panel]').length, cls: [...document.documentElement.classList].filter(x => x.startsWith('repv')) }));
+    c.check(!inPlace.panels && !inPlace.cls.length, 'Disable in place', `without reload: panel markers ${inPlace.panels}, classes [${inPlace.cls}]`);
     // Disabling restores GitHub: no RepoVibe classes, styles or panel markers remain.
     await setConfig(context, { enabled: false, defaultThemeId: 'preset-8' });
     await L.gotoLive(page, `https://github.com/${A}`); await page.waitForTimeout(500);
     const left = await page.evaluate(() => ({ cls: [...document.documentElement.classList].filter(x => x.startsWith('repv')), styles: document.querySelectorAll('[id^="repovibe-"]').length, panels: document.querySelectorAll('[data-repv-panel]').length, bg: getComputedStyle(document.documentElement).backgroundImage }));
     c.check(!left.cls.length && !left.styles && !left.panels && !/url\(/.test(left.bg), 'Disable', `after disabling: classes [${left.cls}], styles ${left.styles}, panel markers ${left.panels}, root image ${/url\(/.test(left.bg) ? 'present' : 'none'}`);
-    errorCheck(c, errors);
     c.done();
   } finally { await close(); }
 });
