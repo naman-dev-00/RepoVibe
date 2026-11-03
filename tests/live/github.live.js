@@ -42,7 +42,7 @@ const waitInactive = page => page.waitForFunction(() => !document.documentElemen
 async function readable(c, page, name, nativeAudit, theme) {
   const audit = await L.readability(page, hexToRgb(theme.bg));
   const allowed = nativeAudit.low + Math.max(5, Math.round(audit.checked * 0.03));
-  c.check(audit.low <= allowed, name, `readability: ${audit.low}/${audit.checked} text elements < 3:1 (native GitHub: ${nativeAudit.low}/${nativeAudit.checked}, allowed ${allowed})${audit.low > allowed ? ` e.g. ${audit.samples.slice(0, 6).join('; ')}` : ''}`);
+  c.check(audit.low <= allowed, name, `readability: ${audit.low}/${audit.checked} text elements < 3:1 (native GitHub: ${nativeAudit.low}/${nativeAudit.checked}, allowed ${allowed})${audit.low > nativeAudit.low ? ` — e.g. ${audit.samples.slice(0, 6).join('; ')}` : ''}`);
 }
 function errorCheck(c, errors) {
   c.check(errors.extension.length === 0, 'Console', `RepoVibe-attributed console/page errors: ${errors.extension.length}${errors.extension.length ? ` → ${errors.extension.slice(0, 3).join(' | ')}` : ''}`);
@@ -70,14 +70,16 @@ L.liveTest('LIVE 1: native baseline, theme application, readability and exact re
       c.check(themed(s, T.cyber), name, `Cyberpunk applied: --bgColor-default ${s.bgDefault}, body color ${s.bodyColor}, gradient ${s.htmlBgImage.slice(0, 30)}`);
       c.check(s.mode === 'dark' && s.writtenMode === 'dark' && s.colorScheme === 'dark', name, `dark theme on light GitHub switches base mode: data-color-mode=${s.mode} (was ${native.mode}), color-scheme=${s.colorScheme}`);
       c.check(s.fgDanger !== native.fgDanger, name, `GitHub's own (non-overridden) tokens follow the switched mode: --fgColor-danger ${native.fgDanger} → ${s.fgDanger}`);
-      c.check(s.headerFound && s.headerBg !== native.headerBg, name, `header element found and themed (selector match): ${s.headerFound ? s.headerBg : 'NO HEADER MATCHED'}`);
+      if (s.headerFound) c.check(s.headerBg !== native.headerBg, name, `signed-in .AppHeader themed: ${native.headerBg} → ${s.headerBg}`);
+      else c.info(name, `logged-out page: GitHub's marketing header has its own fixed data-color-mode="${s.loggedOutHeader?.mode}" (bg ${s.loggedOutHeader?.bg}, text ${s.loggedOutHeader?.color}) and is intentionally not themed; signed-in .AppHeader theming needs a logged-in session (manual)`);
       await readable(c, page, name, nativeAudit, T.cyber);
       await L.shot(page, `light-cyberpunk-${name}`);
 
       await setConfig(context, { enabled: true, defaultThemeId: 'native' });
       await waitInactive(page);
-      const restored = await L.fingerprint(page);
-      c.check(JSON.stringify(restored) === JSON.stringify(nativePrint), name, `original appearance restored exactly after switching back to native${JSON.stringify(restored) === JSON.stringify(nativePrint) ? '' : `: ${JSON.stringify(nativePrint)} vs ${JSON.stringify(restored)}`}`);
+      const cmp = L.sameAppearance(nativePrint, await L.fingerprint(page));
+      c.check(cmp.same, name, `original appearance restored exactly after switching back to native (${cmp.compared} pinned elements compared)${cmp.same ? '' : `: ${cmp.diffs.slice(0, 4).join('; ')}`}`);
+      await page.evaluate(() => { delete window.__repvFpNodes; });
     }
     errorCheck(c, errors);
     c.done();
@@ -107,8 +109,10 @@ L.liveTest('LIVE 2: GitHub dark mode — light theme switches base tokens; disab
       await L.shot(page, `dark-arctic-${name}`);
       await setConfig(context, { enabled: false, defaultThemeId: T.arctic.id });
       await waitInactive(page);
-      const restored = await L.fingerprint(page);
-      c.check(JSON.stringify(restored) === JSON.stringify(nativePrint), name, `disable restores original dark appearance and data-color-mode="${restored.mode}"${JSON.stringify(restored) === JSON.stringify(nativePrint) ? '' : `: ${JSON.stringify(nativePrint)} vs ${JSON.stringify(restored)}`}`);
+      const restoredPrint = await L.fingerprint(page);
+      const cmp = L.sameAppearance(nativePrint, restoredPrint);
+      c.check(cmp.same, name, `disable restores original dark appearance and data-color-mode="${restoredPrint.mode}" (${cmp.compared} pinned elements compared)${cmp.same ? '' : `: ${cmp.diffs.slice(0, 4).join('; ')}`}`);
+      await page.evaluate(() => { delete window.__repvFpNodes; });
     }
     errorCheck(c, errors);
     c.done();
@@ -166,9 +170,9 @@ L.liveTest('LIVE 4: GitHub client-side navigation between repository tabs keeps 
     // Only links inside the repository navigation (GitHub's global header has marketing links like /features/actions).
     const repoNav = 'nav[aria-label="Repository"], .js-repo-nav, #repository-container-header nav';
     const tabs = [
-      ['Issues', `#issues-tab, :is(${repoNav}) a[href="/${A}/issues"]`, /\/actions\/checkout\/issues/],
-      ['Pull requests', `#pull-requests-tab, :is(${repoNav}) a[href="/${A}/pulls"]`, /\/actions\/checkout\/pulls/],
-      ['Actions', `#actions-tab, :is(${repoNav}) a[href="/${A}/actions"]`, /\/actions\/checkout\/actions/],
+      ['Issues', `#issues-tab, :is(${repoNav}) a[href="/${A}/issues"]`, /^\/actions\/checkout\/issues\/?$/],
+      ['Pull requests', `#pull-requests-tab, :is(${repoNav}) a[href="/${A}/pulls"]`, /^\/actions\/checkout\/pulls\/?$/],
+      ['Actions', `#actions-tab, :is(${repoNav}) a[href="/${A}/actions"]`, /^\/actions\/checkout\/actions\/?$/],
       ['Code', `#code-tab, :is(${repoNav}) a[href="/${A}"]`, /^\/actions\/checkout\/?$/]
     ];
     for (const [name, selector, re] of tabs) {
@@ -176,7 +180,7 @@ L.liveTest('LIVE 4: GitHub client-side navigation between repository tabs keeps 
       const link = gh.locator(selector).first();
       if (!(await link.count())) { c.check(false, name, `repository tab link not found (${selector})`); continue; }
       await link.click();
-      await gh.waitForURL(re, { timeout: 20000 }).catch(() => {});
+      await gh.waitForURL(u => re.test(new URL(u).pathname), { timeout: 20000 }).catch(() => {});
       await L.settle(gh, 1200);
       const soft = await gh.evaluate(() => window.__repvMarker === 1).catch(() => false);
       const s = await L.themeState(gh);
@@ -194,7 +198,7 @@ L.liveTest('LIVE 4: GitHub client-side navigation between repository tabs keeps 
       c.check(/\/commits\//.test(s.url) && themed(s, T.aurora), 'Commit history', `${soft ? 'client-side' : 'full'} navigation to commits: theme ${themed(s, T.aurora) ? 'kept' : 'LOST'}`);
     } else c.check(false, 'Commit history', 'commits link not found on overview');
     // Leave the repository via the owner link: the repo theme must be removed (global is native).
-    const owner = gh.locator('a[data-hovercard-type="organization"][href="/actions"], .AppHeader-context-item[href="/actions"], [itemprop="author"] a[href="/actions"]').first();
+    const owner = gh.locator('#repository-container-header a[href="/actions"], a[rel="author"][href="/actions"], [itemprop="author"] a[href="/actions"], a[data-hovercard-type="organization"][href="/actions"], .AppHeader-context-item[href="/actions"]').first();
     if (await owner.count()) {
       await owner.click();
       await gh.waitForURL(u => new URL(u).pathname.replace(/\/$/, '') === '/actions', { timeout: 20000 }).catch(() => {});

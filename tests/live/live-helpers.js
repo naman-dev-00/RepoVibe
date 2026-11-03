@@ -60,7 +60,10 @@ async function settle(page, ms = 1500) {
 const themeState = page => page.evaluate(() => {
   const root = document.documentElement, cs = getComputedStyle(root);
   const v = name => cs.getPropertyValue(name).trim();
-  const header = document.querySelector('.AppHeader, header.Header, header[role="banner"], .js-header-wrapper header');
+  // Signed-in GitHub uses .AppHeader (themed by RepoVibe). Logged-out pages use a marketing header that
+  // carries its own fixed data-color-mode; it is reported separately, not expected to take the theme.
+  const header = document.querySelector('.AppHeader');
+  const mktg = document.querySelector('header.HeaderMktg, header.header-logged-out');
   return {
     url: location.href,
     active: root.classList.contains('repv-active'),
@@ -77,22 +80,51 @@ const themeState = page => page.evaluate(() => {
     wallpaper: getComputedStyle(document.body, '::before').backgroundImage.slice(0, 40),
     wallpaperFilter: getComputedStyle(document.body, '::before').filter,
     headerFound: !!header, headerBg: header ? getComputedStyle(header).backgroundColor : null,
+    loggedOutHeader: mktg ? { mode: mktg.getAttribute('data-color-mode'), bg: getComputedStyle(mktg).backgroundColor, color: getComputedStyle(mktg).color } : null,
     title: document.title
   };
 });
 
-/** Computed-style fingerprint used to prove GitHub's original appearance is restored exactly. */
+/** Computed-style fingerprint used to prove GitHub's original appearance is restored exactly.
+    The first call pins up to 60 concrete DOM nodes (stored on window); later calls re-read the SAME nodes,
+    so GitHub's lazy rendering cannot swap in different elements. Nodes removed meanwhile are skipped. */
 const fingerprint = page => page.evaluate(() => {
-  const pick = sel => { const el = document.querySelector(sel); if (!el) return null; const c = getComputedStyle(el); return [c.color, c.backgroundColor, c.backgroundImage.slice(0, 40), c.borderTopColor, c.fontFamily.slice(0, 40), c.maxWidth].join('|'); };
   const root = document.documentElement;
+  if (!window.__repvFpNodes) {
+    const picks = ['html', 'body', '.AppHeader', 'header', 'main', '[role="main"]', '#repository-container-header', 'nav[aria-label="Repository"]', '.UnderlineNav', '.Box', '.markdown-body', '.react-code-text', '.Layout-sidebar', '.container-xl', '.btn', '.Button', 'a', '.Counter', '.Label'];
+    const nodes = picks.map(sel => document.querySelector(sel)).filter(Boolean);
+    for (const el of document.querySelectorAll('main *, [role="main"] *')) {
+      if (nodes.length >= 60) break;
+      if ([...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && el.getBoundingClientRect().height > 0) nodes.push(el);
+    }
+    window.__repvFpNodes = [...new Set(nodes)];
+  }
+  const styles = window.__repvFpNodes.map((el, i) => {
+    if (!el.isConnected) return `${i}:detached`;
+    const c = getComputedStyle(el);
+    return `${i}:${el.tagName}|${c.color}|${c.backgroundColor}|${c.backgroundImage.slice(0, 40)}|${c.borderTopColor}|${c.fontFamily.slice(0, 30)}|${c.fontSize}|${c.maxWidth}|${c.borderTopLeftRadius}`;
+  });
   return {
     mode: root.getAttribute('data-color-mode'),
     classes: [...root.classList].filter(c => c.startsWith('repv')).join(' '),
     repvAttrs: [...root.attributes].filter(a => a.name.startsWith('data-repv')).map(a => a.name).join(' '),
-    html: pick('html'), body: pick('body'), header: pick('.AppHeader, header'), main: pick('main, [role="main"]'),
-    link: pick('main a, a'), border: pick('.Box, .border, [class*="Box-"]'), container: pick('.container-xl, .container-lg')
+    repvStyle: !!document.getElementById('repovibe-style-v1'),
+    styles
   };
 });
+/** Compares two fingerprints from the same pinned nodes, ignoring nodes GitHub detached in between. */
+function sameAppearance(before, after) {
+  const diffs = [];
+  for (const k of ['mode', 'classes', 'repvAttrs', 'repvStyle']) if (before[k] !== after[k]) diffs.push(`${k}: ${before[k]} → ${after[k]}`);
+  let compared = 0;
+  before.styles.forEach((b, i) => {
+    const a = after.styles[i];
+    if (b.endsWith(':detached') || a.endsWith(':detached')) return;
+    compared++;
+    if (a !== b) diffs.push(`node ${b.split('|')[0]}: ${b.slice(b.indexOf('|') + 1, 90)} → ${a.slice(a.indexOf('|') + 1, 90)}`);
+  });
+  return { same: diffs.length === 0 && compared > 0, compared, diffs };
+}
 
 /** Readability audit: visible text elements whose contrast with their effective background is < 3:1. */
 const readability = (page, fallbackBg) => page.evaluate(fallback => {
@@ -187,4 +219,4 @@ function writeSummary() {
 }
 test.after(writeSummary);
 
-module.exports = { Blocked, record, gotoLive, settle, themeState, fingerprint, readability, watchErrors, shot, debugDump, liveTest, OUT };
+module.exports = { Blocked, record, gotoLive, settle, themeState, fingerprint, sameAppearance, readability, watchErrors, shot, debugDump, liveTest, OUT };
