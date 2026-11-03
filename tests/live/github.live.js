@@ -56,7 +56,9 @@ L.liveTest('LIVE 1: native baseline, theme application, readability and exact re
   try {
     const page = await context.newPage(); ctx.pages.push(page);
     for (const [name, url] of PAGES) {
-      await L.gotoLive(page, url);
+      const response = await L.gotoLive(page, url);
+      const ev = await L.liveEvidence(page, response, new URL(url).pathname, A);
+      c.check(ev.ok, name, `real github.com evidence: ${ev.detail}`);
       const native = await L.themeState(page);
       c.check(!native.active && !native.style && !native.writtenMode, name, `native (default settings): no RepoVibe class/style/attributes; GitHub data-color-mode="${native.mode}"`);
       const nativePrint = await L.fingerprint(page);
@@ -77,8 +79,10 @@ L.liveTest('LIVE 1: native baseline, theme application, readability and exact re
 
       await setConfig(context, { enabled: true, defaultThemeId: 'native' });
       await waitInactive(page);
-      const cmp = L.sameAppearance(nativePrint, await L.fingerprint(page));
-      c.check(cmp.same, name, `original appearance restored exactly after switching back to native (${cmp.compared} pinned elements compared)${cmp.same ? '' : `: ${cmp.diffs.slice(0, 4).join('; ')}`}`);
+      const cmp = L.sameAppearance(nativePrint, await L.fingerprint(page)); // fingerprint waits for transitions first
+      c.check(cmp.same, name, `computed styles restored exactly after transitions settled (${cmp.compared} pinned elements compared)${cmp.same ? '' : `: ${cmp.diffs.slice(0, 4).join('; ')}`}`);
+      const leftovers = await L.extensionDom(page);
+      c.check(leftovers.length === 0, name, `no RepoVibe-owned DOM left (style tag, repv* classes, data-repv* attributes, wallpaper layer): ${leftovers.length ? leftovers.join(', ') : 'none'}`);
       await page.evaluate(() => { delete window.__repvFpNodes; });
     }
     errorCheck(c, errors);
@@ -86,14 +90,16 @@ L.liveTest('LIVE 1: native baseline, theme application, readability and exact re
   } finally { await close(); }
 });
 
-L.liveTest('LIVE 2: GitHub dark mode — light theme switches base tokens; disabling restores the user\'s mode', async (t, ctx) => {
+L.liveTest('LIVE 2: GitHub dark mode on six page types — light theme switches base tokens; disabling restores the user\'s mode', async (t, ctx) => {
   const { context, close } = await launch({ fixture: false, colorScheme: 'dark' });
   const errors = L.watchErrors(context);
   const c = checker('Dark mode (system dark, GitHub auto)');
   try {
     const page = await context.newPage(); ctx.pages.push(page);
-    for (const [name, url] of PAGES.filter(([n]) => ['Repository overview', 'Code browsing (file view)', 'Issues'].includes(n))) {
-      await L.gotoLive(page, url);
+    for (const [name, url] of PAGES) {
+      const response = await L.gotoLive(page, url);
+      const ev = await L.liveEvidence(page, response, new URL(url).pathname, A);
+      c.check(ev.ok, name, `real github.com evidence: ${ev.detail}`);
       const native = await L.themeState(page);
       const nativePrint = await L.fingerprint(page);
       const nativeAudit = await L.readability(page, native.bodyBg);
@@ -111,7 +117,9 @@ L.liveTest('LIVE 2: GitHub dark mode — light theme switches base tokens; disab
       await waitInactive(page);
       const restoredPrint = await L.fingerprint(page);
       const cmp = L.sameAppearance(nativePrint, restoredPrint);
-      c.check(cmp.same, name, `disable restores original dark appearance and data-color-mode="${restoredPrint.mode}" (${cmp.compared} pinned elements compared)${cmp.same ? '' : `: ${cmp.diffs.slice(0, 4).join('; ')}`}`);
+      c.check(cmp.same, name, `disable restores original dark appearance and data-color-mode="${restoredPrint.mode}" after transitions settled (${cmp.compared} pinned elements compared)${cmp.same ? '' : `: ${cmp.diffs.slice(0, 4).join('; ')}`}`);
+      const leftovers = await L.extensionDom(page);
+      c.check(leftovers.length === 0, name, `no RepoVibe-owned DOM left after disable: ${leftovers.length ? leftovers.join(', ') : 'none'}`);
       await page.evaluate(() => { delete window.__repvFpNodes; });
     }
     errorCheck(c, errors);

@@ -56,6 +56,31 @@ async function settle(page, ms = 1500) {
   await page.waitForTimeout(ms);
 }
 
+/** Proof that a page is the real, fully styled github.com page for the expected repository. */
+async function liveEvidence(page, response, expectedPath, repo) {
+  const ev = await page.evaluate(() => {
+    const meta = n => document.querySelector(`meta[name="${n}"], meta[property="${n}"]`)?.getAttribute('content') || null;
+    const sheets = [...document.styleSheets].map(s => s.href).filter(Boolean).map(h => new URL(h).hostname);
+    return { host: location.hostname, path: location.pathname, site: meta('og:site_name'), nwo: meta('octolytics-dimension-repository_nwo'),
+      primerToken: getComputedStyle(document.documentElement).getPropertyValue('--fgColor-danger').trim(),
+      githubSheets: sheets.filter(h => h.endsWith('githubassets.com')).length };
+  });
+  const status = response ? response.status() : 0;
+  const ok = status === 200 && ev.host === 'github.com' && ev.path.replace(/\/$/, '') === expectedPath.replace(/\/$/, '') && ev.site === 'GitHub' && ev.primerToken !== '' && ev.githubSheets > 0 && (!repo || (ev.nwo || '').toLowerCase() === repo.toLowerCase());
+  return { ok, detail: `HTTP ${status} https://${ev.host}${ev.path} · og:site_name=${ev.site} · repository meta=${ev.nwo} · ${ev.githubSheets} GitHub stylesheets · --fgColor-danger=${ev.primerToken}` };
+}
+
+/** Everything RepoVibe ever writes into GitHub's DOM, searched across the whole document. */
+const extensionDom = page => page.evaluate(() => {
+  const found = [];
+  if (document.getElementById('repovibe-style-v1')) found.push('#repovibe-style-v1');
+  for (const el of document.querySelectorAll('[class*="repv"]')) if ([...el.classList].some(c => c.startsWith('repv'))) found.push(`${el.tagName.toLowerCase()}.repv*`);
+  for (const el of document.querySelectorAll('*')) for (const a of el.attributes) if (a.name.startsWith('data-repv')) found.push(`${el.tagName.toLowerCase()}[${a.name}]`);
+  const before = getComputedStyle(document.body, '::before');
+  if (before.content !== 'none' && before.content !== 'normal' && before.backgroundImage !== 'none') found.push('body::before wallpaper layer');
+  return found;
+});
+
 /** RepoVibe state on the page, read from the main world (CSS vars/classes/attributes are shared). */
 const themeState = page => page.evaluate(() => {
   const root = document.documentElement, cs = getComputedStyle(root);
@@ -232,4 +257,4 @@ function writeSummary() {
 }
 test.after(writeSummary);
 
-module.exports = { Blocked, record, gotoLive, settle, settleAnimations, themeState, fingerprint, sameAppearance, readability, watchErrors, shot, debugDump, liveTest, OUT };
+module.exports = { Blocked, record, gotoLive, settle, settleAnimations, liveEvidence, extensionDom, themeState, fingerprint, sameAppearance, readability, watchErrors, shot, debugDump, liveTest, OUT };
