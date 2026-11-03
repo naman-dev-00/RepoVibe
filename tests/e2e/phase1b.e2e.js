@@ -60,7 +60,7 @@ test('bundled wallpaper is visible across the page, behind translucent panels, w
       return { z: before.zIndex, pe: before.pointerEvents, pos: before.position, box, menu, hitIsLink: hit && hit.id === 'toOther' };
     });
     assert.deepEqual([layer.z, layer.pe, layer.pos], ['-1', 'none', 'fixed'], 'wallpaper is a fixed, non-interactive layer under content');
-    assert.match(layer.box, /rgba\(76, 41, 74, 0\.7\d*\)/, `content panels are translucent glass: ${layer.box}`);
+    assert.match(layer.box, /rgba\(76, 41, 74, 0\.82\)/, `content panels are translucent glass: ${layer.box}`);
     assert.equal(layer.menu, 'rgb(76, 41, 74)', 'menus/overlays stay opaque');
     assert.ok(layer.hitIsLink, 'links remain clickable above the wallpaper');
     await page.evaluate(() => window.scrollTo(0, 400));

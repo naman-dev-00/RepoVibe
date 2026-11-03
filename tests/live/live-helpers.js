@@ -233,7 +233,8 @@ async function logShot(context, page, name) {
     return btoa(s);
   }, `data:image/png;base64,${png.toString('base64')}`).catch(() => null);
   await helper.close();
-  if (jpeg) console.log(`[shot] ${slug(name)} ${jpeg}`);
+  // GitHub truncates log lines at ~64 KB: emit numbered chunks.
+  if (jpeg) { const n = Math.ceil(jpeg.length / 60000); for (let i = 0; i < n; i++) console.log(`[shot] ${slug(name)} ${i + 1}/${n} ${jpeg.slice(i * 60000, (i + 1) * 60000)}`); }
 }
 
 async function shot(page, name) {

@@ -55,6 +55,7 @@ L.liveTest('LIVE 1: native baseline, theme application, readability and exact re
   const errors = L.watchErrors(context);
   const c = checker('Page types (light)');
   try {
+    await setConfig(context, { enabled: true, defaultThemeId: 'native' }); // fresh installs default to automatic themes
     const page = await context.newPage(); ctx.pages.push(page);
     for (const [name, url] of PAGES) {
       const response = await L.gotoLive(page, url);
@@ -96,6 +97,7 @@ L.liveTest('LIVE 2: GitHub dark mode on six page types — light theme switches 
   const errors = L.watchErrors(context);
   const c = checker('Dark mode (system dark, GitHub auto)');
   try {
+    await setConfig(context, { enabled: true, defaultThemeId: 'native' });
     const page = await context.newPage(); ctx.pages.push(page);
     for (const [name, url] of PAGES) {
       const response = await L.gotoLive(page, url);
@@ -133,6 +135,7 @@ L.liveTest('LIVE 3: repository identification, popup quick theme + toggle, switc
   const errors = L.watchErrors(context);
   const c = checker('Repos, popup, persistence');
   try {
+    await setConfig(context, { enabled: true, defaultThemeId: 'native' });
     const gh = await context.newPage(); ctx.pages.push(gh);
     await L.gotoLive(gh, `https://github.com/${A}`);
     // The popup resolves the *active* tab: load it in a background tab, focus GitHub, then reload the popup.
@@ -296,6 +299,7 @@ L.liveTest('LIVE 6: wallpapers are visibly rendered on real GitHub pages (bundle
   const c = checker('Wallpaper visibility (pixels)');
   try {
     const page = await context.newPage(); ctx.pages.push(page);
+    await page.setViewportSize({ width: 1600, height: 1000 }); // typical desktop: artwork in margins + behind glass
     for (const [name, url] of PAGES.filter(([n]) => ['Repository overview', 'Issues', 'Code browsing (file view)', 'Pull requests'].includes(n))) {
       await setConfig(context, { enabled: true, defaultThemeId: 'native' });
       const response = await L.gotoLive(page, url);
@@ -312,7 +316,7 @@ L.liveTest('LIVE 6: wallpapers are visibly rendered on real GitHub pages (bundle
       await L.settleAnimations(page); await page.waitForTimeout(300);
       const art = await page.screenshot();
       const changed = await diffRatio(context, flat, art);
-      c.check(changed > 0.2, name, `bundled wallpaper visibly rendered (chrome-extension:// image allowed by GitHub CSP): ${(changed * 100).toFixed(1)}% of pixels differ from the same theme without artwork`);
+      c.check(changed > 0.15, name, `bundled wallpaper visibly rendered (chrome-extension:// image allowed by GitHub CSP): ${(changed * 100).toFixed(1)}% of pixels differ from the same theme without artwork`);
       const vc = await visualContrast(context, page);
       const okC = vc.below3.length <= nativeContrast.below3.length + 2 && vc.p10 >= 4.5;
       c.check(okC, name, `screenshot-measured text contrast over wallpaper: min ${vc.min.toFixed(2)}, p10 ${vc.p10.toFixed(2)}, median ${vc.median.toFixed(2)} across ${vc.count} elements; <3:1 ${vc.below3.length} (native ${nativeContrast.below3.length})${vc.below3.length ? ` e.g. ${vc.below3.slice(0, 4).map(x => `"${x.text}" ${x.ratio.toFixed(2)}`).join('; ')}` : ''}`);
@@ -349,7 +353,7 @@ L.liveTest('LIVE 6: wallpapers are visibly rendered on real GitHub pages (bundle
     await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('data:image/webp'), null, { timeout: 10000 }).catch(() => {});
     await L.settleAnimations(page); await page.waitForTimeout(400);
     const idbChanged = await diffRatio(context, before, await page.screenshot());
-    c.check(idbChanged > 0.2, 'IndexedDB wallpaper', `uploaded wallpaper (IndexedDB → service worker → data: URL) visibly rendered on github.com: ${(idbChanged * 100).toFixed(1)}% of pixels changed`);
+    c.check(idbChanged > 0.15, 'IndexedDB wallpaper', `uploaded wallpaper (IndexedDB → service worker → data: URL) visibly rendered on github.com: ${(idbChanged * 100).toFixed(1)}% of pixels changed`);
     await studio.click('#saveButton'); await studio.close();
     await page.reload(); await L.settle(page);
     const persisted = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('data:image/webp'));

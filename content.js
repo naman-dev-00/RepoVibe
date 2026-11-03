@@ -24,9 +24,11 @@
   }
 
   const POSITION = { center: 'center center', top: 'center top', bottom: 'center bottom', left: 'left center', right: 'right center' };
-  // Surfaces that are page *canvas* (not content panels): made fully transparent in wallpaper mode so the
-  // artwork shows through instead of being stacked under several translucent layers.
-  const CANVAS = 'body, .application-main, main, #js-repo-pjax-container, turbo-frame#repo-content-turbo-frame, react-app, [data-target="react-app.reactRoot"], .react-repos-overview-margin, .PageLayout, .PageLayout-wrapper, .PageLayout-content, .Layout-main';
+  // Outer page *shells* only: fully transparent in wallpaper mode so the artwork shows in margins and gaps.
+  // Content wrappers (main, PageLayout, lists) deliberately keep translucent glass (--bgColor-default): live
+  // github.com testing showed un-paneled text (issue/PR list metadata) dropping to ~1.7:1 contrast when those
+  // wrappers were transparent too.
+  const CANVAS = 'body, .application-main, #js-repo-pjax-container, turbo-frame#repo-content-turbo-frame';
   // Floating UI must stay opaque and readable over any wallpaper.
   const FLOATING = '.Overlay, .Overlay-backdrop--center > *, .dropdown-menu, .SelectMenu-modal, .Popover-message, details-dialog, .Box--overlay, [role="menu"], [role="listbox"], [role="dialog"], [popover], .tooltipped::after';
 
