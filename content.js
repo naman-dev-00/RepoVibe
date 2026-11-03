@@ -28,7 +28,11 @@
   // Content wrappers (main, PageLayout, lists) deliberately keep translucent glass (--bgColor-default): live
   // github.com testing showed un-paneled text (issue/PR list metadata) dropping to ~1.7:1 contrast when those
   // wrappers were transparent too.
-  const CANVAS = 'body, .application-main, #js-repo-pjax-container, turbo-frame#repo-content-turbo-frame';
+  const CANVAS = 'body, .application-main, main, #js-repo-pjax-container, turbo-frame#repo-content-turbo-frame';
+  // Native GitHub paints the page background on <body> only; layout wrappers, sidebars and list rows have none.
+  // With <body> transparent, that text would sit directly on the artwork, so the width-limited content column gets
+  // guarded glass. Side margins (desktop widths) show the wallpaper at full strength.
+  const COLUMN = '.container-xl, .container-lg, .container-md, [class*="PageLayout-PageLayoutWrapper"], .PageLayout';
   // Floating UI must stay opaque and readable over any wallpaper.
   const FLOATING = '.Overlay, .Overlay-backdrop--center > *, .dropdown-menu, .SelectMenu-modal, .Popover-message, details-dialog, .Box--overlay, [role="menu"], [role="listbox"], [role="dialog"], [popover], .tooltipped::after';
 
@@ -36,8 +40,10 @@
   function buildCss(t, hasImage) {
     const v = C.normalizeTheme(t);
     const light = C.isLightColor(v.bg);
-    const a = v.glassOpacity / 100;
     const glass = hasImage;
+    // Readability guard: never let panels get so transparent that text over the brightest/darkest part of this
+    // wallpaper drops below ~4.5:1 (see RepoVibeCore.requiredGlass). Uploaded images assume worst case.
+    const a = glass ? C.requiredGlass(v, C.wallpaperTone(v.wallpaperRef)) : v.glassOpacity / 100;
     const surface = glass ? rgba(v.surface, a) : v.surface;
     const surface2 = glass ? rgba(v.surface2, Math.min(1, a + 0.08)) : v.surface2;
     const inset = glass ? rgba(v.codeBg, Math.max(0.9, a)) : v.codeBg;
@@ -69,7 +75,9 @@ html.repv-active { --bgColor-default:${surface} !important; --bgColor-muted:${su
  --repv-radius:${v.radius}px; --repv-blur:${v.glass}px; --repv-panel-opacity:${a};
  background:${base} fixed !important; color-scheme:${light ? 'light' : 'dark'}; }
 html.repv-active body { background:transparent !important; color:var(--repv-text) !important; font-family:${cssFont(v.font)} !important; }
-${glass ? `html.repv-active :is(${CANVAS}) { background-color:transparent !important; }` : ''}
+${glass ? `html.repv-active :is(${CANVAS}) { background-color:transparent !important; }
+html.repv-active :is(${COLUMN}) { background-color:${panel} !important; ${blur} }
+html.repv-active :is(${COLUMN}) :is(${COLUMN}) { background-color:transparent !important; backdrop-filter:none !important; }` : ''}
 html.repv-active body::before { content:""; position:fixed; inset:${glass && v.wallpaperBlur ? `-${v.wallpaperBlur * 2}px` : '0'}; z-index:-1; pointer-events:none;
  background-color:${v.bg};
  background-image:${glass ? `linear-gradient(${rgba(v.bg, v.wallpaperOverlay / 100)}, ${rgba(v.bg, v.wallpaperOverlay / 100)}), var(--repv-wallpaper, none)` : 'none'};

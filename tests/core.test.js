@@ -171,3 +171,16 @@ test('v1 config migration: global-theme users keep a shared theme; others get au
   assert.equal(legacy.customThemes['custom-old'].wallpaper, 'data:image/png;base64,aGVsbG8=', 'legacy inline wallpaper preserved until migrated');
   assert.equal(legacy.customThemes['custom-old'].backgroundMode, 'image');
 });
+test('readability guard keeps text, secondary text and links >= 4.5:1 over each wallpaper\'s brightest and darkest regions', () => {
+  for (const t of C.PRESETS) {
+    for (const tone of [C.wallpaperTone(t.wallpaperRef), ['#ffffff', '#000000']]) {
+      const g = C.requiredGlass(t, tone);
+      assert.ok(g >= t.glassOpacity / 100, 'never lowers the user choice');
+      const loose = C.requiredGlass({ ...t, glassOpacity: 40 }, tone);
+      assert.ok(loose >= 0.4 && loose <= g, `${t.name}: guard raises a 40% choice to ${loose}`);
+    }
+  }
+  const sunset = C.PRESETS.find(t => t.name === 'Sunset Boulevard');
+  assert.ok(C.requiredGlass({ ...sunset, glassOpacity: 40, wallpaperOverlay: 0 }, C.wallpaperTone(sunset.wallpaperRef)) > 0.6, 'bright artwork forces substantial glass');
+  assert.deepEqual([...C.wallpaperTone('idb:w0123456789abcdef012345')], ['#ffffff', '#000000'], 'unknown uploads assume worst case');
+});

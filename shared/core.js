@@ -33,6 +33,9 @@
     ['Galaxy', 'Somewhere in space', '#0b0b25', '#17183d', '#24244e', '#f0edff', '#a5a6d3', '#979bff', '#464784', '#251d53', '#102c4b', '#141433', 'glass'],
     ['Synthwave', 'Night drive', '#210c37', '#33194a', '#462359', '#fff1ff', '#c9a1df', '#ff65c3', '#76438d', '#551b6c', '#102e5d', '#2b1342', 'neon']
   ];
+  // Measured 98th / 2nd percentile colour of each bundled wallpaper (per channel), used by the readability guard.
+  const WALLPAPER_TONES = {"academia-library": ["#d0a167", "#0b0704"], "aurora-lake": ["#356f6c", "#01070a"], "cozy-room": ["#d9b79a", "#100e0b"], "digital-rain": ["#164a27", "#000502"], "forest-waterfall": ["#fefefe", "#162b1c"], "galaxy-planet": ["#cc91fd", "#030311"], "gothic-castle": ["#4c2f4f", "#08060f"], "lavender-fantasy": ["#8f6fc5", "#110c2a"], "midnight-skyline": ["#37446f", "#01050e"], "mono-lines": ["#ffffff", "#c6c8cd"], "neon-rain-street": ["#60447d", "#090411"], "obsidian-shards": ["#2d2e32", "#08080a"], "ocean-depths": ["#71c4e0", "#02111a"], "pixel-dusk": ["#e8f2a8", "#151708"], "pixel-island": ["#ffb1d6", "#1b1a41"], "sakura-street": ["#fee6ea", "#5e3b4b"], "snow-peaks": ["#f2f7fb", "#3f5b73"], "solar-sunset": ["#fef284", "#210a15"], "sunset-village": ["#fecbad", "#2a142e"], "synthwave-grid": ["#fec9ae", "#090115"]};
+  const WORST_CASE_TONE = ['#ffffff', '#000000']; // unknown (uploaded) images
   // Bundled original wallpapers (see wallpapers/LICENSE.md). Index-aligned with ROWS: preset N uses WALLPAPERS[N-1].
   const WALLPAPERS = [
     ['neon-rain-street', 'Neon rain street', 'Futuristic'], ['midnight-skyline', 'Midnight skyline', 'Futuristic'],
@@ -45,7 +48,7 @@
     ['mono-lines', 'Monochrome lines', 'Minimal'], ['obsidian-shards', 'Obsidian shards', 'Minimal'],
     ['aurora-lake', 'Aurora lake', 'Nature'], ['sunset-village', 'Sunset village', 'Anime-inspired'],
     ['galaxy-planet', 'Galaxy & planet', 'Futuristic'], ['synthwave-grid', 'Synthwave grid', 'Futuristic']
-  ].map(([slug, name, category]) => ({ slug, name, category, ref: `builtin:${slug}`, path: `wallpapers/${slug}.webp`, thumb: `wallpapers/thumbs/${slug}.webp` }));
+  ].map(([slug, name, category]) => ({ slug, name, category, ref: `builtin:${slug}`, path: `wallpapers/${slug}.webp`, thumb: `wallpapers/thumbs/${slug}.webp`, tone: WALLPAPER_TONES[slug] }));
   const WALLPAPER_SLUGS = new Set(WALLPAPERS.map(w => w.slug));
   const POSITIONS = ['center', 'top', 'bottom', 'left', 'right'];
   const SIZES = ['cover', 'contain'];
@@ -177,6 +180,30 @@
     if (typeof id !== 'string' || id === 'native') return null;
     return own(config.customThemes, id) || PRESETS.find(t => t.id === id) || null;
   }
+  /** Readability guard. Text sits on glass (surface at opacity g) over the wallpaper layer, which is: image pixel ×
+      brightness, tinted by the overlay (theme bg at o), drawn at layer opacity over the theme bg. For the brightest and
+      darkest measured pixels of the wallpaper, find the smallest g ≥ the user's choice at which text, secondary text and
+      accent all keep ≥ minRatio. Browsers composite in sRGB channel space, which this mirrors. Returns 0..1. */
+  function requiredGlass(theme, tone = WORST_CASE_TONE, minRatio = 4.6) {
+    const mix = (a, b, t) => a.map((v, i) => v * t + b[i] * (1 - t));
+    const rgb = h => { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+    const lum = c => c.map(v => { v = Math.min(255, Math.max(0, v)) / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+    const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+    const bg = rgb(theme.bg), surface = rgb(theme.surface);
+    const o = theme.wallpaperOverlay / 100, b = theme.wallpaperBrightness / 100, op = theme.wallpaperOpacity / 100;
+    const backdrops = tone.map(h => { const px = rgb(h).map(v => Math.min(255, v * b)); return mix(mix(bg, px, o), bg, op); });
+    const fgs = [theme.text, theme.muted, theme.accent].map(rgb);
+    for (let g = Math.max(0, theme.glassOpacity / 100); g <= 1.0001; g += 0.01) {
+      const ok = backdrops.every(back => { const panel = mix(surface, back, g); return fgs.every(fg => ratio(fg, panel) >= minRatio); });
+      if (ok) return Math.min(1, Math.round(g * 100) / 100);
+    }
+    return 1;
+  }
+  function wallpaperTone(ref) {
+    const m = /^builtin:(.+)$/.exec(ref || '');
+    return (m && WALLPAPER_TONES[m[1]]) || WORST_CASE_TONE;
+  }
+
   /** 32-bit FNV-1a hash of a normalized string (stable across browsers and sessions). */
   function fnv1a(str) {
     let h = 0x811c9dc5;
@@ -263,7 +290,7 @@
   function isPreset(id) { return PRESETS.some(theme => theme.id === id); }
   root.RepoVibeCore = Object.freeze({
     STORAGE_KEY, PRESETS, DEFAULT, MAX_CUSTOM_THEMES, CONFIG_VERSION, WALLPAPERS, POSITIONS, SIZES,
-    safeWallpaperRef, fnv1a, pickAutoTheme, normalizeConfig, normalizeTheme, safeWallpaper,
+    safeWallpaperRef, fnv1a, pickAutoTheme, requiredGlass, wallpaperTone, normalizeConfig, normalizeTheme, safeWallpaper,
     repositoryFromUrl, themeById, themeResolution, loadConfig, saveConfig, updateConfig, themeUsage, assignTheme, isPreset,
     contrastRatio, isLightColor
   });
