@@ -23,9 +23,13 @@ fs.mkdirSync(OUT_DIR, { recursive: true });
 
 async function launch({ extension = true, mode = 'dark' } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'repovibe-e2e-'));
-  const args = extension ? [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`] : ['--disable-extensions'];
+  // Pin text rasterization so screenshots do not depend on the host's fontconfig antialiasing/subpixel
+  // settings (these differed between the authoring machine and GitHub's runners).
+  const RENDER_ARGS = ['--disable-lcd-text', '--font-render-hinting=none'];
+  const args = [...RENDER_ARGS, ...(extension ? [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`] : ['--disable-extensions'])];
   const context = await chromium.launchPersistentContext(dir, {
-    channel: 'chromium', headless: true, viewport: VIEWPORT, deviceScaleFactor: 1, args, acceptDownloads: true
+    channel: 'chromium', headless: true, viewport: VIEWPORT, deviceScaleFactor: 1, args, acceptDownloads: true,
+    env: { ...process.env, FONTCONFIG_FILE: path.join(__dirname, 'fonts', 'fonts.conf') }
   });
   const errors = [];
   const watch = page => {
