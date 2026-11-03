@@ -33,7 +33,7 @@ const coverageScript = () => {
         bg: cs.backgroundColor, a: alphaOf(cs.backgroundColor), img: cs.backgroundImage !== 'none', bf: cs.backdropFilter };
     });
     const painters = stack.filter(s => s.a > 0 || s.img);
-    const through = painters.filter(s => s.el !== 'html' && !s.img).reduce((t, s) => t * (1 - s.a), 1);
+    const through = painters.filter(s => !s.el.startsWith('html') && !s.img).reduce((t, s) => t * (1 - s.a), 1);
     return { x, y, wallpaperShare: Math.round(through * 1000) / 1000, painters: painters.map(s => `${s.el} ${s.bg}${s.img ? ' +img' : ''}${s.bf && s.bf !== 'none' ? ' bf' : ''}`) };
   });
 };
@@ -45,7 +45,7 @@ L.liveTest('LIVE DIAG: wallpaper layer, coverage stack and real-page snapshots',
     await page.setViewportSize({ width: 1366, height: 768 });
     await setConfig(context, { enabled: true, defaultThemeId: 'native', motionMode: 'static' });
     const cdp = await context.newCDPSession(page);
-    for (const [name, url] of PAGES) {
+    for (const [name, url] of process.env.LIVE_CAPTURE_SNAPSHOTS ? PAGES : []) { // opt-in: ~4 MB of log output
       await L.gotoLive(page, url);
       await page.waitForTimeout(1500);
       const { data } = await cdp.send('Page.captureSnapshot', { format: 'mhtml' });

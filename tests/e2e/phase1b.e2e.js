@@ -54,15 +54,20 @@ test('bundled wallpaper is visible across the page, behind translucent panels, w
     await setConfig(context, { enabled: true, defaultThemeId: 'preset-18' });
     await page.waitForTimeout(400);
     const layer = await page.evaluate(() => {
-      const before = getComputedStyle(document.body, '::before');
+      const root = getComputedStyle(document.documentElement);
       const box = getComputedStyle(document.querySelector('.Box')).backgroundColor;
       const menu = getComputedStyle(document.querySelector('#overlay')).backgroundColor;
       const link = document.querySelector('#toOther').getBoundingClientRect();
       const hit = document.elementFromPoint(link.left + 5, link.top + link.height / 2);
-      return { z: before.zIndex, pe: before.pointerEvents, pos: before.position, box, menu, hitIsLink: hit && hit.id === 'toOther' };
+      return { image: root.backgroundImage, attach: root.backgroundAttachment, before: getComputedStyle(document.body, '::before').content, box, menu, hitIsLink: hit && hit.id === 'toOther',
+        panelOpacity: Number(root.getPropertyValue('--repv-panel-opacity')) };
     });
-    assert.deepEqual([layer.z, layer.pe, layer.pos], ['-1', 'none', 'fixed'], 'wallpaper is a fixed, non-interactive layer under content');
-    assert.match(layer.box, /rgba\(76, 41, 74, 0\.(6|7|8)\d*\)/, `content panels are translucent glass: ${layer.box}`);
+    // v0.2.1 model: the scene is the ROOT background (on the canvas, under every element, no negative z-index).
+    assert.match(layer.image, /sunset-village\.webp/, 'scene painted as the root background');
+    assert.match(layer.attach, /fixed/, 'root scene layer is fixed to the viewport');
+    assert.equal(layer.before, 'none', 'no extra layer without blur/cinematic');
+    assert.equal(layer.box, `rgba(76, 41, 74, ${layer.panelOpacity})`, `panels are ONE layer of guarded glass: ${layer.box}`);
+    assert.ok(layer.panelOpacity >= 0.4 && layer.panelOpacity < 1, `panel glass stays translucent (${layer.panelOpacity})`);
     assert.equal(layer.menu, 'rgb(76, 41, 74)', 'menus/overlays stay opaque');
     assert.ok(layer.hitIsLink, 'links remain clickable above the wallpaper');
     await page.evaluate(() => window.scrollTo(0, 400));
@@ -109,12 +114,13 @@ test('wallpaper controls update the live preview: opacity, brightness, blur, ove
     await studio.selectOption('#wallpaperPosition', 'top'); await studio.selectOption('#wallpaperSize', 'contain');
     await studio.click('.sidebar-link[data-view="customize"]');
     await slide('glassOpacity', 55); await slide('glass', 20);
-    await gh.waitForFunction(() => getComputedStyle(document.body, '::before').filter === 'blur(5px) brightness(0.8)');
-    const s = await gh.evaluate(() => { const b = getComputedStyle(document.body, '::before'); const box = getComputedStyle(document.querySelector('.Box')); return { opacity: b.opacity, size: b.backgroundSize, pos: b.backgroundPosition, image: b.backgroundImage.slice(0, 40), boxBg: box.backgroundColor, boxBlur: box.backdropFilter }; });
-    assert.equal(s.opacity, '0.6');
-    assert.match(s.size, /contain/); assert.match(s.pos, /50% 0%/);
-    assert.match(s.image, /linear-gradient\(rgba\(11, 18, 32, 0\.5\)/, `overlay darkness tint (Midnight bg): ${s.image}`);
-    assert.match(s.boxBg, /0\.55\)$/); assert.match(s.boxBlur, /blur\(20px\)/);
+    await gh.waitForFunction(() => getComputedStyle(document.body, '::before').filter === 'blur(5px)');
+    const s = await gh.evaluate(() => { const r = getComputedStyle(document.documentElement); const box = getComputedStyle(document.querySelector('.Box')); return { image: r.backgroundImage, size: r.backgroundSize, pos: r.backgroundPosition, boxBg: box.backgroundColor, boxBlur: box.backdropFilter, panel: r.getPropertyValue('--repv-panel-opacity').trim() }; });
+    // Every slider is a visible layer of the root scene stack: opacity veil, overlay, brightness veil, image (Midnight bg).
+    assert.match(s.image, /^linear-gradient\(rgba\(11, 18, 32, 0\.4\)[^)]*\)\), linear-gradient\(rgba\(11, 18, 32, 0\.5\)[^)]*\)\), linear-gradient\(rgba\(0, 0, 0, 0\.2\)[^)]*\)\), url\("chrome-extension:\/\/[^"]+galaxy-planet\.webp"\)(, none)?$/, `scene stack: ${s.image}`);
+    assert.match(s.size, /, contain(, auto)?$/); assert.match(s.pos, /, 50% 0%(, [^,]+)?$/);
+    assert.equal(s.boxBg, `rgba(21, 30, 48, ${s.panel})`, 'panel glass = the guarded opacity');
+    assert.ok(Number(s.panel) >= 0.55, 'never below the chosen panel opacity'); assert.match(s.boxBlur, /blur\(20px\)/);
     assert.deepEqual(errors, []);
   } finally { await close(); }
 });
@@ -267,7 +273,7 @@ test('v1 inline wallpapers migrate to IndexedDB; missing assets degrade graceful
     await gh.goto('https://github.com/acme/other'); await gh.waitForTimeout(600);
     assert.equal(await panel(gh), '#151e30', 'theme with a missing wallpaper still applies its colours');
     assert.equal(await wallpaperVar(gh), '');
-    assert.equal(await gh.evaluate(() => getComputedStyle(document.body, '::before').opacity), '0');
+    assert.doesNotMatch(await gh.evaluate(() => getComputedStyle(document.documentElement).backgroundImage), /url\(/, 'no image layer for a missing asset');
     // Cleanup: an extra unreferenced upload is removed; the migrated, referenced one is kept.
     const studio = await extPage(context, 'studio.html');
     await studio.waitForFunction(() => !!globalThis.RepoVibeWallpapers);

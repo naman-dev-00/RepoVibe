@@ -231,3 +231,23 @@ test('live wallpaper motion: modes, reduced motion, persistence', () => {
   assert.equal(C.normalizeTheme({ ...neon, id: 'custom-x' }).motion, 'rain', 'customized copies keep their live layer');
   assert.equal(C.normalizeTheme({ ...neon, id: 'custom-y', motion: 'explode' }).motion, 'none');
 });
+
+/* ---- v0.2.1 scene rendering: one guarded glass layer, honest feedback. */
+test('panel guard: single-layer opacity, feedback when raised, loose items guarded against pure white', () => {
+  for (const t of C.PRESETS.filter(p => p.flagship)) {
+    const g = C.panelOpacity(t);
+    assert.ok(g.opacity >= g.chosen && g.opacity <= 0.75, `${t.name}: flagship panels stay translucent (${g.opacity})`);
+    assert.equal(g.raised, g.opacity > g.chosen + 0.001);
+    assert.ok(g.loose > 0 && g.loose <= 0.8, `${t.name}: loose-item backing ${g.loose}`);
+  }
+  const strict = C.panelOpacity({ ...C.PRESETS[0], glassOpacity: 40 });
+  assert.equal(strict.raised, true, 'choosing lighter glass than the scene allows is reported, not silently ignored');
+  assert.ok(C.panelOpacity({ ...C.PRESETS[0], glassOpacity: 100 }).opacity === 1 && !C.panelOpacity({ ...C.PRESETS[0], glassOpacity: 100 }).raised);
+  // Brightness above 100 % brightens the scene (white veil) and therefore needs at least as much glass for light text.
+  const dim = C.panelOpacity({ ...C.PRESETS[18], wallpaperBrightness: 70 }).opacity, bright = C.panelOpacity({ ...C.PRESETS[18], wallpaperBrightness: 130 }).opacity;
+  assert.ok(bright >= dim, `brighter scene needs ≥ glass (${dim} → ${bright})`);
+  // More overlay darkness lets lighter glass suffice for light-on-dark themes.
+  assert.ok(C.panelOpacity({ ...C.PRESETS[18], wallpaperOverlay: 60 }).opacity <= C.panelOpacity({ ...C.PRESETS[18], wallpaperOverlay: 0 }).opacity);
+  // Uploaded images assume the worst case.
+  assert.ok(C.panelOpacity({ ...C.PRESETS[18], wallpaperRef: 'idb:w0123456789abcdef012345' }).opacity >= C.panelOpacity(C.PRESETS[18]).opacity);
+});

@@ -52,7 +52,7 @@ test('fresh install: the four default mappings are seeded and each repository re
       await page.goto(`https://github.com/${repo}`);
       await page.waitForFunction(s => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes(`${s}.webp`), slug);
       const s = await page.evaluate(() => ({ cls: document.documentElement.className, panel: getComputedStyle(document.documentElement).getPropertyValue('--repv-panel').trim(),
-        anim: getComputedStyle(document.documentElement, '::after').animationName, layer: getComputedStyle(document.body, '::before').backgroundImage }));
+        anim: getComputedStyle(document.documentElement, '::after').animationName, layer: getComputedStyle(document.documentElement).backgroundImage }));
       assert.ok(s.cls.includes(`repv-motion-${motion}`), `${repo}: live layer ${motion} (${s.cls})`);
       assert.notEqual(s.anim, 'none', `${repo}: ambient layer animates`);
       assert.ok(s.layer.includes(`${slug}.webp`), `${repo}: wallpaper layer`);

@@ -53,6 +53,14 @@
             <div class="settings-card wide-card"><div class="library-heading"><h3>Wallpaper</h3><div><label class="outline-button upload-button" for="wallpaperInput">↑ Upload image</label><input hidden id="wallpaperInput" type="file" accept="image/png,image/jpeg,image/webp" /> <button id="removeWallpaper" class="outline-button" type="button">No wallpaper</button></div></div>
               <p class="helper">PNG, JPEG or WebP up to 25 MB. Large images are resized to at most 3840 px and stored as WebP.</p>
               <div class="wallpaper-grid" id="wallpaperGrid" role="listbox" aria-label="Wallpapers"></div></div>
+            <div class="settings-card"><h3>Scene visibility</h3>
+              <p class="helper">How much of the scene you see versus how calm the page is. Text always stays readable: panels only get as solid as this scene needs.</p>
+              <div class="scope-controls scene-modes" role="group" aria-label="Scene visibility">
+                <button type="button" class="outline-button" data-scene="immersive" title="Brightest scene, lightest glass">Immersive</button>
+                <button type="button" class="outline-button" data-scene="balanced" title="Default">Balanced</button>
+                <button type="button" class="outline-button" data-scene="readable" title="Dimmed scene, solid panels">Readable</button>
+              </div>
+              <p class="helper" id="sceneGuardNote" role="status"></p></div>
             <div class="settings-card"><h3>Image</h3>
               <label class="range-row"><span>Wallpaper opacity <output id="wallpaperOpacityVal"></output></span><input id="wallpaperOpacity" type="range" min="15" max="100" /></label>
               <label class="range-row"><span>Brightness <output id="wallpaperBrightnessVal"></output></span><input id="wallpaperBrightness" type="range" min="40" max="140" /></label>

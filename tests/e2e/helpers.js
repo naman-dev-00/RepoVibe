@@ -12,6 +12,7 @@ const { chromium } = require('playwright');
 const EXT = path.resolve(__dirname, '../..');
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.html'), 'utf8');
 const HOME_FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture-home.html'), 'utf8');
+const LAYOUT_FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture-layout.html'), 'utf8');
 // Signed-in Home "Top repositories" rows (the four mapped repositories plus unconfigured ones).
 const HOME_REPOS = ['naman-dev-00/tradPro', 'naman-dev-00/RepoVibe', 'naman-dev-00/Pool-Souls', 'naman-dev-00/ai-powered-inbox-assistant', 'naman-dev-00/notes', 'octocat/Hello-World'];
 const homeRow = name => { const [o, r] = name.split('/'); return `<li class="public source"><div class="width-full d-flex mt-2"><a class="mr-2 d-flex flex-items-center" href="/${name}" aria-label="Repository"><span class="avatar"></span></a><div class="wb-break-word"><a class="color-fg-default lh-0 mb-2 markdown-title" href="/${name}">${o}<span class="color-fg-muted">/</span>${r}</a></div></div></li>`; };
@@ -47,6 +48,10 @@ async function launch({ extension = true, mode = 'dark', fixture = true, colorSc
   if (fixture) await context.route('https://github.com/**', route => {
     const url = new URL(route.request().url());
     const title = url.pathname.split('/').filter(Boolean).slice(0, 2).join('/') || 'GitHub';
+    // /<owner>/<repo>/layout: GitHub's current React repository layout (full-width PageLayout wrappers, file table, list).
+    if (/^\/[^/]+\/[^/]+\/layout$/.test(url.pathname)) {
+      return route.fulfill({ contentType: 'text/html; charset=utf-8', body: LAYOUT_FIXTURE.replaceAll('__TITLE__', title).replace('__MODE__', mode) });
+    }
     if (url.pathname === '/' || url.pathname === '/dashboard') {
       return route.fulfill({ contentType: 'text/html; charset=utf-8', body: HOME_FIXTURE.replace('__ROWS__', HOME_REPOS.map(homeRow).join('\n')).replace('__MODE__', mode) });
     }
@@ -101,7 +106,7 @@ const state = page => page.evaluate(() => {
     codeSize: getComputedStyle(document.querySelector('.react-code-text')).fontSize,
     textareaSize: getComputedStyle(document.querySelector('#read-only-cursor-text-area')).fontSize,
     overlayBg: getComputedStyle(document.querySelector('#overlay')).backgroundColor,
-    wallpaper: getComputedStyle(document.body, '::before').backgroundImage.slice(0, 30)
+    wallpaper: getComputedStyle(root).backgroundImage.slice(0, 200) // the scene is painted as the root background
   };
 });
 const hexToRgb = hex => { const n = parseInt(hex.slice(1), 16); return `rgb(${n >> 16 & 255}, ${n >> 8 & 255}, ${n & 255})`; };
@@ -223,4 +228,54 @@ async function visualContrast(context, page, limit = 150) {
     below3: ratios.filter(r => r.ratio < 3), below45: ratios.filter(r => r.ratio < 4.5).length, low: ratios.filter(r => r.ratio < 4.5) };
 }
 
-module.exports = { HOME_REPOS, visualContrast, EXT, EXT_ID, KEY, OUT_DIR, launch, extPage, setConfig, getConfig, openGitHub, state, hexToRgb, diffRatio, matchSnapshot, openStudioFor, pixelAt };
+/** Scene metrics on the current page.
+    transmission: per sample point, the share of the scene that reaches the eye = Π(1 − α) over every element above the
+    root that paints a background colour (the root itself paints the scene).
+    correlation: Pearson correlation of 16 px block luminance between the page screenshot and the wallpaper rendered
+    alone at the same size/position — high when the scene's actual shapes are visible, low for a colour wash. */
+async function sceneMetrics(context, page) {
+  const transmission = await page.evaluate(() => {
+    const alphaOf = c => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return 0; const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return p.length > 3 ? p[3] : 1; };
+    const out = [];
+    for (let y = 20; y < innerHeight; y += 30) for (let x = 15; x < innerWidth; x += 30)
+    {
+      const stack = document.elementsFromPoint(x, y).filter(e => e !== document.documentElement);
+      // Intentionally opaque UI (menus, dialogs, form controls, buttons, badges) is not "glass over the scene".
+      if (stack.some(e => e.matches('[role="menu"], [role="dialog"], [role="listbox"], .Overlay, [popover], input, textarea, select, button, .btn, [class*="ButtonBase"], .Label, [class*="TextInputWrapper"]'))) continue;
+      out.push(stack.reduce((t, e) => t * (1 - alphaOf(getComputedStyle(e).backgroundColor)), 1));
+    }
+    return out;
+  });
+  const shot = await page.screenshot({ animations: 'disabled' });
+  const scene = await page.evaluate(() => {
+    const r = getComputedStyle(document.documentElement);
+    const m = r.getPropertyValue('--repv-wallpaper').match(/url\("([^"]+)"\)/);
+    const onRoot = /url\(/.test(r.backgroundImage);
+    return m && { url: m[1], size: onRoot ? r.backgroundSize.split(', ').at(-2) : 'cover', pos: onRoot ? r.backgroundPosition.split(', ').at(-2) : 'center', w: innerWidth, h: innerHeight };
+  });
+  let correlation = null;
+  if (scene) {
+    const helper = await extPage(context); // extension origin: bundled wallpapers are loadable there
+    await helper.setViewportSize({ width: scene.w, height: scene.h });
+    await helper.setContent(`<body style="margin:0;width:100vw;height:100vh;background:url('${scene.url}') ${scene.pos} / ${scene.size} no-repeat #000"></body>`);
+    await helper.waitForTimeout(400);
+    const ref = await helper.screenshot();
+    correlation = await helper.evaluate(async ([a, b]) => {
+      const load = async src => { const i = new Image(); i.src = src; await i.decode(); const c = new OffscreenCanvas(i.width, i.height); const g = c.getContext('2d'); g.drawImage(i, 0, 0); return g.getImageData(0, 0, i.width, i.height); };
+      const A = await load(a), B = await load(b), S = 16, xs = [], ys = [];
+      for (let y = 0; y + S <= A.height; y += S) for (let x = 0; x + S <= A.width; x += S) {
+        let la = 0, lb = 0;
+        for (let yy = 0; yy < S; yy += 4) for (let xx = 0; xx < S; xx += 4) { const i = ((y + yy) * A.width + x + xx) * 4; la += A.data[i] * .2126 + A.data[i + 1] * .7152 + A.data[i + 2] * .0722; lb += B.data[i] * .2126 + B.data[i + 1] * .7152 + B.data[i + 2] * .0722; }
+        xs.push(la); ys.push(lb);
+      }
+      const mean = v => v.reduce((s, x) => s + x, 0) / v.length, ma = mean(xs), mb = mean(ys);
+      let n = 0, da = 0, db = 0; for (let i = 0; i < xs.length; i++) { n += (xs[i] - ma) * (ys[i] - mb); da += (xs[i] - ma) ** 2; db += (ys[i] - mb) ** 2; }
+      return n / Math.sqrt(da * db);
+    }, [`data:image/png;base64,${shot.toString('base64')}`, `data:image/png;base64,${ref.toString('base64')}`]);
+    await helper.close();
+  }
+  const sorted = [...transmission].sort((x, y) => x - y);
+  return { median: sorted[sorted.length >> 1], min: sorted[0], clear: transmission.filter(t => t >= 0.9).length / transmission.length, correlation };
+}
+
+module.exports = { sceneMetrics, HOME_REPOS, visualContrast, EXT, EXT_ID, KEY, OUT_DIR, launch, extPage, setConfig, getConfig, openGitHub, state, hexToRgb, diffRatio, matchSnapshot, openStudioFor, pixelAt };

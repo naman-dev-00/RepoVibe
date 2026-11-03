@@ -238,8 +238,13 @@
   function updateSliderOutputs() {
     for (const [id, unit] of Object.entries(sliderFields)) { $(id).value = draft[id]; $(`${id}Val`).textContent = `${draft[id]}${unit}`; }
     const hasArt = draft.backgroundMode === 'image' && (draft.wallpaperRef || draft.wallpaper);
-    const guard = hasArt ? Math.round(C.requiredGlass(draft, C.wallpaperTone(draft.wallpaperRef)) * 100) : draft.glassOpacity;
-    $('glassGuardNote').textContent = guard > draft.glassOpacity ? `Readability guard: panels render at ${guard}% over this wallpaper so text stays at 4.5:1 or better.` : '';
+    const g = hasArt ? C.panelOpacity(draft) : null;
+    const guard = g ? Math.round(g.opacity * 100) : draft.glassOpacity;
+    const note = !g ? '' : g.raised
+      ? `Readability guard: you chose ${draft.glassOpacity}% panels; they render at ${guard}% over this scene so text, secondary text and links stay at 4.8:1 or better. To see more scene, lower Overlay darkness only if text stays light-on-dark, or pick lighter text/accent colours.`
+      : `Panels render at your ${guard}% — this scene needs no more for readable text.`;
+    $('glassGuardNote').textContent = note;
+    if ($('sceneGuardNote')) $('sceneGuardNote').textContent = note;
   }
   function paintPreview() {
     const preview = $('palettePreview');
@@ -412,6 +417,18 @@
     if (dirty && !confirm('Discard unsaved changes and switch scope?')) { event.target.value = scope; return; }
     scope = event.target.value;
     prepareForScope();
+  });
+  // Scene visibility presets: one click between an immersive and a calm, readable page (the guard still applies).
+  const SCENE_MODES = {
+    immersive: { wallpaperOpacity: 100, wallpaperBrightness: 100, wallpaperBlur: 0, wallpaperOverlay: 0, glassOpacity: 40, glass: 10 },
+    balanced: { wallpaperOpacity: 100, wallpaperBrightness: 92, wallpaperBlur: 0, wallpaperOverlay: 12, glassOpacity: 55, glass: 8 },
+    readable: { wallpaperOpacity: 100, wallpaperBrightness: 70, wallpaperBlur: 4, wallpaperOverlay: 40, glassOpacity: 85, glass: 14 }
+  };
+  for (const button of document.querySelectorAll('[data-scene]')) button.addEventListener('click', () => {
+    const mode = { ...SCENE_MODES[button.dataset.scene] };
+    if (C.isLightColor(draft.bg)) { mode.wallpaperBrightness = Math.max(mode.wallpaperBrightness, 100); mode.wallpaperOverlay = Math.round(mode.wallpaperOverlay * 0.7); }
+    setDraftMany(mode);
+    say(`Scene visibility: ${button.textContent}. Save to keep it.`);
   });
   for (const id of Object.keys(sliderFields)) $(id).addEventListener('input', event => setDraft(id, Number(event.target.value)));
   for (const [id, key] of [['themeName', 'name'], ['themeDescription', 'description'], ['fontSelect', 'font'], ['backgroundMode', 'backgroundMode'], ['layoutSelect', 'layout'], ['wallpaperPosition', 'wallpaperPosition'], ['wallpaperSize', 'wallpaperSize']]) {

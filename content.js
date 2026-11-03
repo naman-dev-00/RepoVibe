@@ -27,7 +27,7 @@
   }
 
   const POSITION = { center: 'center center', top: 'center top', bottom: 'center bottom', left: 'left center', right: 'right center' };
-  /* Wallpaper rendering model (v0.2.1; replaces the full-width glass column that hid the scene on real GitHub).
+  /* Wallpaper rendering model (Phase 1B P0 fix; replaces the full-width glass column that hid the scene on real GitHub).
      1. The scene is painted as the ROOT background (<html>, background-attachment:fixed): it sits on the canvas
         under every element, needs no negative z-index and cannot be hidden behind a root colour. Overlay, brightness
         and opacity are colour layers in the same background stack, so every slider changes the visible pixels.
@@ -115,9 +115,9 @@ html.repv-active :is(main, .application-main) :is(a, h1, h2, h3, p, .Label, [cla
 html.repv-active :is(main, .application-main) a:has(img):not(:where(${PANELS}) *) > :is(span, strong):not(:has(img)) { background-color:${rgba(v.bg, looseA)} !important; border-radius:6px; padding:0 4px; }
 html.repv-active :is(main, .application-main) :is(a, h1, h2, h3, p):not(:where(${PANELS}) *):not(.btn):not([class*="Button"]):not(:has(img)) { padding-left:4px; padding-right:4px; margin-left:-4px; margin-right:-4px; }
 ${light ? '' : `html.repv-active :is(.IssueLabel, [class*="IssueLabel"], [class*="TokenBase"], [class*="Token__"]) { box-shadow:inset 0 0 0 100vmax ${rgba(v.bg, 0.45)}; }`}
-${v.wallpaperBlur > 0 ? `html.repv-active body::before { content:""; position:fixed; inset:-${v.wallpaperBlur * 2}px; z-index:-1; pointer-events:none;
+html.repv-active:is(.repv-motion-cinematic${v.wallpaperBlur > 0 ? ', *' : ''}) body::before { content:""; position:fixed; inset:${v.wallpaperBlur > 0 ? `-${v.wallpaperBlur * 2}px` : '-4%'}; z-index:-1; pointer-events:none;
  background:${[...veils.map(l => l.replace(' fixed', '')), `var(--repv-wallpaper, none) ${POSITION[v.wallpaperPosition]} / ${v.wallpaperSize} no-repeat`, v.bg].join(', ')};
- filter:blur(${v.wallpaperBlur}px); }` : ''}` : `html.repv-active :is(.AppHeader, .Header, #repository-container-header, .Box, .markdown-body) { background-color:${v.surface} !important; }`}
+ filter:${v.wallpaperBlur > 0 ? `blur(${v.wallpaperBlur}px)` : 'none'}; }` : `html.repv-active :is(.AppHeader, .Header, #repository-container-header, .Box, .markdown-body) { background-color:${v.surface} !important; }`}
 html.repv-active :is(.AppHeader, .Header, #repository-container-header, .UnderlineNav, .js-header-wrapper, header.GlobalNav) { color:${v.text} !important; border-color:${v.border} !important; }
 html.repv-active :is(.Box, .markdown-body, .blob-wrapper, .file, [data-repv-panel]) { border-color:${v.border} !important; }
 html.repv-active :is(${FLOATING}) { background-color:${v.surface} !important; backdrop-filter:none !important; text-shadow:none; }

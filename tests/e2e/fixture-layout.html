@@ -1,0 +1,62 @@
+<!doctype html>
+<!-- Offline stand-in for GitHub's CURRENT React repository layout, reproducing the structure that hid wallpapers on real
+     github.com (measured with tests/live/diagnose.live.js): full-width prc-PageLayout-* wrappers, the repository file
+     table (borders drawn per cell, no own border), a rounded overflow:hidden issue list, "muted" inner surfaces, loose
+     sidebar text and invisible-variant buttons. Class names follow GitHub's hashed CSS-module pattern. Not live GitHub. -->
+<html lang="en" data-color-mode="__MODE__" data-light-theme="light" data-dark-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>__TITLE__ · GitHub</title>
+<style>
+  [data-color-mode=light] { --bgColor-default:#ffffff; --bgColor-muted:#f6f8fa; --bgColor-inset:#f6f8fa; --fgColor-default:#1f2328; --fgColor-muted:#59636e; --fgColor-accent:#0969da; --borderColor-default:#d1d9e0; color-scheme:light; }
+  [data-color-mode=dark] { --bgColor-default:#0d1117; --bgColor-muted:#151b23; --bgColor-inset:#010409; --fgColor-default:#f0f6fc; --fgColor-muted:#9198a1; --fgColor-accent:#4493f8; --borderColor-default:#3d444d; color-scheme:dark; }
+  body { margin:0; background:var(--bgColor-default); color:var(--fgColor-default); font:14px/1.5 sans-serif; }
+  a { color:var(--fgColor-accent); }
+  header.GlobalNav { display:flex; gap:16px; padding:12px 16px; background:var(--bgColor-inset); border-bottom:1px solid var(--borderColor-default); }
+  .prc-PageLayout-PageLayoutWrapper-2BhU2 { background:var(--bgColor-default); }
+  .prc-PageLayout-PageLayoutContent-BneH9 { max-width:1280px; margin:0 auto; display:flex; gap:24px; padding:24px 16px; }
+  .prc-PageLayout-Content-xWL-A { flex:1; min-width:0; }
+  .prc-PageLayout-Pane-AyzHK { width:296px; }
+  .Box_3__muted { background:var(--bgColor-muted); border:1px solid var(--borderColor-default); border-radius:6px 6px 0 0; padding:8px 12px; }
+  table.Box__0K17vj { width:100%; border-collapse:separate; border-spacing:0; border-radius:0 0 6px 6px; overflow:hidden; }
+  table.Box__0K17vj td { padding:8px 12px; border-bottom:1px solid var(--borderColor-default); }
+  table.Box__0K17vj tr td:first-child { border-left:1px solid var(--borderColor-default); }
+  table.Box__0K17vj tr td:last-child { border-right:1px solid var(--borderColor-default); }
+  .listContainer__NnQKCt { margin-top:24px; border-radius:6px; overflow:hidden; box-shadow:0 0 0 1px var(--borderColor-default); }
+  .listContainer__NnQKCt .toolbar { background:var(--bgColor-muted); padding:10px 16px; }
+  .listContainer__NnQKCt li { list-style:none; padding:10px 16px; border-top:1px solid var(--borderColor-default); }
+  .listContainer__NnQKCt ul { margin:0; padding:0; }
+  .color-fg-muted { color:var(--fgColor-muted); }
+  .prc-Button-ButtonBase-9n-Xk { border:0; background:transparent; color:var(--fgColor-default); padding:4px 8px; border-radius:6px; text-decoration:none; }
+  .Overlay { position:absolute; background:var(--bgColor-default); border:1px solid var(--borderColor-default); padding:8px; width:220px; }
+</style>
+</head>
+<body>
+  <header class="GlobalNav appHeader__6OmbvL"><strong>__TITLE__</strong><a href="/acme/other" id="toOther">acme/other</a></header>
+  <div class="application-main"><main>
+    <div class="prc-PageLayout-PageLayoutWrapper-2BhU2"><div class="prc-PageLayout-PageLayoutContent-BneH9">
+      <div class="prc-PageLayout-Content-xWL-A">
+        <h2 id="repoTitle">checkout</h2>
+        <div><a class="prc-Button-ButtonBase-9n-Xk" data-variant="invisible" href="/acme/project/tags" id="tagsLink">68 Tags</a></div>
+        <div class="Box_3__muted" id="commitBar">octo · Update dependencies <span class="color-fg-muted">235 Commits</span></div>
+        <table class="Box__0K17vj OverviewTable__rPbUfl" id="fileTable"><tbody>
+          <tr><td><a href="#">.github</a></td><td class="color-fg-muted">Bump the minor actions dependencies group</td></tr>
+          <tr><td><a href="#">src</a></td><td class="color-fg-muted">escape values passed to unset</td></tr>
+          <tr><td><a href="#">dist</a></td><td class="color-fg-muted">trim only ascii whitespace for branch</td></tr>
+        </tbody></table>
+        <div class="container__uZQXyV listContainer__NnQKCt" id="issueList">
+          <div class="toolbar color-fg-muted">Open 553 · Closed 584 · Author · Labels · Projects</div>
+          <ul><li><a href="#">A sparse checkout's filter persists</a><div class="color-fg-muted">#2601 opened on Oct 24</div></li>
+              <li><a href="#">Sparse checkout does not retry transient failures</a><div class="color-fg-muted">#2597 opened on Oct 15</div></li></ul>
+        </div>
+      </div>
+      <div class="prc-PageLayout-Pane-AyzHK" id="sidebar">
+        <h2>About</h2>
+        <p id="about">Action for checking out a repo</p>
+        <a href="#" id="homepage">github.com/features/actions</a>
+        <div class="Overlay" id="overlay" role="menu">Menu overlay</div>
+      </div>
+    </div></div>
+  </main></div>
+</body>
+</html>

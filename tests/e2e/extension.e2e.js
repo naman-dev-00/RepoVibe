@@ -34,8 +34,8 @@ test('preset applies tokens, keeps neutral emphasis, and matches visual baseline
     const s = await state(page);
     assert.equal(s.active, true);
     assert.equal(s.bgDefault, '#1b1538');
-    assert.equal(s.accent, '#a879ff');
-    assert.notEqual(s.emphasis, '#a879ff', 'neutral emphasis must not become the accent');
+    assert.equal(s.accent, '#c6a8ff');
+    assert.notEqual(s.emphasis, '#c6a8ff', 'neutral emphasis must not become the accent');
     assert.equal(s.overlayBg, hexToRgb('#1b1538'), 'menus/overlays follow the theme surface');
     assert.equal(s.containerMax, '1280px', 'standard layout keeps GitHub max width');
     await matchSnapshot(context, page, 'repo-cyberpunk-dark');
