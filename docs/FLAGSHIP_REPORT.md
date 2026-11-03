@@ -73,7 +73,15 @@ LIVE 8 results on real github.com from that run:
 - Logged-out Home: PASS (no cards, no stylesheet).
 - RepoVibe console errors: 0.
 
-The re-run on the fixed harness is reported in the PR.
+**Re-run on `edadc85` ([run 41674326275](https://github.com/naman-dev-00/RepoVibe/actions/runs/41674326275)): 8/8 scenarios, 171 PASS, 0 FAIL, 0 BLOCKED, 18 INFO.** CI on the same commit: green. Screenshots recovered from the job log: `docs/screenshots/flagship/live-github-flagships.jpg`.
+
+**Honest visual assessment of the real pages.** Each repository clearly gets its own palette, glass and live layer:
+- teal forest glass with fireflies;
+- violet neon with rain;
+- deep indigo with stars;
+- a bright white and cyan hall.
+
+Text stays readable throughout. On dense pages (file lists, issue lists), however, GitHub's content column covers most of a 1600 px viewport. The readability guard then keeps the artwork **heavily muted** behind the panels. It shows through mainly in the margins, in gaps, and below short pages: the sci-fi hall is clearly visible under the small inbox-assistant repository. So on real repository pages the effect is a strong per-repository atmosphere rather than a fully visible scene. Immersion on real dense pages: **PARTIAL**. Home cards and the fixtures show the art at full strength.
 
 **Signed-in Home (Top repositories) on real GitHub: UNVERIFIED.** Real logged-in visuals were not tested because the suite never signs in or uses credentials. Coverage is the authenticated-page fixture only. GitHub may change the dashboard markup; detection falls back to the heading text.
 
@@ -90,9 +98,9 @@ The re-run on the fixed harness is reported in the PR.
 | Requirement | Status | Evidence |
 |---|---|---|
 | Four premium layered 3D themes | **PASS** (Sci-Fi restrained, see §2) | renders, contact sheet |
-| Four default repository mappings, persistent, independent, manual wins, auto for others | **PASS** (offline + unit); live for publicly visible repos | flagship E2E 1, unit, LIVE 8 |
-| Wallpaper clearly visible, GitHub readable | **PASS** offline; live per LIVE 8 | contrast checks |
-| Live wallpapers, Static/Ambient/Cinematic, reduced motion, non-blocking | **PASS** | flagship E2E 2, LIVE 8 |
+| Four default repository mappings, persistent, independent, manual wins, auto for others | **PASS** (offline + unit; live seeding PASS; live pages PASS for RepoVibe and ai-powered-inbox-assistant; tradPro and Pool-Souls 404 logged out, so UNVERIFIED live) | flagship E2E 1, unit, LIVE 8 |
+| Wallpaper clearly visible, GitHub readable | Readable: **PASS** (live, 0 elements < 3:1). Visible: **PASS** in fixtures, margins and short pages · **PARTIAL** on dense real pages (art muted behind glass) | LIVE 8, screenshots |
+| Live wallpapers, Static/Ambient/Cinematic, reduced motion, non-blocking | **PASS** (offline + live) | flagship E2E 2, LIVE 8 |
 | Themed Top repositories cards (fixture) | **PASS** | flagship E2E 3–4, screenshots |
 | Themed Top repositories cards (real signed-in GitHub) | **UNVERIFIED** | requires login |
 | Sidebar ↔ repository sync, dynamic rows, SPA | **PASS** (fixture) | flagship E2E 3 |
