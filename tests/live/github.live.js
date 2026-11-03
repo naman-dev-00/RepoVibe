@@ -398,7 +398,7 @@ L.liveTest('LIVE 7: automatic per-repository themes on real repositories, SPA na
         }
         c.check(surfaces['actions/checkout'] !== surfaces['actions/setup-node'], 'actions/*', `two repositories of the same owner get different themes (${surfaces['actions/checkout']} vs ${surfaces['actions/setup-node']})`);
         const cfg = await getConfig(context);
-        c.check(['actions/checkout', 'actions/setup-node', 'octocat/hello-world'].every(k => cfg.autoAssignments[k]) && Object.keys(cfg.repoAssignments).length === 0, 'Storage', `automatic picks persisted separately from manual choices: ${JSON.stringify(cfg.autoAssignments)}`);
+        c.check(['actions/checkout', 'actions/setup-node', 'octocat/hello-world'].every(k => cfg.autoAssignments[k]) && ['actions/checkout', 'actions/setup-node', 'octocat/hello-world'].every(k => !Object.hasOwn(cfg.repoAssignments, k)), 'Storage', `automatic picks persisted separately from manual choices: auto ${JSON.stringify(cfg.autoAssignments)}; manual ${JSON.stringify(cfg.repoAssignments)} (fresh installs hold only the four seeded default mappings)`);
         // SPA navigation between repository tabs keeps the repo's automatic theme.
         await L.gotoLive(page, `https://github.com/${A}`);
         const issues = page.locator(`#issues-tab, nav[aria-label="Repository"] a[href="/${A}/issues"]`).first();
@@ -473,7 +473,7 @@ L.liveTest('LIVE 8: four flagship worlds with live wallpapers on real pages; def
         const response = await L.gotoLive(page, url);
         const ev = await L.liveEvidence(page, response, new URL(url).pathname, A);
         await page.waitForFunction(s => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes(`${s}.webp`), slug, { timeout: 8000 }).catch(() => {});
-        const st = await page.evaluate(() => ({ cls: document.documentElement.className, anims: document.getAnimations().filter(a => a.animationName && a.playState === 'running').map(a => a.animationName),
+        const st = await page.evaluate(() => ({ cls: document.documentElement.className, anims: document.getAnimations().filter(a => /^repv-/.test(a.animationName || '') && a.playState === 'running').map(a => a.animationName),
           layers: [getComputedStyle(document.documentElement, '::after'), getComputedStyle(document.body, '::after')].map(s => s.pointerEvents) }));
         await freeze(page); await page.waitForTimeout(400);
         const vc = await visualContrast(context, page);
@@ -486,7 +486,9 @@ L.liveTest('LIVE 8: four flagship worlds with live wallpapers on real pages; def
     // 3. Reduced motion and Static mode on the real page.
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.waitForTimeout(300);
-    c.check(await page.evaluate(() => !document.documentElement.className.includes('repv-motion') && document.getAnimations().filter(a => a.animationName).length === 0), 'Reduced motion', 'prefers-reduced-motion: no live-wallpaper classes or animations');
+    // Only RepoVibe's own keyframes count: GitHub runs its own CSS animations (e.g. prc-UnderlineNav-detect-overflow).
+    const rm = await page.evaluate(() => ({ cls: [...document.documentElement.classList].filter(c => c.startsWith('repv-motion')), anims: document.getAnimations().map(a => a.animationName).filter(n => /^repv-/.test(n || '')) }));
+    c.check(rm.cls.length === 0 && rm.anims.length === 0, 'Reduced motion', `prefers-reduced-motion: RepoVibe motion classes [${rm.cls}] and animations [${rm.anims}] (both must be empty)`);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await setConfig(context, { version: 2, enabled: true, autoAssign: false, motionMode: 'static', seededMappings: true, defaultThemeId: 'native', repoAssignments: { [A.toLowerCase()]: 'preset-1' } });
     await page.waitForTimeout(500);
