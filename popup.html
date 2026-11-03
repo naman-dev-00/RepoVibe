@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>RepoVibe</title>
+  <link rel="stylesheet" href="ui.css" />
+</head>
+<body class="popup-page">
+  <div class="popup-app">
+    <header class="popup-header">
+      <div class="brandmark">R<span>✦</span></div>
+      <div class="brand-title"><b>RepoVibe</b><small>Make every repo your own</small></div>
+      <label class="switch" title="Enable RepoVibe"><input id="enabled" type="checkbox" checked /><span></span></label>
+    </header>
+    <section class="repo-panel">
+      <div class="eyebrow"><span class="live-dot"></span> CURRENT WORKSPACE</div>
+      <h2 id="repoName">Detecting GitHub…</h2>
+      <p id="activeTheme">Loading theme…</p>
+      <div class="scope-chip" id="scopeInfo">Local theme engine</div>
+    </section>
+    <section class="popup-section">
+      <div class="section-top"><h3>Quick themes</h3><span>Pick your vibe</span></div>
+      <div class="scope-controls" role="group" aria-label="Apply theme to">
+        <label><input type="radio" name="scope" value="repository" checked /> This repo</label>
+        <label><input type="radio" name="scope" value="global" /> Everywhere</label>
+      </div>
+      <div id="quickThemes" class="quick-themes"></div>
+    </section>
+    <section class="popup-actions">
+      <button class="primary-button" id="openStudio">✦ Open theme studio <span>↗</span></button>
+      <button class="subtle-button" id="resetCurrent">↶ Restore GitHub look</button>
+      <p id="status" class="inline-status" role="status"></p>
+    </section>
+    <footer class="popup-footer"><span>PRIVACY-FIRST · LOCAL ONLY</span><span>v0.1.0</span></footer>
+  </div>
+  <script src="shared/core.js"></script><script src="popup.js"></script>
+</body>
+</html>
