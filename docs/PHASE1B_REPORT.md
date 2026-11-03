@@ -25,7 +25,9 @@ Honest quality statement: the 3D renders are real 3D (geometry, perspective, sof
 
 ## 3–6. Evidence (screenshots, automatic assignment, IndexedDB)
 
-- Before/after on **real github.com**: `docs/screenshots/live-*.jpg` (recovered from the live job log).
+- Before/after on **real github.com**: `docs/screenshots/live-github-3d-before-after.jpg` (native vs Cyberpunk 3D, Galaxy 3D, Aurora 3D) and `live-github-more.jpg` (illustrated theme on Issues/PRs, automatic theme on octocat/Hello-World) — recovered from the live job log.
+
+**Honest visual assessment of the real-site screenshots.** The artwork is present and measurable (49–82 % of pixels change; planet glow, aurora tint and neon hues show through the glass), but on real GitHub the scenes are **heavily subdued**: pages read as rich, atmospheric dark themes rather than GitHub floating inside a vivid 3D scene. This is a structural trade-off, not a tuning bug: GitHub's content column fills most of a desktop viewport, and keeping text ≥ 4.5:1 over a busy image requires suppressing that image behind the text — the readability guard enforces exactly that. The art is at full strength only where there is no text (side margins: ~160 px each at 1600 px, 320+ px at 1920–2560 px; gaps; the area below short pages). Users can lower glass opacity in the Studio; the guard still prevents unreadable text. A future option is a "focus" mode that keeps text on solid cards and shows the art at full strength everywhere else (layout-dependent; not implemented).
 - Studio gallery, background studio, popup, 3D and 2D contact sheets: `docs/screenshots/`.
 - Automatic assignment (real repos, live): `actions/checkout` → preset-14, `actions/setup-node` → preset-2, `octocat/Hello-World` → preset-5; same-owner repositories differ; persisted separately from manual choices; identical after a browser restart; popup override wins and survives restart.
 - IndexedDB (offline E2E + live): upload → stored once (dedup) → `idb:` reference only in settings (config < 20 KB) → previewed and rendered on github.com (92 % of pixels changed) → persists across reload and browser restart; v1 migration; missing asset fallback; cleanup keeps referenced assets.
@@ -39,6 +41,7 @@ Honest quality statement: the 3D renders are real 3D (geometry, perspective, sof
 | `npm run test:e2e` (offline fixture, Chromium + extension) | 32 / 32 (21 from Phase 1A, 12 new, 1 superseded) |
 | `npm run package` + `verify:package` | MV3 v0.2.0, 72 files, 27 wallpapers (7 3D), `storage` + `https://github.com/*` only |
 | Live github.com (logged out) on `44c8991` | 7 / 7 scenarios, **150 PASS, 0 FAIL, 0 BLOCKED**, 14 INFO |
+| Live github.com on `bc42dcd` (adds 3D themes on real pages) | 7 / 7 scenarios, **156 PASS, 0 FAIL, 0 BLOCKED**, 14 INFO; Cyberpunk/Galaxy/Aurora 3D on overview + issues: 0 text elements < 3:1 (p10 5.7–7.7:1) |
 
 Defects found by the live suite and fixed during this phase: (1) un-paneled text dropped to 1.4–2.9:1 over bright wallpapers → content-column glass + readability guard; (2) 82 % glass made pages read as tinted GitHub → dimmed art + per-wallpaper guard; plus the "wide layout narrower" bug from Phase 1A's live work.
 
@@ -62,7 +65,7 @@ Defects found by the live suite and fixed during this phase: (1) un-paneled text
 | # | Criterion | Status | Evidence |
 |---|---|---|---|
 | 1 | ≥ 10 presets with distinctive wallpaper artwork | **PASS** (20 presets have their own artwork) · **PARTIAL for the 3D direction** (7 presets 3D, 13 illustrated) | contact sheets, LICENSE |
-| 2 | Wallpapers visibly appear on actual GitHub pages | **PASS** | live: 49–82 % pixels changed (bundled), 92 % (IndexedDB) |
+| 2 | Wallpapers visibly appear on actual GitHub pages | **PASS (measurable) · PARTIAL (immersion)** | live: 49–82 % pixels changed (bundled), 92 % (IndexedDB); art subdued behind text by design (see §3–6) |
 | 3 | GitHub stays readable and functional | **PASS** | live screenshot contrast: 0 elements < 3:1 on all tested pages; links clickable; menus opaque (offline) |
 | 4 | Each repository keeps its manual theme | **PASS** | offline + live |
 | 5 | Stable automatic theme for unconfigured repositories | **PASS** | unit + offline + live restart |
@@ -75,4 +78,5 @@ Defects found by the live suite and fixed during this phase: (1) un-paneled text
 | 12 | Existing tests keep passing | **PASS** | 20 unit, 32 offline (semantics-driven updates documented in the PR) |
 | 13 | New unit, E2E and live tests pass | **PASS** | as above |
 | 14 | Disable restores normal GitHub | **PASS** | offline pixel-identical + live restoration checks |
-| — | 3D cinematic visual target | **PARTIAL** | 7 real 3D renders; organic/architectural concept-art scenes not produced (see §2) |
+| — | 3D cinematic visual target | **PARTIAL** | 7 real 3D renders; organic/architectural concept-art scenes not produced (see §2); on real GitHub the scenes are subdued behind readable glass |
+| — | Main success condition: repo feels like a personalized environment, not a recolor | **PARTIAL** | strong in the Studio/gallery and around content; on real pages the effect is a deep, atmospheric theme with art at the edges rather than a fully visible scene |
