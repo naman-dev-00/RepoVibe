@@ -85,10 +85,22 @@ const themeState = page => page.evaluate(() => {
   };
 });
 
+/** GitHub's Primer components transition `color`; after a theme switch getComputedStyle returns mid-fade
+    values. Force a style recalc (which starts pending transitions), then wait for finite animations. */
+async function settleAnimations(page) {
+  await page.evaluate(async () => {
+    void document.body.offsetHeight;
+    const running = document.getAnimations().filter(a => a.playState === 'running' && a.effect?.getComputedTiming().iterations !== Infinity);
+    await Promise.race([Promise.all(running.map(a => a.finished.catch(() => {}))), new Promise(r => setTimeout(r, 3000))]);
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  }).catch(() => {});
+}
+
 /** Computed-style fingerprint used to prove GitHub's original appearance is restored exactly.
     The first call pins up to 60 concrete DOM nodes (stored on window); later calls re-read the SAME nodes,
     so GitHub's lazy rendering cannot swap in different elements. Nodes removed meanwhile are skipped. */
-const fingerprint = page => page.evaluate(() => {
+const fingerprint = async page => { await settleAnimations(page); return fingerprintNow(page); };
+const fingerprintNow = page => page.evaluate(() => {
   const root = document.documentElement;
   if (!window.__repvFpNodes) {
     const picks = ['html', 'body', '.AppHeader', 'header', 'main', '[role="main"]', '#repository-container-header', 'nav[aria-label="Repository"]', '.UnderlineNav', '.Box', '.markdown-body', '.react-code-text', '.Layout-sidebar', '.container-xl', '.btn', '.Button', 'a', '.Counter', '.Label'];
@@ -127,7 +139,8 @@ function sameAppearance(before, after) {
 }
 
 /** Readability audit: visible text elements whose contrast with their effective background is < 3:1. */
-const readability = (page, fallbackBg) => page.evaluate(fallback => {
+const readability = async (page, fallbackBg) => { await settleAnimations(page); return readabilityNow(page, fallbackBg); };
+const readabilityNow = (page, fallbackBg) => page.evaluate(fallback => {
   const parse = s => { const m = s.match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
   const lum = c => [c.r, c.g, c.b].map(x => { x /= 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }).reduce((s, x, i) => s + x * [0.2126, 0.7152, 0.0722][i], 0);
   const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
@@ -219,4 +232,4 @@ function writeSummary() {
 }
 test.after(writeSummary);
 
-module.exports = { Blocked, record, gotoLive, settle, themeState, fingerprint, sameAppearance, readability, watchErrors, shot, debugDump, liveTest, OUT };
+module.exports = { Blocked, record, gotoLive, settle, settleAnimations, themeState, fingerprint, sameAppearance, readability, watchErrors, shot, debugDump, liveTest, OUT };
