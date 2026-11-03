@@ -36,3 +36,8 @@
 .wallpaper-tile.uploaded:after{content:"MY UPLOAD";position:absolute;top:5px;right:5px;font-size:8px;font-weight:800;letter-spacing:.08em;background:#000a;color:#e9d9ff;padding:2px 5px;border-radius:4px}
 .wallpaper-tile .missing{display:grid;place-items:center;height:100%;font-size:11px;color:#ffabaf}
 .preview-content{backdrop-filter:blur(8px)}
+
+.style-badge{position:absolute;top:8px;right:8px;z-index:2;font-size:9px;font-weight:800;letter-spacing:.1em;padding:3px 7px;border-radius:6px;background:#000a;color:#ddd;border:1px solid #fff3}
+.style-badge.is-3d{background:linear-gradient(120deg,#7c3aed,#06b6d4);color:#fff;border-color:#fff6;box-shadow:0 2px 10px #06b6d455}
+.gallery-art .art-mock{z-index:1}
+.wallpaper-tile.is-3d:after{content:"3D";position:absolute;top:5px;left:5px;font-size:9px;font-weight:900;background:linear-gradient(120deg,#7c3aed,#06b6d4);color:#fff;padding:2px 6px;border-radius:4px}

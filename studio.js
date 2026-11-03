@@ -153,7 +153,7 @@
   }
   function paintWallpapers() {
     const grid = $('wallpaperGrid');
-    const tiles = C.WALLPAPERS.map(w => wallpaperTile(w.ref, w.name, w.thumb));
+    const tiles = C.WALLPAPERS.map(w => wallpaperTile(w.ref, w.name, w.thumb, w.style === '3d' ? 'is-3d' : ''));
     for (const u of uploaded) tiles.push(wallpaperTile(`idb:${u.id}`, u.name || 'My upload', objectUrls.get(u.id), 'uploaded'));
     if (/^idb:/.test(draft.wallpaperRef) && !uploaded.some(u => `idb:${u.id}` === draft.wallpaperRef)) tiles.push(wallpaperTile(draft.wallpaperRef, 'Missing wallpaper', '', 'uploaded'));
     grid.replaceChildren(...tiles);
@@ -194,6 +194,8 @@
     art.style.setProperty('--surface-glass', `color-mix(in srgb, ${theme.surface} ${theme.glassOpacity}%, transparent)`);
     art.style.setProperty('--border', theme.border);
     art.style.setProperty('--text', theme.text);
+    const style = (C.WALLPAPERS.find(w => w.ref === theme.wallpaperRef) || {}).style;
+    if (style) { const badge = document.createElement('span'); badge.className = `style-badge ${style === '3d' ? 'is-3d' : ''}`; badge.textContent = style === '3d' ? '3D CINEMATIC' : 'ILLUSTRATED'; art.appendChild(badge); }
     const mock = document.createElement('div'); mock.className = 'art-mock';
     mock.innerHTML = '<div class="art-bar"><i></i><i></i><i></i></div><div class="art-panel"><b></b><i></i><i></i><i></i></div><div class="art-panel secondary"><i></i><i></i></div>';
     art.appendChild(mock);
@@ -216,7 +218,11 @@
     card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectTheme(theme); } });
     return card;
   }
-  function paintGallery() { $('themeGallery').replaceChildren(...C.PRESETS.map(makeGalleryCard)); }
+  // 3D cinematic themes first, then illustrated ones (stable within each group).
+  function paintGallery() {
+    const is3d = t => (C.WALLPAPERS.find(w => w.ref === t.wallpaperRef) || {}).style === '3d';
+    $('themeGallery').replaceChildren(...[...C.PRESETS].sort((a, b) => Number(is3d(b)) - Number(is3d(a))).map(makeGalleryCard));
+  }
 
   function paintColors() {
     const controls = $('colorControls'); controls.replaceChildren();
@@ -230,6 +236,9 @@
   }
   function updateSliderOutputs() {
     for (const [id, unit] of Object.entries(sliderFields)) { $(id).value = draft[id]; $(`${id}Val`).textContent = `${draft[id]}${unit}`; }
+    const hasArt = draft.backgroundMode === 'image' && (draft.wallpaperRef || draft.wallpaper);
+    const guard = hasArt ? Math.round(C.requiredGlass(draft, C.wallpaperTone(draft.wallpaperRef)) * 100) : draft.glassOpacity;
+    $('glassGuardNote').textContent = guard > draft.glassOpacity ? `Readability guard: panels render at ${guard}% over this wallpaper so text stays at 4.5:1 or better.` : '';
   }
   function paintPreview() {
     const preview = $('palettePreview');

@@ -4,7 +4,7 @@
      and keep only a reference. Failures leave the user's settings untouched (inline data keeps working).
    - WALLPAPER_CLEANUP: delete assets no saved theme references (Studio triggers after saving).
    No network access, no extra permissions. */
-importScripts('shared/core.js', 'shared/wallpaper-store.js');
+importScripts('shared/wallpaper-catalog.js', 'shared/core.js', 'shared/wallpaper-store.js');
 const C = globalThis.RepoVibeCore;
 const WP = globalThis.RepoVibeWallpapers;
 const MIGRATION_KEY = 'repovibe.migration';

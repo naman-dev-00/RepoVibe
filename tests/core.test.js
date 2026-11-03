@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const context = vm.createContext({URL, structuredClone, console, Date, Math});
+vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../shared/wallpaper-catalog.js'), 'utf8'), context);
 vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../shared/core.js'), 'utf8'), context);
 const C = context.RepoVibeCore;
 
@@ -79,6 +80,7 @@ function coreWithStorage(initial, { failWith } = {}) {
     set: async obj => { if (failWith) throw new Error(failWith); await new Promise(r => setTimeout(r, 5)); stored = { ...stored, ...structuredClone(obj) }; }
   } } };
   const ctx = vm.createContext({ URL, structuredClone, console, Date, Math, setTimeout, chrome });
+  vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../shared/wallpaper-catalog.js'), 'utf8'), ctx);
   vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../shared/core.js'), 'utf8'), ctx);
   return { core: ctx.RepoVibeCore, stored: () => stored[C.STORAGE_KEY] };
 }

@@ -33,9 +33,10 @@ if (manifest.background?.service_worker) {
   const sw = execFileSync('unzip', ['-p', zip, manifest.background.service_worker], { encoding: 'utf8' });
   for (const [, list] of sw.matchAll(/importScripts\(([^)]*)\)/g)) for (const [, f] of list.matchAll(/'([^']+)'/g)) required.add(f);
 }
-const coreSrc = execFileSync('unzip', ['-p', zip, 'shared/core.js'], { encoding: 'utf8' });
-const wpBlock = coreSrc.slice(coreSrc.indexOf('const WALLPAPERS = ['), coreSrc.indexOf('].map(([slug, name, category])'));
-const wallpaperSlugs = [...wpBlock.matchAll(/\['([a-z0-9-]+)', '[^']+', '[^']+'\]/g)].map(m => m[1]);
+const catalogSrc = execFileSync('unzip', ['-p', zip, 'shared/wallpaper-catalog.js'], { encoding: 'utf8' });
+const catalog = JSON.parse(catalogSrc.slice(catalogSrc.indexOf('['), catalogSrc.lastIndexOf(']') + 1));
+const wallpaperSlugs = catalog.map(w => w.slug);
+const threeD = catalog.filter(w => w.style === '3d').length;
 if (wallpaperSlugs.length < 10) problems.push(`expected at least 10 bundled wallpapers, found ${wallpaperSlugs.length}`);
 for (const slug of wallpaperSlugs) { required.add(`wallpapers/${slug}.webp`); required.add(`wallpapers/thumbs/${slug}.webp`); }
 if (!files.has('wallpapers/LICENSE.md')) problems.push('missing wallpapers/LICENSE.md');
@@ -46,5 +47,5 @@ for (const file of required) if (file && !files.has(file)) problems.push(`missin
 for (const file of files) if (/^(tests|scripts|node_modules|\.github)\//.test(file) || file.endsWith('.zip')) problems.push(`unexpected file in package: ${file}`);
 
 if (problems.length) { console.error(`Package verification FAILED:\n - ${problems.join('\n - ')}`); process.exit(1); }
-console.log(`Package OK: MV3 v${manifest.version}, ${files.size} files, ${wallpaperSlugs.length} wallpapers, permissions ${JSON.stringify(manifest.permissions)}, hosts ${JSON.stringify(manifest.host_permissions)}`);
+console.log(`Package OK: MV3 v${manifest.version}, ${files.size} files, ${wallpaperSlugs.length} wallpapers (${threeD} 3D), permissions ${JSON.stringify(manifest.permissions)}, hosts ${JSON.stringify(manifest.host_permissions)}`);
 console.log([...files].sort().map(f => `  ${f}`).join('\n'));

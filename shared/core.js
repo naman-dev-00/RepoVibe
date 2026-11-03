@@ -12,43 +12,37 @@
   const UNSAFE_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
   const ROWS = [
     // name, tagline, primary background, panel, brighter panel, foreground, muted, accent, border, gradient 2, gradient 3, code, vibe
-    ['Cyberpunk Neon', 'Electric after dark', '#100c25', '#1b1538', '#292044', '#f3edff', '#aaa0cc', '#a879ff', '#49337e', '#25104c', '#051f31', '#15122a', 'neon'],
+    ['Cyberpunk Neon', 'Neon rain canyon', '#100c25', '#1b1538', '#292044', '#f3edff', '#aaa0cc', '#a879ff', '#49337e', '#25104c', '#051f31', '#15122a', 'neon'],
     ['Midnight Developer', 'Deep focus', '#0b1220', '#151e30', '#1e2b40', '#ebf1ff', '#9aabc6', '#6eacff', '#34445e', '#132b47', '#0b1828', '#101c30', 'minimal'],
     ['Sakura Dreams', 'Soft blossom light', '#fff1f6', '#fff8fb', '#ffe7ef', '#4b2540', '#7a5669', '#a8366d', '#e9bed3', '#ffe2f0', '#f8e9ff', '#fff0f8', 'soft'],
     ['Cozy Coding', 'Warm and familiar', '#241c1b', '#342926', '#47352e', '#fff1dc', '#c4a998', '#f1ac72', '#725345', '#4a2e24', '#261d2b', '#28201f', 'soft'],
     ['Matrix', 'Into the source', '#071008', '#0d1c10', '#15291a', '#b9f9bd', '#76aa7c', '#4ad66d', '#265637', '#081e0f', '#04110b', '#0a160c', 'neon'],
     ['Dracula', 'Legendary dark', '#191a2a', '#292a40', '#343650', '#f6f5ff', '#b3b2cd', '#bd93f9', '#55506c', '#34233c', '#1b2640', '#202134', 'soft'],
-    ['Ocean Depths', 'Below the surface', '#061b2c', '#0d2a40', '#163954', '#e7f8ff', '#9fc4d2', '#46c6ee', '#315870', '#08324d', '#082333', '#09283b', 'glass'],
+    ['Ocean Depths', 'Twilight swell', '#061b2c', '#0d2a40', '#163954', '#e7f8ff', '#9fc4d2', '#46c6ee', '#315870', '#08324d', '#082333', '#09283b', 'glass'],
     ['Forest Retreat', 'Natural focus', '#14221c', '#21362a', '#2c4435', '#eaf8e8', '#acc4b1', '#86cd8c', '#42634b', '#233f25', '#13291f', '#1b2e23', 'soft'],
     ['Retro Terminal', 'Back to basics', '#171911', '#23291a', '#313928', '#f1f3c9', '#a8b28a', '#bdd774', '#5c6440', '#313019', '#181e16', '#1c2119', 'pixel'],
     ['Pixel Paradise', '8-bit nostalgia', '#211a41', '#302959', '#40356c', '#fbf3ff', '#beb1de', '#ff9bd5', '#7350a0', '#33216b', '#14304f', '#29234b', 'pixel'],
-    ['Solar Flare', 'A spark of energy', '#291913', '#422617', '#5c331c', '#fff1dd', '#d9b297', '#ffad54', '#885337', '#5a2918', '#2b1b19', '#341f19', 'neon'],
-    ['Arctic Frost', 'Cool clarity', '#eaf5fc', '#fbfdff', '#deecf6', '#213952', '#4b6178', '#2a5f9e', '#bfd7e8', '#e1f5ff', '#d6e4ff', '#f2f8fd', 'glass'],
+    ['Solar Flare', 'Dunes at dusk', '#291913', '#422617', '#5c331c', '#fff1dd', '#d9b297', '#ffad54', '#885337', '#5a2918', '#2b1b19', '#341f19', 'neon'],
+    ['Arctic Frost', 'Alpine golden hour', '#eaf5fc', '#fbfdff', '#deecf6', '#213952', '#4b6178', '#2a5f9e', '#bfd7e8', '#e1f5ff', '#d6e4ff', '#f2f8fd', 'glass'],
     ['Lavender Nights', 'A gentle glow', '#1e1837', '#2c2448', '#3a305c', '#f8efff', '#b9abcd', '#d0a6ff', '#5b4d78', '#392252', '#221a43', '#29203f', 'soft'],
     ['Dark Academia', 'Timeless and thoughtful', '#241d19', '#362b23', '#45362b', '#f2e8d3', '#bcb09b', '#d4b47d', '#69513a', '#30221a', '#221a17', '#2e251e', 'minimal'],
     ['Minimal White', 'Nothing but the work', '#f6f7f9', '#ffffff', '#f1f3f6', '#202631', '#5b6470', '#3454c4', '#dce0e7', '#f8fafc', '#eef1f7', '#fafbfe', 'minimal'],
     ['Obsidian', 'Pure concentration', '#0d0e11', '#18191e', '#202228', '#f4f4f7', '#a1a1ad', '#a5a9bd', '#3b3e48', '#15161a', '#0d0e11', '#17181c', 'minimal'],
-    ['Aurora', 'Northern lights', '#0c1724', '#122b34', '#1b3b45', '#e8fff8', '#9dcbc6', '#7eedd7', '#355d5c', '#113b4b', '#2d2557', '#142633', 'glass'],
+    ['Aurora', 'Northern lights over a fjord', '#0c1724', '#122b34', '#1b3b45', '#e8fff8', '#9dcbc6', '#7eedd7', '#355d5c', '#113b4b', '#2d2557', '#142633', 'glass'],
     ['Sunset Boulevard', 'Golden hour', '#301b32', '#4c294a', '#60375b', '#fff1f1', '#d5b0c7', '#ff9d82', '#7d4d73', '#9a4d61', '#442b6e', '#3c2540', 'soft'],
-    ['Galaxy', 'Somewhere in space', '#0b0b25', '#17183d', '#24244e', '#f0edff', '#a5a6d3', '#979bff', '#464784', '#251d53', '#102c4b', '#141433', 'glass'],
-    ['Synthwave', 'Night drive', '#210c37', '#33194a', '#462359', '#fff1ff', '#c9a1df', '#ff65c3', '#76438d', '#551b6c', '#102e5d', '#2b1342', 'neon']
+    ['Galaxy', 'Alien world, giant planet', '#0b0b25', '#17183d', '#24244e', '#f0edff', '#a5a6d3', '#979bff', '#464784', '#251d53', '#102c4b', '#141433', 'glass'],
+    ['Synthwave', 'Neon valley drive', '#210c37', '#33194a', '#462359', '#fff1ff', '#c9a1df', '#ff65c3', '#76438d', '#551b6c', '#102e5d', '#2b1342', 'neon']
   ];
-  // Measured 98th / 2nd percentile colour of each bundled wallpaper (per channel), used by the readability guard.
-  const WALLPAPER_TONES = {"academia-library": ["#d0a167", "#0b0704"], "aurora-lake": ["#356f6c", "#01070a"], "cozy-room": ["#d9b79a", "#100e0b"], "digital-rain": ["#164a27", "#000502"], "forest-waterfall": ["#fefefe", "#162b1c"], "galaxy-planet": ["#cc91fd", "#030311"], "gothic-castle": ["#4c2f4f", "#08060f"], "lavender-fantasy": ["#8f6fc5", "#110c2a"], "midnight-skyline": ["#37446f", "#01050e"], "mono-lines": ["#ffffff", "#c6c8cd"], "neon-rain-street": ["#60447d", "#090411"], "obsidian-shards": ["#2d2e32", "#08080a"], "ocean-depths": ["#71c4e0", "#02111a"], "pixel-dusk": ["#e8f2a8", "#151708"], "pixel-island": ["#ffb1d6", "#1b1a41"], "sakura-street": ["#fee6ea", "#5e3b4b"], "snow-peaks": ["#f2f7fb", "#3f5b73"], "solar-sunset": ["#fef284", "#210a15"], "sunset-village": ["#fecbad", "#2a142e"], "synthwave-grid": ["#fec9ae", "#090115"]};
+  // Wallpaper catalogue generated from wallpapers/manifest.json (shared/wallpaper-catalog.js, loaded first).
+  const CATALOG = root.RepoVibeWallpaperCatalog || [];
   const WORST_CASE_TONE = ['#ffffff', '#000000']; // unknown (uploaded) images
-  // Bundled original wallpapers (see wallpapers/LICENSE.md). Index-aligned with ROWS: preset N uses WALLPAPERS[N-1].
-  const WALLPAPERS = [
-    ['neon-rain-street', 'Neon rain street', 'Futuristic'], ['midnight-skyline', 'Midnight skyline', 'Futuristic'],
-    ['sakura-street', 'Sakura street', 'Anime-inspired'], ['cozy-room', 'Cozy room', 'Anime-inspired'],
-    ['digital-rain', 'Digital rain', 'Abstract'], ['gothic-castle', 'Gothic castle', 'Fantasy'],
-    ['ocean-depths', 'Ocean depths', 'Nature'], ['forest-waterfall', 'Forest waterfall', 'Nature'],
-    ['pixel-dusk', 'Pixel dusk', 'Pixel art'], ['pixel-island', 'Pixel island', 'Pixel art'],
-    ['solar-sunset', 'Solar sunset', 'Nature'], ['snow-peaks', 'Snow peaks', 'Nature'],
-    ['lavender-fantasy', 'Lavender fantasy', 'Fantasy'], ['academia-library', 'Academia library', 'Other'],
-    ['mono-lines', 'Monochrome lines', 'Minimal'], ['obsidian-shards', 'Obsidian shards', 'Minimal'],
-    ['aurora-lake', 'Aurora lake', 'Nature'], ['sunset-village', 'Sunset village', 'Anime-inspired'],
-    ['galaxy-planet', 'Galaxy & planet', 'Futuristic'], ['synthwave-grid', 'Synthwave grid', 'Futuristic']
-  ].map(([slug, name, category]) => ({ slug, name, category, ref: `builtin:${slug}`, path: `wallpapers/${slug}.webp`, thumb: `wallpapers/thumbs/${slug}.webp`, tone: WALLPAPER_TONES[slug] }));
+  const WALLPAPERS = CATALOG.map(w => ({ slug: w.slug, name: w.name, category: w.category, style: w.style,
+    ref: `builtin:${w.slug}`, path: `wallpapers/${w.slug}.webp`, thumb: `wallpapers/thumbs/${w.slug}.webp`, tone: w.tone }));
+  const WALLPAPER_TONES = Object.fromEntries(WALLPAPERS.map(w => [w.slug, w.tone]));
+  // Preset N → wallpaper. 3D cinematic renders where available; the rest use the illustrated (2D) scenes.
+  const PRESET_WALLPAPERS = ['neon-city-3d', 'midnight-skyline', 'sakura-street', 'cozy-room', 'digital-rain', 'gothic-castle',
+    'ocean-twilight', 'forest-waterfall', 'pixel-dusk', 'pixel-island', 'desert-dunes', 'alpine-lake', 'lavender-fantasy',
+    'academia-library', 'mono-lines', 'obsidian-shards', 'aurora-fjord', 'sunset-village', 'alien-world', 'synthwave-3d'];
   const WALLPAPER_SLUGS = new Set(WALLPAPERS.map(w => w.slug));
   const POSITIONS = ['center', 'top', 'bottom', 'left', 'right'];
   const SIZES = ['cover', 'contain'];
@@ -67,15 +61,16 @@
     gradientTo: row[9], gradientThird: row[10], codeBg: row[11], vibe: row[12],
     radius: row[12] === 'pixel' ? 3 : row[12] === 'minimal' ? 8 : 16,
     glass: 12,
-    glassOpacity: isLightHex(row[2]) ? 84 : 82,
+    glassOpacity: isLightHex(row[2]) ? 66 : 60, // starting point; the readability guard raises it per wallpaper
     gradientAngle: 135,
     backgroundMode: 'image',
     wallpaper: '',
-    wallpaperRef: `builtin:${WALLPAPERS[index].slug}`,
+    wallpaperRef: `builtin:${PRESET_WALLPAPERS[index]}`,
+    wallpaperStyle: (WALLPAPERS.find(w => w.slug === PRESET_WALLPAPERS[index]) || {}).style || 'illustrated',
     wallpaperOpacity: 100,
     wallpaperBlur: 0,
-    wallpaperBrightness: 100,
-    wallpaperOverlay: isLightHex(row[2]) ? 25 : 35,
+    wallpaperBrightness: isLightHex(row[2]) ? 100 : 80, // dim the art itself so more of it can show through glass
+    wallpaperOverlay: isLightHex(row[2]) ? 15 : 20,
     wallpaperPosition: 'center',
     wallpaperSize: 'cover',
     font: row[12] === 'pixel' ? 'mono' : 'system',

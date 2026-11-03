@@ -43,7 +43,7 @@
           <div class="editor-grid">
             <div class="settings-card"><h3>Theme identity</h3><label class="field-label" for="themeName">Theme name</label><input id="themeName" maxlength="60" placeholder="My custom theme" /><label class="field-label" for="themeDescription">Description</label><input id="themeDescription" maxlength="120" placeholder="A different kind of GitHub" /><label class="field-label" for="fontSelect">Interface font</label><select id="fontSelect"><option value="system">System default</option><option value="rounded">Rounded</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></div>
             <div class="settings-card"><h3>Color palette</h3><div class="color-grid" id="colorControls"></div></div>
-            <div class="settings-card"><h3>Surfaces</h3><label class="range-row"><span>Corner radius <output id="radiusVal"></output></span><input id="radius" type="range" min="0" max="28" /></label><label class="range-row"><span>Glass blur strength <output id="glassVal"></output></span><input id="glass" type="range" min="0" max="30" /></label><label class="range-row"><span>Glass panel opacity <output id="glassOpacityVal"></output></span><input id="glassOpacity" type="range" min="40" max="100" /></label></div>
+            <div class="settings-card"><h3>Surfaces</h3><label class="range-row"><span>Corner radius <output id="radiusVal"></output></span><input id="radius" type="range" min="0" max="28" /></label><label class="range-row"><span>Glass blur strength <output id="glassVal"></output></span><input id="glass" type="range" min="0" max="30" /></label><label class="range-row"><span>Glass panel opacity <output id="glassOpacityVal"></output></span><input id="glassOpacity" type="range" min="40" max="100" /></label><p class="helper" id="glassGuardNote" role="status"></p></div>
             <div class="settings-card preview-card"><div class="label-mini">COLOR PREVIEW</div><div class="preview-art" id="palettePreview"><div class="preview-nav"><i></i><i></i><i></i><span></span></div><div class="preview-content"><div class="fake-title"></div><div class="fake-line"></div><div class="fake-line short"></div><div class="fake-button"></div></div></div><p>Changes preview live in the connected GitHub tab. Save when it looks right.</p></div>
           </div>
         </section>
@@ -80,6 +80,6 @@
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </main>
   </div>
-  <script src="shared/core.js"></script><script src="shared/wallpaper-store.js"></script><script src="studio.js"></script>
+  <script src="shared/wallpaper-catalog.js"></script><script src="shared/core.js"></script><script src="shared/wallpaper-store.js"></script><script src="studio.js"></script>
 </body>
 </html>
