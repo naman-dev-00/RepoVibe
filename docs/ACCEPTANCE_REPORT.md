@@ -84,22 +84,28 @@ Negative controls (same tests, older source):
 
 **Suite:** `tests/live/github.live.js` (`npm run test:live`), workflow `.github/workflows/live-github.yml` — runs on pull requests touching extension/live-test files, weekly (Mon 04:23 UTC) and on manual dispatch; separate from the deterministic offline CI. Each check becomes a row in the job summary; screenshots, `live-results.json`, and on failure an HTML/JSON/PNG dump per page are uploaded as the `live-github-results` artifact.
 
-**Targets:** `actions/checkout` (overview, `blob/main/action.yml`, issues, pulls, actions, `commits/main`), `octocat/Hello-World`, org page `github.com/actions`; logged out; Chromium 153 (Playwright 1.63.0); light and dark system color schemes (GitHub "auto").
+**Targets:** `actions/checkout` (overview, `blob/main/action.yml`, issues, pulls, actions, `commits/main`), `octocat/Hello-World`, org page `github.com/actions`; logged out; Chromium 153 (Playwright 1.63.0); light and dark system color schemes (GitHub "auto") on all six page types.
 
-### Result: live run [#3](https://github.com/naman-dev-00/RepoVibe/actions/runs/41612808170) on `0d52c4a` — 5/5 scenarios, 84 PASS · 0 FAIL · 0 BLOCKED · 12 INFO
+### Result: live run [41614877702](https://github.com/naman-dev-00/RepoVibe/actions/runs/41614877702) on `fed0052` — 5/5 scenarios, **126 PASS · 0 FAIL · 0 BLOCKED · 12 INFO**
 
-| Scenario (real github.com) | Overview | Code | Issues | PRs | Actions | Commits |
+Earlier green live runs: [41612808170](https://github.com/naman-dev-00/RepoVibe/actions/runs/41612808170) (`0d52c4a`, 84 PASS) and [41613592399](https://github.com/naman-dev-00/RepoVibe/actions/runs/41613592399) (`b8b3d36`). Regular CI on `fed0052`: [41614877355](https://github.com/naman-dev-00/RepoVibe/actions/runs/41614877355) green. All workflows use `actions/checkout@v7`, `actions/setup-node@v7`, `actions/upload-artifact@v7` (node24; replaces deprecated node20 v4).
+
+Every page row below was recorded only after **real-site evidence** passed for that page load: HTTP 200 at the expected github.com path (no redirect), `og:site_name=GitHub`, GitHub's repository meta = `actions/checkout`, 28–48 stylesheets from `githubassets.com`, and Primer tokens resolved.
+
+| Scenario (real github.com, logged out) | Overview | Code | Issues | PRs | Actions | Commits |
 |---|---|---|---|---|---|---|
-| Default settings leave GitHub untouched | PASS | PASS | PASS | PASS | PASS | PASS |
-| Theme applied (tokens, text color, gradient) — light system | PASS | PASS | PASS | PASS | PASS | PASS |
-| Dark theme switches GitHub base mode; GitHub's own tokens follow | PASS | PASS | PASS | PASS | PASS | PASS |
-| Readability vs native GitHub (low-contrast text < 3:1) | PASS 0/190 | PASS 0/177 | PASS 0/141 | PASS 0/185 | PASS 0/182 | PASS 0/148 |
-| Exact restoration (60 pinned elements) after reverting | PASS | PASS | PASS | PASS | PASS | PASS |
-| Dark system: light theme applied + base mode → light, original "auto" remembered | PASS | PASS | PASS | — | — | — |
-| Dark system: GitHub light token set active; readability | PASS | PASS | PASS | — | — | — |
-| Dark system: disable restores dark appearance and `data-color-mode="auto"` | PASS | PASS | PASS | — | — | — |
+| Real-site evidence (light / dark) | PASS / PASS | PASS / PASS | PASS / PASS | PASS / PASS | PASS / PASS | PASS / PASS |
+| Default settings leave GitHub untouched (light) | PASS | PASS | PASS | PASS | PASS | PASS |
+| Dark theme applied; GitHub base mode → dark; GitHub's own tokens follow (light system) | PASS | PASS | PASS | PASS | PASS | PASS |
+| Light theme applied; base mode → light, "auto" remembered; GitHub light tokens active (dark system) | PASS | PASS | PASS | PASS | PASS | PASS |
+| Readability, light system (low-contrast < 3:1 vs native) | PASS 0/190 (0) | PASS 0/177 (0) | PASS 0/141 (0) | PASS 0/185 (0) | PASS 0/182 (0) | PASS 0/148 (0) |
+| Readability, dark system | PASS 0/190 (0) | PASS 0/177 (0) | PASS 0/141 (0) | PASS 0/185 (0) | PASS 0/182 (0) | PASS 0/148 (0) |
+| Computed styles restored exactly after transitions settle — 60 pinned elements (light / dark) | PASS / PASS | PASS / PASS | PASS / PASS | PASS / PASS | PASS / PASS | PASS / PASS |
+| No RepoVibe-owned DOM left: style tag, `repv*` classes, `data-repv*` attributes, wallpaper layer (light / dark) | PASS / PASS | PASS / PASS | PASS / PASS | PASS / PASS | PASS / PASS | PASS / PASS |
 | Client-side (no reload) navigation keeps theme | start | PASS | PASS | PASS | PASS | PASS |
 | RepoVibe-attributed console/page errors | 0 in every scenario (GitHub's own: 3–5 per scenario, not attributed to RepoVibe) |||||
+
+Restoration method: fingerprints pin the same 60 DOM nodes before theming and after reverting; measurement forces a style recalc and waits for GitHub's finite CSS transitions/animations (≤3s) before reading `getComputedStyle`. The extension-DOM sweep was validated offline (it detects all five RepoVibe artifacts while a wallpaper theme is active and none after disabling).
 
 | Other live checks | Result |
 |---|---|
@@ -127,7 +133,7 @@ Negative controls (same tests, older source):
 2. **GitHub theme variants selected in GitHub settings** (signed-in only): high contrast, colorblind, dark dimmed; and changing GitHub's appearance setting while a theme is active.
 3. **Installed-extension UX in headed Chrome stable:** load the CI `RepoVibe-Extension` ZIP, open the *toolbar* popup (automation opens `popup.html` as a page), and disable/remove the extension from `chrome://extensions`.
 4. **Real storage quota and IndexedDB:** multiple large wallpapers near the 10 MB `storage.local` limit (IndexedDB wallpaper storage is not implemented — PENDING).
-5. **Other platforms:** Windows/macOS font rendering, OS reduced-motion and high-contrast modes.
+5. **Other platforms and accessibility modes:** Windows/macOS rendering; OS reduced-motion, forced-colors/high-contrast and zoom; keyboard-only and screen-reader use of the popup and Studio (none of these are covered by automated tests).
 
 ## Acceptance matrix
 
@@ -137,8 +143,8 @@ PASS = verified by an automated test in this PR · FAIL = known failing · BLOCK
 |---|---|---|
 | Extension loads (unpacked + packaged ZIP), no manifest errors | PASS | PASS (unpacked) · ZIP in headed Chrome: UNVERIFIED |
 | No effect when disabled/native | PASS | PASS (6 page types) |
-| Token theming, overlays, WCAG AA preset contrast | PASS | PASS theming + readability (6 pages × 2 modes); overlays/menus UNVERIFIED (signed-in) |
-| `data-color-mode` switching, user appearance change, OS scheme change, restore | PASS | PASS switching/restore with GitHub "auto" in light + dark; changing GitHub's own setting: UNVERIFIED (signed-in) |
+| Token theming, overlays, WCAG AA preset contrast | PASS | PASS theming + readability (6 pages × 2 modes, 0 low-contrast); overlays/menus UNVERIFIED (signed-in) |
+| `data-color-mode` switching, user appearance change, OS scheme change, restore | PASS | PASS switching/restore with GitHub "auto", light + dark, 6 page types; changing GitHub's own setting: UNVERIFIED (signed-in) |
 | Repo > owner > global priority (incl. prototype-like names) | PASS | PASS repo + global; owner scope UNVERIFIED live |
 | Layout (standard/wide/compact), code size + cursor textarea | PASS | PASS standard/wide/code size/textarea; compact UNVERIFIED live |
 | SPA / Turbo / back navigation; enable/disable mid-navigation | PASS (simulated) | PASS real client-side nav (5 tabs) + back; toggle mid-nav UNVERIFIED live |
