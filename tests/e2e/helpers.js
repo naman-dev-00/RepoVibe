@@ -22,8 +22,9 @@ const EXT_ID = [...crypto.createHash('sha256').update(EXT).digest('hex').slice(0
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
 // fixture=false lets requests reach the real network (used only by the live github.com suite).
-async function launch({ extension = true, mode = 'dark', fixture = true, colorScheme = 'light' } = {}) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'repovibe-e2e-'));
+// userDataDir: reuse a profile across launches (browser-restart persistence tests); it is not deleted on close.
+async function launch({ extension = true, mode = 'dark', fixture = true, colorScheme = 'light', userDataDir } = {}) {
+  const dir = userDataDir || fs.mkdtempSync(path.join(os.tmpdir(), 'repovibe-e2e-'));
   // Pin text rasterization so screenshots do not depend on the host's fontconfig antialiasing/subpixel
   // settings (these differed between the authoring machine and GitHub's runners).
   const RENDER_ARGS = ['--disable-lcd-text', '--font-render-hinting=none'];
@@ -44,7 +45,7 @@ async function launch({ extension = true, mode = 'dark', fixture = true, colorSc
     const title = url.pathname.split('/').filter(Boolean).slice(0, 2).join('/') || 'GitHub';
     route.fulfill({ contentType: 'text/html; charset=utf-8', body: FIXTURE.replaceAll('__TITLE__', title).replace('__MODE__', mode) });
   });
-  const close = async () => { await context.close(); fs.rmSync(dir, { recursive: true, force: true }); };
+  const close = async () => { await context.close(); if (!userDataDir) fs.rmSync(dir, { recursive: true, force: true }); };
   return { context, errors, close };
 }
 
@@ -53,7 +54,10 @@ async function extPage(context, file = 'popup.html') {
   await page.goto(`chrome-extension://${EXT_ID}/${file}`);
   return page;
 }
+// Configs without a version are written as v2 with automatic assignment OFF, preserving the semantics the
+// pre-Phase-1B tests were written for (unassigned repos stay native). Auto-assignment tests opt in explicitly.
 async function setConfig(context, config) {
+  if (config && config.version === undefined) config = { version: 2, autoAssign: false, ...config };
   const page = await extPage(context);
   await page.evaluate(([k, v]) => chrome.storage.local.set({ [k]: v }), [KEY, config]);
   await page.close();
@@ -76,7 +80,7 @@ const state = page => page.evaluate(() => {
     active: root.classList.contains('repv-active'),
     style: !!document.getElementById('repovibe-style-v1'),
     mode: root.getAttribute('data-color-mode'),
-    bgDefault: cs.getPropertyValue('--bgColor-default').trim(),
+    bgDefault: cs.getPropertyValue('--repv-panel').trim(),
     emphasis: cs.getPropertyValue('--bgColor-emphasis').trim(),
     accent: cs.getPropertyValue('--fgColor-accent').trim(),
     colorScheme: cs.colorScheme,
@@ -163,4 +167,47 @@ async function pixelAt(context, png, x, y) {
   return rgb;
 }
 
-module.exports = { EXT, EXT_ID, KEY, OUT_DIR, launch, extPage, setConfig, getConfig, openGitHub, state, hexToRgb, diffRatio, matchSnapshot, openStudioFor, pixelAt };
+/** Screenshot-based readability: hide all text, photograph what is really behind each text element (wallpaper,
+    glass, panels), then compare the text colour against the median background pixel. Returns ratios for up to
+    `limit` visible text elements. Independent of CSS bookkeeping — it measures rendered pixels. */
+async function visualContrast(context, page, limit = 150) {
+  const items = await page.evaluate(lim => {
+    const out = [];
+    for (const el of document.querySelectorAll('body *')) {
+      if (out.length >= lim) break;
+      if (!(el instanceof HTMLElement) || ['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA'].includes(el.tagName)) continue;
+      if (![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 1)) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width < 8 || r.height < 8 || r.top < 0 || r.bottom > innerHeight || r.left < 0 || r.right > innerWidth) continue;
+      const cs = getComputedStyle(el);
+      if (cs.visibility !== 'visible' || Number(cs.opacity) < 0.4) continue;
+      out.push({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height), color: cs.color, text: el.textContent.trim().slice(0, 30) });
+    }
+    return out;
+  }, limit);
+  const hide = await page.addStyleTag({ content: '*, *::before, *::after { color: transparent !important; text-shadow: none !important; caret-color: transparent !important; } img, svg { visibility: hidden !important; }' });
+  await page.waitForTimeout(100);
+  const shot = await page.screenshot();
+  await hide.evaluate(el => el.remove());
+  const helper = await context.newPage();
+  const ratios = await helper.evaluate(async ([src, list]) => {
+    const img = new Image(); img.src = src; await img.decode();
+    const c = new OffscreenCanvas(img.width, img.height); const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+    const lum = ([r, gg, b]) => [r, gg, b].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+    const parse = s => (s.match(/[\d.]+/g) || []).map(Number);
+    return list.map(it => {
+      const d = g.getImageData(it.x, it.y, Math.max(1, it.w), Math.max(1, it.h)).data;
+      const ls = []; for (let i = 0; i < d.length; i += 16) ls.push(lum([d[i], d[i + 1], d[i + 2]]));
+      ls.sort((a, b) => a - b); const bg = ls[Math.floor(ls.length / 2)];
+      const [r, gg, b, a = 1] = parse(it.color);
+      const fg = lum([r, gg, b]) * a + bg * (1 - a);
+      return { ratio: (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05), text: it.text };
+    });
+  }, [`data:image/png;base64,${shot.toString('base64')}`, items]);
+  await helper.close();
+  const sorted = ratios.map(r => r.ratio).sort((a, b) => a - b);
+  return { count: ratios.length, min: sorted[0], p10: sorted[Math.floor(sorted.length * 0.1)], median: sorted[Math.floor(sorted.length / 2)],
+    below3: ratios.filter(r => r.ratio < 3), below45: ratios.filter(r => r.ratio < 4.5).length };
+}
+
+module.exports = { visualContrast, EXT, EXT_ID, KEY, OUT_DIR, launch, extPage, setConfig, getConfig, openGitHub, state, hexToRgb, diffRatio, matchSnapshot, openStudioFor, pixelAt };

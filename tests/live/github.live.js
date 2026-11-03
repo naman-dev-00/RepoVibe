@@ -36,8 +36,9 @@ function checker(scenario) {
     done() { if (failures.length) assert.fail(`${failures.length} live check(s) failed:\n- ${failures.join('\n- ')}`); }
   };
 }
-const themed = (s, t) => s.active && s.style && s.bgDefault === t.surface && s.bodyColor === hexToRgb(t.text);
-const waitTheme = (page, surface) => page.waitForFunction(v => getComputedStyle(document.documentElement).getPropertyValue('--bgColor-default').trim() === v, surface, { timeout: 8000 }).catch(() => {});
+// --repv-panel records the applied theme's surface (GitHub's --bgColor-default is translucent glass in wallpaper mode).
+const themed = (s, t) => s.active && s.style && s.surface === t.surface && s.bodyColor === hexToRgb(t.text);
+const waitTheme = (page, surface) => page.waitForFunction(v => getComputedStyle(document.documentElement).getPropertyValue('--repv-panel').trim() === v, surface, { timeout: 8000 }).catch(() => {});
 const waitInactive = page => page.waitForFunction(() => !document.documentElement.classList.contains('repv-active'), null, { timeout: 8000 }).catch(() => {});
 async function readable(c, page, name, nativeAudit, theme) {
   const audit = await L.readability(page, hexToRgb(theme.bg));
@@ -69,7 +70,7 @@ L.liveTest('LIVE 1: native baseline, theme application, readability and exact re
       await setConfig(context, { enabled: true, defaultThemeId: T.cyber.id });
       await waitTheme(page, T.cyber.surface);
       const s = await L.themeState(page);
-      c.check(themed(s, T.cyber), name, `Cyberpunk applied: --bgColor-default ${s.bgDefault}, body color ${s.bodyColor}, gradient ${s.htmlBgImage.slice(0, 30)}`);
+      c.check(themed(s, T.cyber), name, `Cyberpunk applied: surface ${s.surface}, glass --bgColor-default ${s.bgDefault}, body color ${s.bodyColor}, wallpaper ${s.wallpaperVar.slice(0, 50)}`);
       c.check(s.mode === 'dark' && s.writtenMode === 'dark' && s.colorScheme === 'dark', name, `dark theme on light GitHub switches base mode: data-color-mode=${s.mode} (was ${native.mode}), color-scheme=${s.colorScheme}`);
       c.check(s.fgDanger !== native.fgDanger, name, `GitHub's own (non-overridden) tokens follow the switched mode: --fgColor-danger ${native.fgDanger} → ${s.fgDanger}`);
       if (s.headerFound) c.check(s.headerBg !== native.headerBg, name, `signed-in .AppHeader themed: ${native.headerBg} → ${s.headerBg}`);
@@ -107,7 +108,7 @@ L.liveTest('LIVE 2: GitHub dark mode on six page types — light theme switches 
       await setConfig(context, { enabled: true, defaultThemeId: T.arctic.id });
       await waitTheme(page, T.arctic.surface);
       const s = await L.themeState(page);
-      c.check(themed(s, T.arctic), name, `Arctic Frost (light) applied on dark GitHub: --bgColor-default ${s.bgDefault}, body ${s.bodyColor}`);
+      c.check(themed(s, T.arctic), name, `Arctic Frost (light) applied on dark GitHub: surface ${s.surface}, body ${s.bodyColor}`);
       c.check(s.mode === 'light' && s.originalMode === (native.mode ?? ''), name, `base mode switched to light, original "${s.originalMode}" remembered`);
       const lightDanger = shared.nativeLight[name]?.fgDanger;
       if (lightDanger) c.check(s.fgDanger === lightDanger, name, `GitHub light token set is active: --fgColor-danger ${s.fgDanger} (native light ${lightDanger})`);
@@ -242,9 +243,8 @@ L.liveTest('LIVE 5: background, colors, wallpaper, layout and code customization
     await setConfig(context, { enabled: true, defaultThemeId: 'custom-live', customThemes: { 'custom-live': custom } });
     await waitTheme(gh, custom.surface);
     let s = await L.themeState(gh);
-    c.check(s.bgDefault === custom.surface && s.bodyColor === hexToRgb(custom.text), 'Repository overview', `custom colors applied: surface ${s.bgDefault}, text ${s.bodyColor}, accent ${s.accent}`);
-    c.check(/linear-gradient/.test(s.htmlBgImage), 'Repository overview', `gradient background on <html>: ${s.htmlBgImage.slice(0, 45)}`);
-    c.check(/^url\("data:image\/png/.test(s.wallpaper) && s.wallpaperFilter === 'blur(4px)', 'Repository overview', `wallpaper layer present with blur: ${s.wallpaper.slice(0, 25)} ${s.wallpaperFilter}`);
+    c.check(s.surface === custom.surface && s.bodyColor === hexToRgb(custom.text), 'Repository overview', `custom colors applied: surface ${s.surface}, text ${s.bodyColor}, accent ${s.accent}`);
+    c.check(/^url\("data:image\/png/.test(s.wallpaperVar) && /^blur\(4px\)/.test(s.wallpaperFilter), 'Repository overview', `legacy inline wallpaper layer present with blur: ${s.wallpaperVar.slice(0, 25)} ${s.wallpaperFilter}`);
     const standard = await container();
     c.check(!nativeContainer || standard?.max === nativeContainer.max, 'Layout: standard', `standard layout keeps GitHub's container width (native ${JSON.stringify(nativeContainer)}, themed ${JSON.stringify(standard)})`);
     await setConfig(context, { enabled: true, defaultThemeId: 'custom-live', customThemes: { 'custom-live': { ...custom, layout: 'wide' } } });
@@ -283,4 +283,136 @@ L.liveTest('LIVE 5: background, colors, wallpaper, layout and code customization
     errorCheck(c, errors);
     c.done();
   } finally { await close(); }
+});
+
+/* ---------------------------------------------------------------- Phase 1B */
+const { visualContrast, diffRatio, openStudioFor } = require('../e2e/helpers');
+const os = require('node:os');
+const VIVID = { id: 'preset-18', surface: '#4c294a', text: '#fff1f1', bg: '#301b32' }; // Sunset Boulevard (village artwork)
+
+L.liveTest('LIVE 6: wallpapers are visibly rendered on real GitHub pages (bundled + IndexedDB), readable, menus opaque', async (t, ctx) => {
+  const { context, close } = await launch({ fixture: false, colorScheme: 'light' });
+  const errors = L.watchErrors(context);
+  const c = checker('Wallpaper visibility (pixels)');
+  try {
+    const page = await context.newPage(); ctx.pages.push(page);
+    for (const [name, url] of PAGES.filter(([n]) => ['Repository overview', 'Issues', 'Code browsing (file view)', 'Pull requests'].includes(n))) {
+      await setConfig(context, { enabled: true, defaultThemeId: 'native' });
+      const response = await L.gotoLive(page, url);
+      const ev = await L.liveEvidence(page, response, new URL(url).pathname, A);
+      c.check(ev.ok, name, `real github.com evidence: ${ev.detail}`);
+      const nativeContrast = await visualContrast(context, page);
+      if (name === 'Repository overview') await L.logShot(context, page, 'before-native-overview');
+      await setConfig(context, { enabled: true, defaultThemeId: 'custom-flat', customThemes: { 'custom-flat': { id: 'custom-flat', name: 'flat', bg: VIVID.bg, surface: VIVID.surface, text: VIVID.text, muted: '#d5b0c7', accent: '#ff9d82', border: '#7d4d73', backgroundMode: 'solid' } } });
+      await waitTheme(page, VIVID.surface); await L.settleAnimations(page);
+      const flat = await page.screenshot();
+      await setConfig(context, { enabled: true, defaultThemeId: VIVID.id });
+      await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('sunset-village.webp'), null, { timeout: 8000 }).catch(() => {});
+      await page.waitForFunction(() => { const u = getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').match(/url\("([^"]+)"\)/); if (!u) return false; const i = new Image(); i.src = u[1]; return i.complete && i.naturalWidth > 0; }, null, { timeout: 8000 }).catch(() => {});
+      await L.settleAnimations(page); await page.waitForTimeout(300);
+      const art = await page.screenshot();
+      const changed = await diffRatio(context, flat, art);
+      c.check(changed > 0.2, name, `bundled wallpaper visibly rendered (chrome-extension:// image allowed by GitHub CSP): ${(changed * 100).toFixed(1)}% of pixels differ from the same theme without artwork`);
+      const vc = await visualContrast(context, page);
+      const okC = vc.below3.length <= nativeContrast.below3.length + 2 && vc.p10 >= 4.5;
+      c.check(okC, name, `screenshot-measured text contrast over wallpaper: min ${vc.min.toFixed(2)}, p10 ${vc.p10.toFixed(2)}, median ${vc.median.toFixed(2)} across ${vc.count} elements; <3:1 ${vc.below3.length} (native ${nativeContrast.below3.length})${vc.below3.length ? ` e.g. ${vc.below3.slice(0, 4).map(x => `"${x.text}" ${x.ratio.toFixed(2)}`).join('; ')}` : ''}`);
+      await L.logShot(context, page, `after-sunset-${name}`);
+    }
+    // Opaque floating UI on the real page: open the repository "Code" menu (available logged out).
+    await L.gotoLive(page, `https://github.com/${A}`);
+    await waitTheme(page, VIVID.surface);
+    const codeButton = page.locator('button:has-text("Code")').filter({ has: page.locator('svg') }).first();
+    if (await codeButton.count()) {
+      await codeButton.click().catch(() => {});
+      await page.waitForTimeout(800);
+      const menu = await page.evaluate(() => {
+        const el = [...document.querySelectorAll('[role="dialog"], .Overlay, [role="menu"], [popover]')].find(e => e.getBoundingClientRect().height > 40 && getComputedStyle(e).visibility === 'visible');
+        if (!el) return null;
+        const bg = getComputedStyle(el).backgroundColor; return { bg, tag: el.tagName.toLowerCase(), cls: String(el.className).slice(0, 40) };
+      });
+      if (menu) c.check(/^rgb\(/.test(menu.bg), 'Code menu (overlay)', `floating menu is opaque over the wallpaper: ${menu.tag}.${menu.cls} background ${menu.bg}`);
+      else c.info('Code menu (overlay)', 'menu did not open logged out; not measured');
+      await L.logShot(context, page, 'after-sunset-code-menu');
+      await page.keyboard.press('Escape').catch(() => {});
+    } else c.info('Code menu (overlay)', 'Code button not found; not measured');
+    // IndexedDB wallpaper uploaded in the Studio renders on the real page.
+    await setConfig(context, { enabled: true, defaultThemeId: 'native' });
+    await page.goto(`https://github.com/${A}`); await L.settle(page);
+    const studio = await openStudioFor(context, page); ctx.pages.push(studio);
+    const file = path.join(L.OUT, 'live-upload.jpg');
+    const b64 = await studio.evaluate(async () => { const cv = new OffscreenCanvas(1920, 1080); const g = cv.getContext('2d'); const gr = g.createRadialGradient(960, 540, 50, 960, 540, 900); gr.addColorStop(0, '#22d3ee'); gr.addColorStop(1, '#14532d'); g.fillStyle = gr; g.fillRect(0, 0, 1920, 1080); const b = new Uint8Array(await (await cv.convertToBlob({ type: 'image/jpeg', quality: 0.9 })).arrayBuffer()); let s = ''; for (const x of b) s += String.fromCharCode(x); return btoa(s); });
+    fs.writeFileSync(file, Buffer.from(b64, 'base64'));
+    await studio.click('.sidebar-link[data-view="background"]');
+    const before = await page.screenshot();
+    await studio.setInputFiles('#wallpaperInput', file);
+    await studio.waitForSelector('.wallpaper-tile.uploaded.selected', { timeout: 20000 });
+    await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('data:image/webp'), null, { timeout: 10000 }).catch(() => {});
+    await L.settleAnimations(page); await page.waitForTimeout(400);
+    const idbChanged = await diffRatio(context, before, await page.screenshot());
+    c.check(idbChanged > 0.2, 'IndexedDB wallpaper', `uploaded wallpaper (IndexedDB → service worker → data: URL) visibly rendered on github.com: ${(idbChanged * 100).toFixed(1)}% of pixels changed`);
+    await studio.click('#saveButton'); await studio.close();
+    await page.reload(); await L.settle(page);
+    const persisted = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('data:image/webp'));
+    c.check(persisted, 'IndexedDB wallpaper', 'saved IndexedDB wallpaper is applied again after reload');
+    errorCheck(c, errors);
+    c.done();
+  } finally { await close(); }
+});
+
+L.liveTest('LIVE 7: automatic per-repository themes on real repositories, SPA navigation, manual override, browser restart', async (t, ctx) => {
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'repovibe-live-restart-'));
+  const c = checker('Automatic themes (real repos)');
+  const surfaces = {};
+  try {
+    {
+      const { context, close } = await launch({ fixture: false, colorScheme: 'dark', userDataDir: profile });
+      const errors = L.watchErrors(context);
+      try {
+        const page = await context.newPage(); ctx.pages.push(page);
+        for (const repo of ['actions/checkout', 'actions/setup-node', 'octocat/Hello-World']) {
+          await L.gotoLive(page, `https://github.com/${repo}`); // fresh install: no settings at all
+          await page.waitForFunction(() => document.documentElement.classList.contains('repv-active'), null, { timeout: 8000 }).catch(() => {});
+          const s = await L.themeState(page);
+          surfaces[repo] = s.surface;
+          c.check(s.active && !!s.surface && !!s.wallpaperVar, repo, `automatic theme applied on first visit (surface ${s.surface}, wallpaper ${s.wallpaperVar.slice(0, 40)})`);
+          if (repo === 'actions/checkout') await L.logShot(context, page, 'auto-actions-checkout');
+          if (repo === 'octocat/Hello-World') await L.logShot(context, page, 'auto-octocat-hello-world');
+        }
+        c.check(surfaces['actions/checkout'] !== surfaces['actions/setup-node'], 'actions/*', `two repositories of the same owner get different themes (${surfaces['actions/checkout']} vs ${surfaces['actions/setup-node']})`);
+        const cfg = await getConfig(context);
+        c.check(['actions/checkout', 'actions/setup-node', 'octocat/hello-world'].every(k => cfg.autoAssignments[k]) && Object.keys(cfg.repoAssignments).length === 0, 'Storage', `automatic picks persisted separately from manual choices: ${JSON.stringify(cfg.autoAssignments)}`);
+        // SPA navigation between repository tabs keeps the repo's automatic theme.
+        await L.gotoLive(page, `https://github.com/${A}`);
+        const issues = page.locator(`#issues-tab, nav[aria-label="Repository"] a[href="/${A}/issues"]`).first();
+        if (await issues.count()) {
+          await issues.click(); await page.waitForURL(u => /\/issues\/?$/.test(new URL(u).pathname), { timeout: 20000 }).catch(() => {}); await L.settle(page, 1000);
+          c.check((await L.themeState(page)).surface === surfaces[A], 'Client-side navigation', 'automatic theme kept after navigating to Issues');
+        }
+        // Manual override via the popup wins and survives.
+        const popup = await extPage(context); await popup.setViewportSize({ width: 384, height: 640 });
+        await page.bringToFront(); await popup.reload(); await popup.waitForSelector('.theme-tile');
+        await popup.locator('.theme-tile').nth(1).click();
+        await popup.waitForFunction(() => /Manually assigned/.test(document.getElementById('scopeInfo').textContent), null, { timeout: 5000 }).catch(() => {});
+        await page.waitForTimeout(500);
+        const manual = (await L.themeState(page)).surface;
+        c.check(manual !== surfaces[A] && (await getConfig(context)).repoAssignments[A], 'Manual override', `popup choice overrides the automatic theme (${surfaces[A]} → ${manual})`);
+        surfaces.manual = manual;
+        await popup.close();
+        c.check(errors.extension.length === 0, 'Console', `RepoVibe-attributed errors: ${errors.extension.length}${errors.extension.length ? ` → ${errors.extension.slice(0, 2).join(' | ')}` : ''}`);
+      } finally { await close(); }
+    }
+    {
+      const { context, close } = await launch({ fixture: false, colorScheme: 'dark', userDataDir: profile }); // browser restart
+      try {
+        const page = await context.newPage(); ctx.pages.push(page);
+        await L.gotoLive(page, 'https://github.com/actions/setup-node');
+        await page.waitForTimeout(500);
+        c.check((await L.themeState(page)).surface === surfaces['actions/setup-node'], 'Browser restart', 'automatic theme identical after restarting the browser');
+        await L.gotoLive(page, `https://github.com/${A}`);
+        await page.waitForTimeout(500);
+        c.check((await L.themeState(page)).surface === surfaces.manual, 'Browser restart', 'manual override still applied after restart (never overwritten by automatic)');
+      } finally { await close(); }
+    }
+    c.done();
+  } finally { fs.rmSync(profile, { recursive: true, force: true }); }
 });

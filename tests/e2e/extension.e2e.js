@@ -97,11 +97,11 @@ test('client-side navigation (pushState and turbo:load) re-resolves the theme', 
     const page = await openGitHub(context, 'acme/project');
     assert.equal((await state(page)).bgDefault, '#1b1538');
     await page.click('#toOther');
-    await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--bgColor-default').trim() === '#0d1c10');
+    await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-panel').trim() === '#0d1c10');
     await page.click('#toTurbo');
-    await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--bgColor-default').trim() === '#33194a');
+    await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-panel').trim() === '#33194a');
     await page.goBack();
-    await page.waitForFunction(() => location.pathname === '/acme/other' && getComputedStyle(document.documentElement).getPropertyValue('--bgColor-default').trim() === '#0d1c10');
+    await page.waitForFunction(() => location.pathname === '/acme/other' && getComputedStyle(document.documentElement).getPropertyValue('--repv-panel').trim() === '#0d1c10');
     assert.deepEqual(errors, []);
   } finally { await close(); }
 });
@@ -131,11 +131,12 @@ test('popup renders, applies a quick theme globally, and toggles the engine', as
 test('studio live preview survives soft navigation, reverts on close, persists on save', async () => {
   const { context, errors, close } = await launch();
   try {
+    await setConfig(context, { enabled: true, defaultThemeId: 'native' });
     const gh = await openGitHub(context);
     let studio = await openStudioFor(context, gh);
     assert.equal(await studio.textContent('#targetLabel'), 'acme/project');
     await studio.click('.gallery-card >> text=Galaxy');
-    await gh.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--bgColor-default').trim() === '#17183d');
+    await gh.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-panel').trim() === '#17183d');
     await gh.click('#toOther');
     await gh.waitForTimeout(200);
     assert.equal((await state(gh)).bgDefault, '#17183d', 'preview kept while Studio is open');
@@ -166,7 +167,7 @@ test('studio editing: colors, sliders, undo/redo, custom save, export/import', a
       input.value = v; input.dispatchEvent(new Event('input', { bubbles: true }));
     }, [index, value]);
     await setColor(1, '#223344'); // Panels
-    await gh.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--bgColor-default').trim() === '#223344');
+    await gh.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-panel').trim() === '#223344');
     await studio.fill('#themeName', 'My E2E theme');
     await studio.evaluate(() => { const r = document.getElementById('radius'); r.value = '4'; r.dispatchEvent(new Event('input', { bubbles: true })); });
     assert.equal(await studio.textContent('#radiusVal'), '4px');
@@ -203,39 +204,7 @@ test('studio editing: colors, sliders, undo/redo, custom save, export/import', a
   } finally { await close(); }
 });
 
-test('wallpaper upload is compressed, previewed, saved and rendered', async () => {
-  const { context, errors, close } = await launch();
-  try {
-    const gh = await openGitHub(context);
-    const studio = await openStudioFor(context, gh);
-    const pngBase64 = await studio.evaluate(async () => {
-      const c = new OffscreenCanvas(2400, 1400); const g = c.getContext('2d');
-      const grad = g.createLinearGradient(0, 0, 2400, 1400); grad.addColorStop(0, '#ff0080'); grad.addColorStop(1, '#00c0ff');
-      g.fillStyle = grad; g.fillRect(0, 0, 2400, 1400);
-      const blob = await c.convertToBlob({ type: 'image/png' });
-      const bytes = new Uint8Array(await blob.arrayBuffer()); let s = '';
-      for (const b of bytes) s += String.fromCharCode(b);
-      return btoa(s);
-    });
-    const file = path.join(OUT_DIR, 'wallpaper.png');
-    fs.writeFileSync(file, Buffer.from(pngBase64, 'base64'));
-    await studio.click('.sidebar-link[data-view="background"]');
-    await studio.setInputFiles('#wallpaperInput', file);
-    await studio.waitForFunction(() => document.getElementById('backgroundMode').value === 'image');
-    await gh.waitForFunction(() => getComputedStyle(document.body, '::before').backgroundImage.startsWith('url("data:image/jpeg'));
-    await studio.evaluate(() => { const r = document.getElementById('wallpaperBlur'); r.value = '6'; r.dispatchEvent(new Event('input', { bubbles: true })); });
-    await gh.waitForFunction(() => getComputedStyle(document.body, '::before').filter === 'blur(6px)');
-    await studio.click('#saveButton');
-    const config = await getConfig(context);
-    const theme = config.customThemes[config.repoAssignments['acme/project']];
-    assert.equal(theme.backgroundMode, 'image');
-    assert.ok(theme.wallpaper.length <= 750000, `wallpaper stored at ${theme.wallpaper.length} chars`);
-    await studio.close();
-    await gh.reload(); await gh.waitForTimeout(250);
-    assert.match((await state(gh)).wallpaper, /^url\("data:image\/jpeg/);
-    assert.deepEqual(errors, []);
-  } finally { await close(); }
-});
+// The v0.1 inline-data-URL wallpaper upload test was replaced by the IndexedDB upload tests in phase1b.e2e.js.
 
 test('studio and popup fit a narrow viewport without horizontal scroll', async () => {
   const { context, errors, close } = await launch();

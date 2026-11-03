@@ -17,7 +17,7 @@ if (JSON.stringify(manifest.permissions) !== JSON.stringify(['storage'])) proble
 if (JSON.stringify(manifest.host_permissions) !== JSON.stringify(['https://github.com/*'])) problems.push(`unexpected host_permissions ${JSON.stringify(manifest.host_permissions)}`);
 if (manifest.content_security_policy) problems.push('custom content_security_policy present; review required');
 
-const required = new Set(['manifest.json', manifest.action?.default_popup, manifest.options_page,
+const required = new Set(['manifest.json', manifest.action?.default_popup, manifest.options_page, manifest.background?.service_worker,
   ...Object.values(manifest.icons || {}), ...Object.values(manifest.action?.default_icon || {}),
   ...(manifest.content_scripts || []).flatMap(cs => [...(cs.js || []), ...(cs.css || [])])]);
 for (const page of ['popup.html', 'studio.html']) {
@@ -28,9 +28,23 @@ for (const page of ['popup.html', 'studio.html']) {
     else required.add(ref);
   }
 }
+// Service worker importScripts() dependencies and every bundled wallpaper + thumbnail.
+if (manifest.background?.service_worker) {
+  const sw = execFileSync('unzip', ['-p', zip, manifest.background.service_worker], { encoding: 'utf8' });
+  for (const [, list] of sw.matchAll(/importScripts\(([^)]*)\)/g)) for (const [, f] of list.matchAll(/'([^']+)'/g)) required.add(f);
+}
+const coreSrc = execFileSync('unzip', ['-p', zip, 'shared/core.js'], { encoding: 'utf8' });
+const wpBlock = coreSrc.slice(coreSrc.indexOf('const WALLPAPERS = ['), coreSrc.indexOf('].map(([slug, name, category])'));
+const wallpaperSlugs = [...wpBlock.matchAll(/\['([a-z0-9-]+)', '[^']+', '[^']+'\]/g)].map(m => m[1]);
+if (wallpaperSlugs.length < 10) problems.push(`expected at least 10 bundled wallpapers, found ${wallpaperSlugs.length}`);
+for (const slug of wallpaperSlugs) { required.add(`wallpapers/${slug}.webp`); required.add(`wallpapers/thumbs/${slug}.webp`); }
+if (!files.has('wallpapers/LICENSE.md')) problems.push('missing wallpapers/LICENSE.md');
+for (const war of manifest.web_accessible_resources || []) {
+  if (JSON.stringify(war.matches) !== JSON.stringify(['https://github.com/*'])) problems.push(`web_accessible_resources exposed beyond github.com: ${JSON.stringify(war.matches)}`);
+}
 for (const file of required) if (file && !files.has(file)) problems.push(`missing required file: ${file}`);
 for (const file of files) if (/^(tests|scripts|node_modules|\.github)\//.test(file) || file.endsWith('.zip')) problems.push(`unexpected file in package: ${file}`);
 
 if (problems.length) { console.error(`Package verification FAILED:\n - ${problems.join('\n - ')}`); process.exit(1); }
-console.log(`Package OK: MV3 v${manifest.version}, ${files.size} files, permissions ${JSON.stringify(manifest.permissions)}, hosts ${JSON.stringify(manifest.host_permissions)}`);
+console.log(`Package OK: MV3 v${manifest.version}, ${files.size} files, ${wallpaperSlugs.length} wallpapers, permissions ${JSON.stringify(manifest.permissions)}, hosts ${JSON.stringify(manifest.host_permissions)}`);
 console.log([...files].sort().map(f => `  ${f}`).join('\n'));

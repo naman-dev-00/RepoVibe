@@ -9,6 +9,8 @@ on:
   pull_request:
     paths:
       - 'content.js'
+      - 'background.js'
+      - 'wallpapers/**'
       - 'shared/**'
       - 'popup.*'
       - 'studio.*'
@@ -64,6 +66,8 @@ jobs:
 
       - name: Live acceptance tests
         run: npm run test:live
+        env:
+          LIVE_LOG_SCREENSHOTS: '1'
 
       - name: Upload screenshots, results and failure dumps
         if: always()

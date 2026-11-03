@@ -3,11 +3,13 @@
   'use strict';
   const C = globalThis.RepoVibeCore;
   const STYLE_ID = 'repovibe-style-v1';
+  const WALLPAPER_STYLE_ID = 'repovibe-wallpaper-v1';
   let config = C.normalizeConfig(null);
   let activePreview = null;
   let currentHref = location.href;
   let requestedId = 0;
   let configChanges = 0;
+  let tornDown = false;
 
   const cssFont = font => ({
     system: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -21,60 +23,75 @@
     return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${opacity})`;
   }
 
-  function buildCss(t) {
+  const POSITION = { center: 'center center', top: 'center top', bottom: 'center bottom', left: 'left center', right: 'right center' };
+  // Surfaces that are page *canvas* (not content panels): made fully transparent in wallpaper mode so the
+  // artwork shows through instead of being stacked under several translucent layers.
+  const CANVAS = 'body, .application-main, main, #js-repo-pjax-container, turbo-frame#repo-content-turbo-frame, react-app, [data-target="react-app.reactRoot"], .react-repos-overview-margin, .PageLayout, .PageLayout-wrapper, .PageLayout-content, .Layout-main';
+  // Floating UI must stay opaque and readable over any wallpaper.
+  const FLOATING = '.Overlay, .Overlay-backdrop--center > *, .dropdown-menu, .SelectMenu-modal, .Popover-message, details-dialog, .Box--overlay, [role="menu"], [role="listbox"], [role="dialog"], [popover], .tooltipped::after';
+
+  /** @param hasImage  true when a wallpaper image is available → translucent "glass" surfaces. */
+  function buildCss(t, hasImage) {
     const v = C.normalizeTheme(t);
     const light = C.isLightColor(v.bg);
-    const bg = v.backgroundMode === 'solid' ? v.bg : `linear-gradient(${v.gradientAngle}deg, ${v.bg} 0%, ${v.gradientTo} 58%, ${v.gradientThird} 100%)`;
-    const image = v.backgroundMode === 'image' && v.wallpaper ? `url("${v.wallpaper}")` : 'none';
+    const a = v.glassOpacity / 100;
+    const glass = hasImage;
+    const surface = glass ? rgba(v.surface, a) : v.surface;
+    const surface2 = glass ? rgba(v.surface2, Math.min(1, a + 0.08)) : v.surface2;
+    const inset = glass ? rgba(v.codeBg, Math.max(0.9, a)) : v.codeBg;
+    const panel = rgba(v.surface, a);
+    const base = v.backgroundMode === 'solid' || glass ? v.bg : `linear-gradient(${v.gradientAngle}deg, ${v.bg} 0%, ${v.gradientTo} 58%, ${v.gradientThird} 100%)`;
+    const blur = glass && v.glass > 0 ? `backdrop-filter:blur(${v.glass}px) saturate(1.15); -webkit-backdrop-filter:blur(${v.glass}px) saturate(1.15);` : '';
     const compact = v.layout === 'compact';
-    const panel = rgba(v.surface, v.glassOpacity / 100);
-    // Whitelist only constrained colors, numbers, enum values and validated PNG/JPEG/WebP data URLs.
-    // Note: --bgColor-emphasis is GitHub's *neutral* emphasis (tooltips, counters) paired with white
-    // --fgColor-onEmphasis text, so it is intentionally not overridden with the accent.
+    // Whitelist only constrained colors, numbers and enum values. The wallpaper URL itself lives in a
+    // separate style element (see renderWallpaper) and is either a bundled extension URL or a validated data URL.
+    // --bgColor-emphasis is GitHub's *neutral* emphasis (tooltips, counters) paired with white text: not overridden.
     return `
-html.repv-active { --bgColor-default:${v.surface} !important; --bgColor-muted:${v.surface2} !important;
- --bgColor-inset:${v.codeBg} !important;
+html.repv-active { --bgColor-default:${surface} !important; --bgColor-muted:${surface2} !important;
+ --bgColor-inset:${inset} !important;
  --fgColor-default:${v.text} !important; --fgColor-muted:${v.muted} !important;
  --fgColor-accent:${v.accent} !important; --fgColor-link:${v.accent} !important;
  --borderColor-default:${v.border} !important; --borderColor-muted:${v.border} !important;
  --overlay-bgColor:${v.surface} !important; --overlay-borderColor:${v.border} !important;
  --underlineNav-borderColor-active:${v.accent} !important; --focus-outlineColor:${v.accent} !important;
- --button-default-bgColor-rest:${v.surface2} !important;
+ --button-default-bgColor-rest:${surface2} !important;
  --button-default-fgColor-rest:${v.text} !important;
  --button-default-borderColor-rest:${v.border} !important;
  --control-borderColor-rest:${v.border} !important;
- --color-canvas-default:${v.surface} !important; --color-canvas-subtle:${v.surface2} !important;
- --color-canvas-inset:${v.codeBg} !important; --color-fg-default:${v.text} !important;
+ --color-canvas-default:${surface} !important; --color-canvas-subtle:${surface2} !important;
+ --color-canvas-inset:${inset} !important; --color-fg-default:${v.text} !important;
  --color-fg-muted:${v.muted} !important; --color-accent-fg:${v.accent} !important;
  --color-border-default:${v.border} !important;
  --repv-bg:${v.bg}; --repv-panel:${v.surface}; --repv-panel2:${v.surface2};
  --repv-text:${v.text}; --repv-muted:${v.muted}; --repv-accent:${v.accent}; --repv-border:${v.border};
- --repv-radius:${v.radius}px; --repv-blur:${v.glass}px;
- --repv-panel-opacity:${v.glassOpacity / 100}; background:${bg} fixed !important; color-scheme:${light ? 'light' : 'dark'}; }
+ --repv-radius:${v.radius}px; --repv-blur:${v.glass}px; --repv-panel-opacity:${a};
+ background:${base} fixed !important; color-scheme:${light ? 'light' : 'dark'}; }
 html.repv-active body { background:transparent !important; color:var(--repv-text) !important; font-family:${cssFont(v.font)} !important; }
-html.repv-active body::before { content:""; position:fixed; inset:${v.wallpaperBlur ? `-${v.wallpaperBlur * 2}px` : '0'}; z-index:-1; pointer-events:none;
- background-image:${image}; background-position:center; background-size:cover; background-repeat:no-repeat;
- opacity:${v.wallpaperOpacity / 100}; filter:blur(${v.wallpaperBlur}px); }
+${glass ? `html.repv-active :is(${CANVAS}) { background-color:transparent !important; }` : ''}
+html.repv-active body::before { content:""; position:fixed; inset:${glass && v.wallpaperBlur ? `-${v.wallpaperBlur * 2}px` : '0'}; z-index:-1; pointer-events:none;
+ background-color:${v.bg};
+ background-image:${glass ? `linear-gradient(${rgba(v.bg, v.wallpaperOverlay / 100)}, ${rgba(v.bg, v.wallpaperOverlay / 100)}), var(--repv-wallpaper, none)` : 'none'};
+ background-position:center, ${POSITION[v.wallpaperPosition]}; background-size:auto, ${v.wallpaperSize}; background-repeat:no-repeat;
+ opacity:${glass ? v.wallpaperOpacity / 100 : 0}; filter:${glass ? `blur(${v.wallpaperBlur}px) brightness(${v.wallpaperBrightness / 100})` : 'none'}; }
 html.repv-active :is(.AppHeader, .Header, #repository-container-header, .UnderlineNav, .js-header-wrapper) {
- background-color:${panel} !important; color:${v.text} !important; border-color:${v.border} !important; }
+ background-color:${panel} !important; color:${v.text} !important; border-color:${v.border} !important; ${blur} }
 html.repv-active :is(.Box, .Box-row, .markdown-body, .Layout-sidebar .BorderGrid, .react-directory-row,
  .react-code-view-bottom-padding, .react-code-lines, .blob-wrapper, .file, .commit-tease,
  .js-navigation-container, .repository-content .container-lg, [data-testid="code-viewer"])
  { background-color:${panel} !important; color:${v.text} !important; border-color:${v.border} !important; }
 html.repv-active :is(.Box, .markdown-body, .Layout-sidebar .BorderGrid, .blob-wrapper, .file) {
- border-radius:var(--repv-radius) !important; }
+ border-radius:var(--repv-radius) !important; ${blur} }
+html.repv-active :is(${FLOATING}) { background-color:${v.surface} !important; backdrop-filter:none !important; }
 html.repv-active :is(.btn, .Button, button:not([class]), input[type="text"], input[type="search"], textarea) {
  border-radius:calc(var(--repv-radius) * .65) !important; }
 html.repv-active :is(.btn, .Button, .form-control, .FormControl-input, .form-select) {
  border-color:${v.border} !important; }
 html.repv-active :is(.color-fg-muted, .text-color-muted, .fgColor-muted) { color:${v.muted} !important; }
 html.repv-active :is(.markdown-body pre, .highlight pre, .blob-code, .react-code-text, .react-code-line, .diff-table) {
- background-color:${v.codeBg} !important; }
+ background-color:${inset} !important; }
 html.repv-active :is(.blob-code, .react-code-text, .react-code-line, .markdown-body pre code, .highlight pre, .diff-table,
  #read-only-cursor-text-area, [data-testid="read-only-cursor-text-area"]) {
  font-family:ui-monospace, SFMono-Regular, Consolas, monospace !important; font-size:${v.codeFontSize}px !important; }
-html.repv-active :is(.Box, .markdown-body, .Layout-sidebar .BorderGrid) {
- backdrop-filter:blur(var(--repv-blur)); }
 ${v.layout === 'wide' ? `html.repv-active :is(.container-xl, .container-lg) { max-width:1800px !important; }` : ''}
 ${compact ? `html.repv-active :is(.Box-row, .react-directory-row) {padding-top:5px !important;padding-bottom:5px !important;}
 html.repv-active .Layout {gap:12px !important;}` : ''}
@@ -83,6 +100,53 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
  ${v.vibe === 'neon' ? `html.repv-active :is(.Box:hover, .Button:hover) { box-shadow:0 0 14px ${v.accent}45; }` : ''}
 }
 `;
+  }
+
+  /* ---- Wallpaper resolution: bundled assets, IndexedDB assets (via service worker), legacy inline data. */
+  const DATA_IMAGE = /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
+  const wallpaperCache = new Map(); // ref -> { url } | { pending: true } | { url: null } (missing/corrupted)
+  function wallpaperUrl(theme) {
+    if (!theme || theme.backgroundMode !== 'image') return null;
+    const ref = theme.wallpaperRef || '';
+    const builtin = /^builtin:([a-z0-9-]+)$/.exec(ref);
+    if (builtin) { const w = C.WALLPAPERS.find(x => x.slug === builtin[1]); return w ? chrome.runtime.getURL(w.path) : null; }
+    const idb = /^idb:(.+)$/.exec(ref);
+    if (idb) {
+      const hit = wallpaperCache.get(ref);
+      if (hit) return hit.pending ? undefined : hit.url;
+      wallpaperCache.set(ref, { pending: true });
+      try {
+        chrome.runtime.sendMessage({ type: 'WALLPAPER_GET', id: idb[1] }, response => {
+          void chrome.runtime.lastError;
+          const url = response && response.ok && DATA_IMAGE.test(response.dataUrl || '') ? response.dataUrl : null;
+          wallpaperCache.set(ref, { url });
+          while (wallpaperCache.size > 3) wallpaperCache.delete(wallpaperCache.keys().next().value); // bound memory
+          render();
+        });
+      } catch (_) { wallpaperCache.set(ref, { url: null }); }
+      return undefined;
+    }
+    return theme.wallpaper && DATA_IMAGE.test(theme.wallpaper) ? theme.wallpaper : null; // legacy v1
+  }
+  function renderWallpaper(url) {
+    let el = document.getElementById(WALLPAPER_STYLE_ID);
+    if (!url) { if (el) el.remove(); return; }
+    const css = `html.repv-active{--repv-wallpaper:url("${url}");}`;
+    if (!el) { el = document.createElement('style'); el.id = WALLPAPER_STYLE_ID; (document.head || document.documentElement).appendChild(el); }
+    if (el.textContent !== css) el.textContent = css;
+  }
+
+  /* ---- Automatic assignment: persist the first deterministic pick so it never changes later. */
+  const persisting = new Set();
+  function persistAutoAssignment(key) {
+    if (persisting.has(key)) return;
+    persisting.add(key);
+    C.updateConfig(latest => {
+      const owner = key.split('/')[0];
+      if (!latest.enabled || !latest.autoAssign) return false;
+      if (Object.hasOwn(latest.repoAssignments, key) || Object.hasOwn(latest.ownerAssignments, owner) || Object.hasOwn(latest.autoAssignments, key)) return false;
+      latest.autoAssignments[key] = C.pickAutoTheme(key, latest);
+    }).catch(() => { persisting.delete(key); });
   }
 
   // GitHub picks its base token set from data-color-mode. A light RepoVibe theme on a dark-mode
@@ -121,8 +185,12 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
 
   let lastTheme = null;
   let lastMode = null;
+  let lastWallpaperUrl = null;
   function render() {
-    const theme = activePreview || C.themeResolution(config, location.href).theme;
+    if (tornDown) return;
+    const resolution = C.themeResolution(config, location.href);
+    if (!activePreview && resolution.source === 'auto' && !resolution.persisted && resolution.repository) persistAutoAssignment(resolution.repository.key);
+    const theme = activePreview || resolution.theme;
     lastTheme = theme;
     lastMode = themeMode(theme);
     const root = document.documentElement;
@@ -131,6 +199,7 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
     if (!theme) {
       root.classList.remove('repv-active');
       if (style) style.remove();
+      renderWallpaper(null);
       applyColorMode(root, null);
       return;
     }
@@ -139,7 +208,10 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
       style.id = STYLE_ID;
       (document.head || root).appendChild(style);
     }
-    const css = buildCss(theme);
+    const url = wallpaperUrl(theme);
+    lastWallpaperUrl = url || null;
+    renderWallpaper(url);
+    const css = buildCss(theme, Boolean(url));
     if (style.textContent !== css) style.textContent = css;
     root.classList.add('repv-active');
     applyColorMode(root, lastMode);
@@ -148,13 +220,12 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
   function ensureApplied() {
     const root = document.documentElement;
     if (!lastTheme || !root) return;
-    if (!document.getElementById(STYLE_ID) || !root.classList.contains('repv-active')) render();
+    if (!document.getElementById(STYLE_ID) || !root.classList.contains('repv-active') || (lastWallpaperUrl && !document.getElementById(WALLPAPER_STYLE_ID))) render();
     else applyColorMode(root, lastMode);
   }
 
   // After the extension is reloaded, updated, disabled or removed, this script is orphaned: chrome.*
   // calls throw and no new script replaces it. Stop observing and restore GitHub's own appearance.
-  let tornDown = false;
   function extensionAlive() {
     try { return Boolean(chrome.runtime?.id); } catch (_) { return false; }
   }
@@ -168,6 +239,7 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
     darkQuery?.removeEventListener?.('change', onSystemModeChange);
     activePreview = null; lastTheme = null; lastMode = null;
     document.getElementById(STYLE_ID)?.remove();
+    document.getElementById(WALLPAPER_STYLE_ID)?.remove();
     if (document.documentElement) { document.documentElement.classList.remove('repv-active'); applyColorMode(document.documentElement, null); }
   }
   function guard(fn) {

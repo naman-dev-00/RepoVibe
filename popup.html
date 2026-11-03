@@ -15,13 +15,13 @@
       <label class="switch" title="Enable RepoVibe"><input id="enabled" type="checkbox" checked /><span></span></label>
     </header>
     <section class="repo-panel">
-      <div class="eyebrow"><span class="live-dot"></span> CURRENT WORKSPACE</div>
+      <div class="eyebrow"><span class="live-dot"></span> CUSTOMIZING</div>
       <h2 id="repoName">Detecting GitHub…</h2>
       <p id="activeTheme">Loading theme…</p>
       <div class="scope-chip" id="scopeInfo">Local theme engine</div>
     </section>
     <section class="popup-section">
-      <div class="section-top"><h3>Quick themes</h3><span>Pick your vibe</span></div>
+      <div class="section-top"><h3>Change theme</h3><span>Pick your vibe</span></div>
       <div class="scope-controls" role="group" aria-label="Apply theme to">
         <label><input type="radio" name="scope" value="repository" checked /> This repo</label>
         <label><input type="radio" name="scope" value="global" /> Everywhere</label>
@@ -29,11 +29,11 @@
       <div id="quickThemes" class="quick-themes"></div>
     </section>
     <section class="popup-actions">
-      <button class="primary-button" id="openStudio">✦ Open theme studio <span>↗</span></button>
-      <button class="subtle-button" id="resetCurrent">↶ Restore GitHub look</button>
+      <button class="primary-button" id="openStudio">✦ Customize this repository <span>↗</span></button>
+      <div class="popup-row"><button class="subtle-button" id="resetRepo" title="Remove your choice; the repository returns to its automatic or inherited theme">↺ Reset repository theme</button><button class="subtle-button" id="resetCurrent" title="Show original GitHub styling here">◌ Restore GitHub appearance</button></div>
       <p id="status" class="inline-status" role="status"></p>
     </section>
-    <footer class="popup-footer"><span>PRIVACY-FIRST · LOCAL ONLY</span><span>v0.1.1</span></footer>
+    <footer class="popup-footer"><span>PRIVACY-FIRST · LOCAL ONLY</span><span>v0.2.0</span></footer>
   </div>
   <script src="shared/core.js"></script><script src="popup.js"></script>
 </body>

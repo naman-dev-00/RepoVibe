@@ -33,25 +33,56 @@
     ['Galaxy', 'Somewhere in space', '#0b0b25', '#17183d', '#24244e', '#f0edff', '#a5a6d3', '#979bff', '#464784', '#251d53', '#102c4b', '#141433', 'glass'],
     ['Synthwave', 'Night drive', '#210c37', '#33194a', '#462359', '#fff1ff', '#c9a1df', '#ff65c3', '#76438d', '#551b6c', '#102e5d', '#2b1342', 'neon']
   ];
+  // Bundled original wallpapers (see wallpapers/LICENSE.md). Index-aligned with ROWS: preset N uses WALLPAPERS[N-1].
+  const WALLPAPERS = [
+    ['neon-rain-street', 'Neon rain street', 'Futuristic'], ['midnight-skyline', 'Midnight skyline', 'Futuristic'],
+    ['sakura-street', 'Sakura street', 'Anime-inspired'], ['cozy-room', 'Cozy room', 'Anime-inspired'],
+    ['digital-rain', 'Digital rain', 'Abstract'], ['gothic-castle', 'Gothic castle', 'Fantasy'],
+    ['ocean-depths', 'Ocean depths', 'Nature'], ['forest-waterfall', 'Forest waterfall', 'Nature'],
+    ['pixel-dusk', 'Pixel dusk', 'Pixel art'], ['pixel-island', 'Pixel island', 'Pixel art'],
+    ['solar-sunset', 'Solar sunset', 'Nature'], ['snow-peaks', 'Snow peaks', 'Nature'],
+    ['lavender-fantasy', 'Lavender fantasy', 'Fantasy'], ['academia-library', 'Academia library', 'Other'],
+    ['mono-lines', 'Monochrome lines', 'Minimal'], ['obsidian-shards', 'Obsidian shards', 'Minimal'],
+    ['aurora-lake', 'Aurora lake', 'Nature'], ['sunset-village', 'Sunset village', 'Anime-inspired'],
+    ['galaxy-planet', 'Galaxy & planet', 'Futuristic'], ['synthwave-grid', 'Synthwave grid', 'Futuristic']
+  ].map(([slug, name, category]) => ({ slug, name, category, ref: `builtin:${slug}`, path: `wallpapers/${slug}.webp`, thumb: `wallpapers/thumbs/${slug}.webp` }));
+  const WALLPAPER_SLUGS = new Set(WALLPAPERS.map(w => w.slug));
+  const POSITIONS = ['center', 'top', 'bottom', 'left', 'right'];
+  const SIZES = ['cover', 'contain'];
+  function safeWallpaperRef(ref) {
+    if (typeof ref !== 'string') return '';
+    const builtin = /^builtin:([a-z0-9-]{1,40})$/.exec(ref);
+    if (builtin) return WALLPAPER_SLUGS.has(builtin[1]) ? ref : '';
+    return /^idb:[a-zA-Z0-9_-]{8,64}$/.test(ref) ? ref : '';
+  }
+  function isLightHex(h) { const n = parseInt(h.slice(1), 16); return ((n >> 16 & 255) * 0.299 + (n >> 8 & 255) * 0.587 + (n & 255) * 0.114) > 160; }
+
   const PRESETS = ROWS.map((row, index) => ({
     id: `preset-${index + 1}`,
     name: row[0], description: row[1],
     bg: row[2], surface: row[3], surface2: row[4], text: row[5], muted: row[6], accent: row[7], border: row[8],
     gradientTo: row[9], gradientThird: row[10], codeBg: row[11], vibe: row[12],
     radius: row[12] === 'pixel' ? 3 : row[12] === 'minimal' ? 8 : 16,
-    glass: row[12] === 'glass' ? 18 : 0,
-    glassOpacity: row[12] === 'glass' ? 82 : 100,
+    glass: 12,
+    glassOpacity: isLightHex(row[2]) ? 80 : 76,
     gradientAngle: 135,
-    backgroundMode: 'gradient',
+    backgroundMode: 'image',
     wallpaper: '',
-    wallpaperOpacity: 65,
+    wallpaperRef: `builtin:${WALLPAPERS[index].slug}`,
+    wallpaperOpacity: 100,
     wallpaperBlur: 0,
+    wallpaperBrightness: 100,
+    wallpaperOverlay: isLightHex(row[2]) ? 20 : 30,
+    wallpaperPosition: 'center',
+    wallpaperSize: 'cover',
     font: row[12] === 'pixel' ? 'mono' : 'system',
     codeFontSize: 13,
     layout: 'standard'
   }));
+  const CONFIG_VERSION = 2;
   const DEFAULT = {
-    version: 1, enabled: true, defaultThemeId: 'native',
+    version: CONFIG_VERSION, enabled: true, defaultThemeId: 'native',
+    autoAssign: true, autoAssignments: {},
     repoAssignments: {}, ownerAssignments: {}, customThemes: {}
   };
   const colorKeys = ['bg', 'surface', 'surface2', 'text', 'muted', 'accent', 'border', 'gradientTo', 'gradientThird', 'codeBg'];
@@ -90,13 +121,18 @@
     for (const key of colorKeys) theme[key] = HEX.test(input[key] || '') ? input[key] : base[key];
     theme.radius = clamp(input.radius, 0, 28, 14);
     theme.glass = clamp(input.glass, 0, 30, 0);
-    theme.glassOpacity = clamp(input.glassOpacity, 55, 100, 100);
+    theme.glassOpacity = clamp(input.glassOpacity, 40, 100, 100);
     theme.gradientAngle = clamp(input.gradientAngle, 0, 360, 135);
     theme.backgroundMode = ['solid', 'gradient', 'image'].includes(input.backgroundMode) ? input.backgroundMode : 'gradient';
-    theme.wallpaper = safeWallpaper(input.wallpaper);
-    if (theme.backgroundMode === 'image' && !theme.wallpaper) theme.backgroundMode = 'gradient';
-    theme.wallpaperOpacity = clamp(input.wallpaperOpacity, 15, 100, 65);
+    theme.wallpaper = safeWallpaper(input.wallpaper); // legacy v1 inline data URL (migrated to IndexedDB by the service worker)
+    theme.wallpaperRef = safeWallpaperRef(input.wallpaperRef);
+    if (theme.backgroundMode === 'image' && !theme.wallpaper && !theme.wallpaperRef) theme.backgroundMode = 'gradient';
+    theme.wallpaperOpacity = clamp(input.wallpaperOpacity, 15, 100, 100);
     theme.wallpaperBlur = clamp(input.wallpaperBlur, 0, 20, 0);
+    theme.wallpaperBrightness = clamp(input.wallpaperBrightness, 40, 140, 100);
+    theme.wallpaperOverlay = clamp(input.wallpaperOverlay, 0, 85, 25);
+    theme.wallpaperPosition = POSITIONS.includes(input.wallpaperPosition) ? input.wallpaperPosition : 'center';
+    theme.wallpaperSize = SIZES.includes(input.wallpaperSize) ? input.wallpaperSize : 'cover';
     theme.font = FONT_VALUES.includes(input.font) ? input.font : 'system';
     theme.codeFontSize = clamp(input.codeFontSize, 11, 20, 13);
     theme.layout = LAYOUTS.includes(input.layout) ? input.layout : 'standard';
@@ -107,10 +143,14 @@
     const config = structuredClone(DEFAULT);
     config.enabled = raw.enabled !== false;
     config.defaultThemeId = typeof raw.defaultThemeId === 'string' && raw.defaultThemeId.length <= 90 ? raw.defaultThemeId : 'native';
-    for (const type of ['repoAssignments', 'ownerAssignments']) {
+    // v1 -> v2 migration: users who chose a shared global theme keep it (auto-assignment off);
+    // everyone else gets automatic per-repository themes. v2 stores the user's explicit choice.
+    config.autoAssign = raw.version >= 2 ? raw.autoAssign !== false : config.defaultThemeId === 'native';
+    for (const type of ['repoAssignments', 'ownerAssignments', 'autoAssignments']) {
       if (!raw[type] || typeof raw[type] !== 'object') continue;
       for (const [key, value] of Object.entries(raw[type])) {
         if (/^[a-zA-Z0-9_.-]{1,100}(?:\/[a-zA-Z0-9_.-]{1,100})?$/.test(key) && !UNSAFE_KEYS.has(key.toLowerCase()) && typeof value === 'string' && value.length <= 90) {
+          if (type === 'autoAssignments' && !isPreset(value)) continue; // automatic picks are always built-in presets
           config[type][key.toLowerCase()] = value;
         }
       }
@@ -137,14 +177,41 @@
     if (typeof id !== 'string' || id === 'native') return null;
     return own(config.customThemes, id) || PRESETS.find(t => t.id === id) || null;
   }
+  /** 32-bit FNV-1a hash of a normalized string (stable across browsers and sessions). */
+  function fnv1a(str) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return h >>> 0;
+  }
+  /** Deterministic automatic theme for an unconfigured repository.
+      start = FNV-1a(owner/repo) mod N; walk the preset list from there and take the first preset not already
+      used by another repository of the same owner (manual or automatic), so sibling repos differ while
+      there are presets left. Pure: same (key, config) → same result. Not unique once an owner has > N repos. */
+  function pickAutoTheme(key, config) {
+    const k = String(key).toLowerCase();
+    const owner = k.split('/')[0];
+    const used = new Set();
+    for (const type of ['repoAssignments', 'autoAssignments']) {
+      for (const [other, id] of Object.entries(config[type] || {})) if (other !== k && other.split('/')[0] === owner) used.add(id);
+    }
+    const start = fnv1a(k) % PRESETS.length;
+    for (let i = 0; i < PRESETS.length; i++) { const id = PRESETS[(start + i) % PRESETS.length].id; if (!used.has(id)) return id; }
+    return PRESETS[start].id;
+  }
+  /** Precedence (first match wins): disabled → repository (manual) → owner → automatic (if enabled; persisted
+      pick, else computed) → global default. "native" at any explicit level means original GitHub. */
   function themeResolution(config, href) {
-    if (!config.enabled) return { theme: null, scope: 'disabled', repository: repositoryFromUrl(href) };
     const repo = repositoryFromUrl(href);
-    let scope = 'global';
-    let id = config.defaultThemeId;
-    if (repo && own(config.ownerAssignments, repo.owner)) { id = own(config.ownerAssignments, repo.owner); scope = 'owner'; }
+    if (!config.enabled) return { theme: null, scope: 'disabled', source: 'disabled', repository: repo };
+    let scope = 'global', id = config.defaultThemeId, persisted = true;
     if (repo && own(config.repoAssignments, repo.key)) { id = own(config.repoAssignments, repo.key); scope = 'repository'; }
-    return { theme: themeById(config, id), scope, repository: repo, id };
+    else if (repo && own(config.ownerAssignments, repo.owner)) { id = own(config.ownerAssignments, repo.owner); scope = 'owner'; }
+    else if (repo && config.autoAssign) {
+      scope = 'auto';
+      id = own(config.autoAssignments, repo.key);
+      if (!id) { id = pickAutoTheme(repo.key, config); persisted = false; }
+    }
+    return { theme: themeById(config, id), scope, source: scope, repository: repo, id, persisted };
   }
   async function loadConfig() {
     const obj = await chrome.storage.local.get(STORAGE_KEY);
@@ -170,6 +237,7 @@
     const run = writeQueue.then(async () => {
       const latest = await loadConfig();
       const result = mutator(latest);
+      if (result === false) return latest; // mutator decided nothing needs saving
       return saveConfig(result === undefined ? latest : result);
     });
     writeQueue = run.catch(() => {});
@@ -194,7 +262,8 @@
   }
   function isPreset(id) { return PRESETS.some(theme => theme.id === id); }
   root.RepoVibeCore = Object.freeze({
-    STORAGE_KEY, PRESETS, DEFAULT, MAX_CUSTOM_THEMES, normalizeConfig, normalizeTheme, safeWallpaper,
+    STORAGE_KEY, PRESETS, DEFAULT, MAX_CUSTOM_THEMES, CONFIG_VERSION, WALLPAPERS, POSITIONS, SIZES,
+    safeWallpaperRef, fnv1a, pickAutoTheme, normalizeConfig, normalizeTheme, safeWallpaper,
     repositoryFromUrl, themeById, themeResolution, loadConfig, saveConfig, updateConfig, themeUsage, assignTheme, isPreset,
     contrastRatio, isLightColor
   });

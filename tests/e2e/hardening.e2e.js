@@ -5,7 +5,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { launch, extPage, setConfig, getConfig, openGitHub, state, openStudioFor, pixelAt } = require('./helpers');
 
-const bgDefault = page => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bgColor-default').trim());
+const bgDefault = page => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-panel').trim());
 const markers = page => page.evaluate(() => ({
   mode: document.documentElement.getAttribute('data-color-mode'),
   original: document.documentElement.getAttribute('data-repv-original-color-mode'),
@@ -80,7 +80,7 @@ test('blurred wallpaper reaches the viewport edges (no soft transparent border)'
       return `data:image/png;base64,${btoa(s)}`;
     });
     await helper.close();
-    const theme = { id: 'custom-wall', name: 'W', bg: '#0000ff', gradientTo: '#0000ff', gradientThird: '#0000ff', backgroundMode: 'image', wallpaper: red, wallpaperOpacity: 100, wallpaperBlur: 20 };
+    const theme = { id: 'custom-wall', name: 'W', bg: '#0000ff', gradientTo: '#0000ff', gradientThird: '#0000ff', backgroundMode: 'image', wallpaper: red, wallpaperOpacity: 100, wallpaperBlur: 20, wallpaperOverlay: 0 };
     await setConfig(context, { enabled: true, defaultThemeId: 'custom-wall', customThemes: { 'custom-wall': theme } });
     const page = await openGitHub(context);
     const shot = await page.screenshot();
@@ -104,7 +104,7 @@ test('enable/disable during client-side navigation follows the current repositor
     assert.equal((await state(page)).active, false, 'stays disabled after navigation');
     assert.deepEqual(await markers(page), { mode: 'dark', original: null, written: null });
     await setConfig(context, { enabled: true, ...base });
-    await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--bgColor-default').trim() === '#0d1c10');
+    await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-panel').trim() === '#0d1c10');
     // Toggle off and navigate in the same tick.
     const helper = await extPage(context);
     await helper.evaluate(cfg => chrome.storage.local.set({ 'repovibe.v1': cfg }), { enabled: false, ...base });
@@ -112,7 +112,7 @@ test('enable/disable during client-side navigation follows the current repositor
     await page.waitForTimeout(250);
     assert.equal((await state(page)).active, false);
     await helper.evaluate(cfg => chrome.storage.local.set({ 'repovibe.v1': cfg }), { enabled: true, ...base });
-    await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--bgColor-default').trim() === '#33194a');
+    await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-panel').trim() === '#33194a');
     assert.deepEqual(errors, []);
   } finally { await close(); }
 });
@@ -134,7 +134,7 @@ test('editing a custom theme shared by two repositories updates both and says so
     const config = await getConfig(context);
     assert.equal(config.repoAssignments['acme/project'], 'custom-shared', 'edited in place, not duplicated');
     assert.equal(config.customThemes['custom-shared'].surface, '#405060');
-    await other.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--bgColor-default').trim() === '#405060');
+    await other.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-panel').trim() === '#405060');
     assert.deepEqual(errors, []);
   } finally { await close(); }
 });

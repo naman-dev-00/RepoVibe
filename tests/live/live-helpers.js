@@ -73,7 +73,7 @@ async function liveEvidence(page, response, expectedPath, repo) {
 /** Everything RepoVibe ever writes into GitHub's DOM, searched across the whole document. */
 const extensionDom = page => page.evaluate(() => {
   const found = [];
-  if (document.getElementById('repovibe-style-v1')) found.push('#repovibe-style-v1');
+  for (const el of document.querySelectorAll('[id^="repovibe-"]')) found.push(`#${el.id}`);
   for (const el of document.querySelectorAll('[class*="repv"]')) if ([...el.classList].some(c => c.startsWith('repv'))) found.push(`${el.tagName.toLowerCase()}.repv*`);
   for (const el of document.querySelectorAll('*')) for (const a of el.attributes) if (a.name.startsWith('data-repv')) found.push(`${el.tagName.toLowerCase()}[${a.name}]`);
   const before = getComputedStyle(document.body, '::before');
@@ -97,7 +97,8 @@ const themeState = page => page.evaluate(() => {
     writtenMode: root.getAttribute('data-repv-color-mode'),
     originalMode: root.getAttribute('data-repv-original-color-mode'),
     colorScheme: cs.colorScheme,
-    bgDefault: v('--bgColor-default'), fgDefault: v('--fgColor-default'), accent: v('--fgColor-accent'),
+    bgDefault: v('--bgColor-default'), surface: v('--repv-panel'), fgDefault: v('--fgColor-default'), accent: v('--fgColor-accent'),
+    wallpaperVar: v('--repv-wallpaper').slice(0, 60),
     fgDanger: v('--fgColor-danger'), fgSuccess: v('--fgColor-success'),
     htmlBgImage: cs.backgroundImage.slice(0, 60),
     bodyColor: getComputedStyle(document.body).color,
@@ -217,6 +218,24 @@ function watchErrors(context) {
   return { extension, github };
 }
 
+/** Optional: print a small JPEG of the page into the job log (LIVE_LOG_SCREENSHOTS=1) so screenshots of the real
+    site can be recovered from logs without artifact-download credentials. */
+async function logShot(context, page, name) {
+  if (!process.env.LIVE_LOG_SCREENSHOTS) return;
+  const png = await page.screenshot().catch(() => null);
+  if (!png) return;
+  const helper = await context.newPage();
+  const jpeg = await helper.evaluate(async src => {
+    const img = new Image(); img.src = src; await img.decode();
+    const c = new OffscreenCanvas(960, Math.round(img.height * 960 / img.width)); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const bytes = new Uint8Array(await (await c.convertToBlob({ type: 'image/jpeg', quality: 0.62 })).arrayBuffer());
+    let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(s);
+  }, `data:image/png;base64,${png.toString('base64')}`).catch(() => null);
+  await helper.close();
+  if (jpeg) console.log(`[shot] ${slug(name)} ${jpeg}`);
+}
+
 async function shot(page, name) {
   const file = path.join(OUT, `${slug(name)}.png`);
   await page.screenshot({ path: file }).catch(() => {});
@@ -257,4 +276,4 @@ function writeSummary() {
 }
 test.after(writeSummary);
 
-module.exports = { Blocked, record, gotoLive, settle, settleAnimations, liveEvidence, extensionDom, themeState, fingerprint, sameAppearance, readability, watchErrors, shot, debugDump, liveTest, OUT };
+module.exports = { logShot, Blocked, record, gotoLive, settle, settleAnimations, liveEvidence, extensionDom, themeState, fingerprint, sameAppearance, readability, watchErrors, shot, debugDump, liveTest, OUT };
