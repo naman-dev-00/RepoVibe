@@ -88,7 +88,43 @@ In every "before" image only the tint is recognisable.
   - repository switching;
   - pixel-exact restore on disable.
 - **These tests fail on the pre-fix renderer.** Measured: correlation 0.38–0.52, median transmission 0.27–0.44, stacked glass down to 0.10.
-- **LIVE 9** repeats the visibility, contrast, diagnostic-config, motion and restore checks on real github.com at both resolutions. Its results are below in §5.
+- **LIVE 9** repeats the visibility, contrast, diagnostic-config, motion and restore checks on real github.com at both resolutions.
+
+**Live result on real github.com (logged out), commit `e85e736`** ([run 41715797905](https://github.com/naman-dev-00/RepoVibe/actions/runs/41715797905)): **14/14 tests, 206 PASS, 0 FAIL, 0 BLOCKED**. CI is green on the same commit.
+
+LIVE 9 per world, on Code / Issues / Pull requests:
+- **Text:** every page check passed. A check passes only with 0 text elements below 3:1 and no more below 4.5:1 than native GitHub.
+- **Diagnostic configuration and live motion:** passed for all four worlds, with no RepoVibe console errors.
+- **Restore:** passed: no classes, styles, panel markers or root image remain.
+
+| World | Correlation with the scene, 1366 / 1920 | Unobstructed viewport, 1366 / 1920 | Pixels changed vs solid colour |
+|---|---|---|---|
+| Cyberpunk Neon | 0.32–0.38 / 0.52 | 12–26 % / 42 % | 43–62 % |
+| Enchanted Forest | 0.35–0.42 / 0.51–0.53 | 12–26 % / 23–42 % | 45–63 % |
+| Cosmic Galaxy | 0.68–0.70 / 0.74–0.77 | 12–26 % / 23–42 % | 52–62 % |
+| Futuristic Sci-Fi | 0.40–0.48 / 0.57 | 12–26 % / 42 % | 19–40 % |
+
+For comparison, the pre-fix renderer scored −0.03 … 0.50 correlation and 0 % unobstructed.
+
+Live screenshots: `docs/screenshots/flagship/live-github-scenes.jpg` (Code at 1920×1080 and Issues at 1366×768 per world).
+
+**Visual inspection of the live screenshots:**
+
+| World | Code page, 1920×1080 | Issues page, 1366×768 |
+|---|---|---|
+| Cyberpunk | Neon tower canyon, signs and the wet road | Towers and signs in the top band and at the right edge |
+| Forest | Trunks, glowing ground plants, the clearing | Trunks and plants |
+| Galaxy | Ringed planet, asteroids, spiral galaxy, stars | Planet arc behind the list |
+| Sci-Fi | The arched white hall | Arches visible but subtle (the weakest case) |
+
+All four are recognisable without the gallery.
+
+The first live runs also found **one real defect**, now fixed and verified live: with the vivid Sunset Boulevard scene at 1600 px, About-sidebar stats and links dropped to 2.0–2.9:1. Sidebar sections are now panels, and counters and inline code have backings. On the real-page replay all 20 presets then meet AA on the Code page.
+
+Harness fixes made along the way:
+- Token-set detection now uses a token RepoVibe never overrides.
+- Visually-hidden text is excluded from contrast measurement.
+- LIVE 9 moved to its own file within the time budget.
 
 ## 1. Architecture
 
