@@ -152,8 +152,8 @@ PASS = verified by an automated test in this PR · FAIL = known failing · BLOCK
 | Library limit / quota errors | PASS (unit, mocked storage) | UNVERIFIED (real quota) |
 | Rendering performance with large wallpaper | UNVERIFIED (code review only) | UNVERIFIED |
 | IndexedDB wallpaper persistence | UNVERIFIED (not implemented; PENDING) | UNVERIFIED |
-| Code / Issues / PRs / Actions / Discussions / Releases / commits views | — | BLOCKED |
-| Logged-in vs logged-out; high-contrast/colorblind/dimmed GitHub themes | — | BLOCKED |
+| Code / Issues / PRs / Actions / commits views | — | PASS (live run #3); Discussions / Releases UNVERIFIED |
+| Logged-in vs logged-out; high-contrast/colorblind/dimmed GitHub themes | — | Logged-out PASS; logged-in and GitHub theme variants UNVERIFIED (need your account — manual) |
 | Chrome stable (headed), Windows/macOS rendering | — | UNVERIFIED |
 
 No FAIL entries are known. Live github.com is BLOCKED only from the authoring container; it is verified automatically on GitHub Actions runners (logged out). Remaining manual items are listed above.
