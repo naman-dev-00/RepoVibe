@@ -15,7 +15,7 @@ RepoVibe is an installable, local-first Chrome extension that makes GitHub visua
 
 **Note:** After editing this extension's source locally, return to `chrome://extensions` and press its Reload button. A hard reload of the GitHub tab might be needed after an extension reload.
 
-## What works in v0.1.0
+## What works in v0.1.1
 
 - Chrome Manifest V3 with host access limited to `https://github.com/*` and local `storage` permission.
 - 20 designed color/gradient themes; CSS variables integrated with GitHub's current color token convention plus scoped panel, code, and navigation styling.
@@ -42,10 +42,19 @@ This is a **functional Phase 1 MVP**, not the complete 24-section product vision
 Requires Node.js 18+ (Node.js 22 recommended):
 
 ```sh
-npm test
+npm test            # unit tests (no dependencies)
+npm run check       # syntax check of all scripts
+npm ci && npx playwright install chromium   # once: dev dependency + browser
+npm run test:e2e    # Chromium E2E with the unpacked extension loaded
 ```
 
-There are no npm runtime or development dependencies. `npm test` runs `node --test tests/*.test.js`.
+The E2E suite needs Playwright with a Chromium build available (`require('playwright')`). It intercepts `https://github.com/*` and serves `tests/e2e/fixture.html`, so it runs offline and does not replace manual testing on live GitHub. Visual baselines are in `tests/e2e/__screenshots__`; refresh them with `UPDATE_SNAPSHOTS=1 npm run test:e2e`. Latest results and the defect list are in `docs/ACCEPTANCE_REPORT.md`.
+
+Build a loadable ZIP with `npm run package` (produces `RepoVibe-Extension.zip`) and check it with `npm run verify:package`.
+
+Live github.com acceptance (real site, logged out, no credentials) runs separately with `npm run test:live` and in `.github/workflows/live-github.yml` (pull requests touching extension files, weekly, manual dispatch). It reports BLOCKED, not PASS, when GitHub or its assets are unreachable. Results: `docs/ACCEPTANCE_REPORT.md`.
+
+CI (`.github/workflows/ci.yml`) runs all of the above on every pull request and push to `main`. Install dev dependencies with `npm ci` and Chromium with `npx playwright install --with-deps chromium`.
 
 ## Project files
 
@@ -58,7 +67,8 @@ There are no npm runtime or development dependencies. `npm test` runs `node --te
 | `studio.html`, `studio.js` | Full gallery and visual customization studio |
 | `ui.css` | Responsive popup and studio design |
 | `icons/` | Local icons |
-| `tests/` | Pure Node unit tests |
+| `tests/` | Node unit tests and Chromium E2E tests (`tests/e2e/`) |
+| `docs/ACCEPTANCE_REPORT.md` | Defects found, fixes, and test evidence |
 | `docs/ROADMAP.md` | Future roadmap and acceptance criteria |
 
 ## Chrome compatibility/acceptance checklist

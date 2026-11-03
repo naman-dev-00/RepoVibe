@@ -24,8 +24,7 @@
     button.title = `Apply ${theme.name}`;
     button.addEventListener('click', async () => {
       try {
-        C.assignTheme(config, selectedScope, repo, theme.id);
-        config = await C.saveConfig(config);
+        config = await C.updateConfig(latest => { C.assignTheme(latest, selectedScope, repo, theme.id); });
         render(); announce(`${theme.name} applied ${selectedScope === 'repository' ? 'to this repo' : 'globally'}.`);
       } catch (error) { announce(error.message, true); }
     });
@@ -60,8 +59,8 @@
     radio.addEventListener('change', event => { selectedScope = event.target.value; render(); });
   }
   $('enabled').addEventListener('change', async event => {
-    config.enabled = event.target.checked;
-    try { config = await C.saveConfig(config); render(); announce(config.enabled ? 'RepoVibe enabled.' : 'RepoVibe paused.'); }
+    const enabled = event.target.checked;
+    try { config = await C.updateConfig(latest => { latest.enabled = enabled; }); render(); announce(config.enabled ? 'RepoVibe enabled.' : 'RepoVibe paused.'); }
     catch (error) { announce(error.message, true); }
   });
   $('openStudio').addEventListener('click', () => {
@@ -69,10 +68,17 @@
     chrome.tabs.create({url: chrome.runtime.getURL(`studio.html${suffix}`)});
   });
   $('resetCurrent').addEventListener('click', async () => {
-    if (repo && selectedScope === 'repository') config.repoAssignments[repo.key] = 'native';
-    else config.defaultThemeId = 'native';
-    try { config = await C.saveConfig(config); render(); announce('Default appearance restored for this scope.'); }
+    try {
+      config = await C.updateConfig(latest => {
+        if (repo && selectedScope === 'repository') latest.repoAssignments[repo.key] = 'native';
+        else latest.defaultThemeId = 'native';
+      }); render(); announce('Default appearance restored for this scope.'); }
     catch (error) { announce(error.message, true); }
+  });
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local' || !changes[C.STORAGE_KEY] || !config) return;
+    config = C.normalizeConfig(changes[C.STORAGE_KEY].newValue);
+    render();
   });
   init();
 })();

@@ -33,8 +33,8 @@
   }
   function newId() { return `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`; }
   function selectedScopeThemeId() {
-    if (scope === 'repository' && repo && config.repoAssignments[repo.key]) return config.repoAssignments[repo.key];
-    if (scope !== 'global' && repo && config.ownerAssignments[repo.owner]) return config.ownerAssignments[repo.owner];
+    if (scope === 'repository' && repo && Object.hasOwn(config.repoAssignments, repo.key)) return config.repoAssignments[repo.key];
+    if (scope !== 'global' && repo && Object.hasOwn(config.ownerAssignments, repo.owner)) return config.ownerAssignments[repo.owner];
     return config.defaultThemeId;
   }
   function prepareForScope() {
@@ -90,6 +90,7 @@
     try {
       port = chrome.tabs.connect(tabId, {name:'repovibe-preview'});
       port.onDisconnect.addListener(() => {
+        void chrome.runtime.lastError; // e.g. tab was opened before the extension was installed/reloaded
         port = null;
         $('previewState').textContent = 'Preview disconnected · saved themes still work';
       });
@@ -212,26 +213,32 @@
       let id = theme.id;
       if (modified && C.isPreset(id)) id = newId();
       if (modified && id === 'native') id = newId();
-      if (id.startsWith('custom-')) {
-        const updated = {...theme, id};
-        config.customThemes[id] = updated;
-        draft = structuredClone(updated);
-      }
-      C.assignTheme(config, scope, repo, id);
-      config = await C.saveConfig(config);
+      const updated = id.startsWith('custom-') ? {...theme, id} : null;
+      let sharedUses = 0;
+      config = await C.updateConfig(latest => {
+        if (updated) {
+          const target = scope === 'repository' ? repo?.key : scope === 'owner' ? repo?.owner : '';
+          sharedUses = C.themeUsage(latest, id).filter(use => !(use.scope === scope && use.key === (target || ''))).length;
+          latest.customThemes[id] = updated;
+        }
+        C.assignTheme(latest, scope, repo, id);
+      });
+      if (updated) draft = structuredClone(updated);
       dirty = false; modified = false;
       undoStack = [structuredClone(draft)]; undoIndex = 0;
       clearPreview();
       paint();
-      say(`${draft.name} saved for ${scope === 'repository' ? repo?.label : scope === 'owner' ? repo?.owner : 'GitHub'}.`);
+      const where = scope === 'repository' ? repo?.label : scope === 'owner' ? repo?.owner : 'GitHub';
+      say(sharedUses ? `${draft.name} saved for ${where}. This custom theme is also used by ${sharedUses} other assignment${sharedUses === 1 ? '' : 's'}, which now show the same changes.` : `${draft.name} saved for ${where}.`);
     } catch (e) { say(`Could not save: ${e.message}`, true); }
   }
   async function resetScope() {
     try {
-      if (scope === 'repository' && repo) delete config.repoAssignments[repo.key];
-      else if (scope === 'owner' && repo) delete config.ownerAssignments[repo.owner];
-      else config.defaultThemeId = 'native';
-      config = await C.saveConfig(config);
+      config = await C.updateConfig(latest => {
+        if (scope === 'repository' && repo) delete latest.repoAssignments[repo.key];
+        else if (scope === 'owner' && repo) delete latest.ownerAssignments[repo.owner];
+        else latest.defaultThemeId = 'native';
+      });
       prepareForScope();
       say('Default appearance restored for this scope.');
     } catch (e) { say(e.message,true); }
@@ -251,13 +258,13 @@
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) throw new Error('Theme file exceeds the 2 MB limit.');
     const parsed = JSON.parse(await file.text());
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Theme file is missing theme data.');
     if (parsed.format && parsed.format !== 'repovibe-theme') throw new Error('Not a RepoVibe theme file.');
     const input = parsed.theme || parsed;
     if (!input || typeof input !== 'object' || typeof input.name !== 'string') throw new Error('Theme file is missing theme data.');
     const id = newId();
     const imported = C.normalizeTheme({...input, id});
-    config.customThemes[id] = imported;
-    config = await C.saveConfig(config);
+    config = await C.updateConfig(latest => { latest.customThemes[id] = imported; });
     selectTheme(imported);
     switchView('library');
     paintLibrary();
@@ -303,7 +310,8 @@
       }
       if (tabId === null) {
         const tabs = await chrome.tabs.query({url:'https://github.com/*'});
-        const gitTab = tabs.find(t => Number.isInteger(t.id));
+        // Prefer the GitHub tab the user looked at most recently.
+        const gitTab = tabs.filter(t => Number.isInteger(t.id)).sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))[0];
         if (gitTab) { tabId = gitTab.id; repo = C.repositoryFromUrl(gitTab.url || ''); }
       }
       for (const option of $('scopeSelect').options) {
@@ -371,9 +379,17 @@
   });
   $('resetScope').addEventListener('click', resetScope);
   $('enableStudio').addEventListener('change', async event => {
-    config.enabled = event.target.checked;
-    try { config = await C.saveConfig(config); say(config.enabled ? 'RepoVibe enabled.' : 'RepoVibe paused.'); }
+    const enabled = event.target.checked;
+    try { config = await C.updateConfig(latest => { latest.enabled = enabled; }); say(config.enabled ? 'RepoVibe enabled.' : 'RepoVibe paused.'); }
     catch (e) { say(e.message,true); }
+  });
+  // Keep assignments/library current when the popup or another Studio changes storage; the draft is untouched.
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local' || !changes[C.STORAGE_KEY]) return;
+    config = C.normalizeConfig(changes[C.STORAGE_KEY].newValue);
+    $('enableStudio').checked = config.enabled;
+    updateSaveState();
+    if (currentView === 'library') paintLibrary();
   });
   window.addEventListener('beforeunload', () => { try { port?.disconnect(); } catch (_) { /* Already disconnected */ } });
   init();
