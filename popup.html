@@ -27,6 +27,12 @@
         <label><input type="radio" name="scope" value="global" /> Everywhere</label>
       </div>
       <div id="quickThemes" class="quick-themes"></div>
+      <div class="section-top motion-top"><h3>Live wallpaper</h3><span id="motionNote">Ambient motion</span></div>
+      <div class="scope-controls" role="radiogroup" aria-label="Live wallpaper motion">
+        <label title="No animation"><input type="radio" name="motion" value="static" /> Static</label>
+        <label title="Gentle ambient motion (default)"><input type="radio" name="motion" value="ambient" checked /> Ambient</label>
+        <label title="Stronger motion and slow parallax"><input type="radio" name="motion" value="cinematic" /> Cinematic</label>
+      </div>
     </section>
     <section class="popup-actions">
       <button class="primary-button" id="openStudio">✦ Customize this repository <span>↗</span></button>

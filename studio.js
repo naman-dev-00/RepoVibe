@@ -196,6 +196,7 @@
     art.style.setProperty('--text', theme.text);
     const style = (C.WALLPAPERS.find(w => w.ref === theme.wallpaperRef) || {}).style;
     if (style) { const badge = document.createElement('span'); badge.className = `style-badge ${style === '3d' ? 'is-3d' : ''}`; badge.textContent = style === '3d' ? '3D CINEMATIC' : 'ILLUSTRATED'; art.appendChild(badge); }
+    if (theme.flagship) { card.classList.add('is-flagship'); const live = document.createElement('span'); live.className = 'live-badge'; live.textContent = `◉ LIVE · ${theme.motion.toUpperCase()}`; art.appendChild(live); }
     const mock = document.createElement('div'); mock.className = 'art-mock';
     mock.innerHTML = '<div class="art-bar"><i></i><i></i><i></i></div><div class="art-panel"><b></b><i></i><i></i><i></i></div><div class="art-panel secondary"><i></i><i></i></div>';
     art.appendChild(mock);
@@ -218,10 +219,10 @@
     card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectTheme(theme); } });
     return card;
   }
-  // 3D cinematic themes first, then illustrated ones (stable within each group).
+  // Flagship live worlds first, then the other 3D cinematic themes, then illustrated ones (stable within each group).
   function paintGallery() {
-    const is3d = t => (C.WALLPAPERS.find(w => w.ref === t.wallpaperRef) || {}).style === '3d';
-    $('themeGallery').replaceChildren(...[...C.PRESETS].sort((a, b) => Number(is3d(b)) - Number(is3d(a))).map(makeGalleryCard));
+    const rank = t => t.flagship ? 2 : (C.WALLPAPERS.find(w => w.ref === t.wallpaperRef) || {}).style === '3d' ? 1 : 0;
+    $('themeGallery').replaceChildren(...[...C.PRESETS].sort((a, b) => rank(b) - rank(a)).map(makeGalleryCard));
   }
 
   function paintColors() {
@@ -308,6 +309,7 @@
     $('layoutSelect').value = draft.layout;
     $('enableStudio').checked = config.enabled;
     $('autoAssignToggle').checked = config.autoAssign;
+    $('motionMode').value = config.motionMode;
     updateSliderOutputs();
     paintColors();
     paintGallery();
@@ -470,6 +472,11 @@
     try { config = await C.updateConfig(latest => { latest.autoAssign = on; }); updateSaveState(); say(on ? 'Unconfigured repositories now get their own automatic theme.' : 'Automatic themes off: unconfigured repositories use the global theme.'); }
     catch (e) { say(e.message, true); }
   });
+  $('motionMode').addEventListener('change', async event => {
+    const mode = event.target.value;
+    try { config = await C.updateConfig(latest => { latest.motionMode = mode; }); say(`Live wallpaper motion: ${mode}.`); }
+    catch (e) { say(e.message, true); }
+  });
   $('cleanupStorage').addEventListener('click', () => {
     const keep = (/^idb:(.+)$/.exec(draft.wallpaperRef || '') || [])[1];
     chrome.runtime.sendMessage({ type: 'WALLPAPER_CLEANUP', keep: keep ? [keep] : [], minAgeMs: 0 }, async response => {
@@ -486,6 +493,7 @@
     config = C.normalizeConfig(changes[C.STORAGE_KEY].newValue);
     $('enableStudio').checked = config.enabled;
     $('autoAssignToggle').checked = config.autoAssign;
+    $('motionMode').value = config.motionMode;
     updateSaveState();
     if (currentView === 'library') paintLibrary();
   });

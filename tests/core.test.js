@@ -61,7 +61,7 @@ test('every preset meets WCAG AA (4.5:1) for text, secondary text and links on a
 });
 test('light/dark detection uses luminance, not string prefixes', () => {
   const light = [...C.PRESETS.filter(t => C.isLightColor(t.bg)).map(t => t.name)].sort();
-  assert.deepEqual(light, ['Arctic Frost', 'Minimal White', 'Sakura Dreams']);
+  assert.deepEqual(light, ['Arctic Frost', 'Futuristic Sci-Fi', 'Sakura Dreams']);
   assert.equal(C.isLightColor('not a color'), false);
 });
 test('prototype-like keys never resolve to inherited Object members', () => {
@@ -185,4 +185,49 @@ test('readability guard keeps text, secondary text and links >= 4.5:1 over each 
   const sunset = C.PRESETS.find(t => t.name === 'Sunset Boulevard');
   assert.ok(C.requiredGlass({ ...sunset, glassOpacity: 40, wallpaperOverlay: 0 }, C.wallpaperTone(sunset.wallpaperRef)) > 0.6, 'bright artwork forces substantial glass');
   assert.deepEqual([...C.wallpaperTone('idb:w0123456789abcdef012345')], ['#ffffff', '#000000'], 'unknown uploads assume worst case');
+});
+
+/* ---- Focused Phase 1B: four flagship worlds, default repository mappings, live-wallpaper motion. */
+test('four flagship themes with 3D artwork and a live layer each', () => {
+  const flagships = C.PRESETS.filter(t => t.flagship);
+  assert.deepEqual(JSON.parse(JSON.stringify(flagships.map(t => [t.id, t.name, t.motion]))), [
+    ['preset-1', 'Cyberpunk Neon', 'rain'], ['preset-8', 'Enchanted Forest', 'fireflies'],
+    ['preset-15', 'Futuristic Sci-Fi', 'holo'], ['preset-19', 'Cosmic Galaxy', 'stars']]);
+  const slugs = flagships.map(t => t.wallpaperRef.replace('builtin:', ''));
+  assert.deepEqual([...slugs], ['neon-city-3d', 'enchanted-forest', 'scifi-ai', 'cosmic-galaxy']);
+  for (const slug of slugs) assert.equal(C.WALLPAPERS.find(w => w.slug === slug).style, '3d', `${slug} is a 3D render`);
+  assert.ok(C.isLightColor(C.PRESETS[14].bg) && !C.isLightColor(C.PRESETS[0].bg), 'sci-fi is the light world, the rest are dark');
+  // every flagship keeps readable text over its own artwork
+  for (const t of flagships) assert.ok(C.requiredGlass(t, C.wallpaperTone(t.wallpaperRef)) <= 0.9, `${t.name} guard`);
+});
+test('default repository mappings are seeded once and then behave like manual choices', () => {
+  assert.deepEqual({ ...C.DEFAULT_REPO_MAPPINGS }, {
+    'naman-dev-00/tradpro': 'preset-1', 'naman-dev-00/repovibe': 'preset-8',
+    'naman-dev-00/pool-souls': 'preset-19', 'naman-dev-00/ai-powered-inbox-assistant': 'preset-15' });
+  const config = C.normalizeConfig({ version: 2, repoAssignments: { 'naman-dev-00/tradpro': 'preset-5' } });
+  assert.equal(config.seededMappings, false);
+  const seeded = C.normalizeConfig(C.seedDefaultMappings(config));
+  assert.equal(seeded.repoAssignments['naman-dev-00/tradpro'], 'preset-5', 'an existing user choice is never replaced');
+  assert.equal(seeded.repoAssignments['naman-dev-00/repovibe'], 'preset-8');
+  const names = ['naman-dev-00/RepoVibe', 'naman-dev-00/Pool-Souls', 'naman-dev-00/ai-powered-inbox-assistant']
+    .map(k => C.themeResolution(seeded, `https://github.com/${k}/issues`)).map(r => [r.scope, r.theme.name]);
+  assert.deepEqual(JSON.parse(JSON.stringify(names)), [['repository', 'Enchanted Forest'], ['repository', 'Cosmic Galaxy'], ['repository', 'Futuristic Sci-Fi']]);
+  delete seeded.repoAssignments['naman-dev-00/repovibe'];
+  assert.equal(C.seedDefaultMappings(seeded), false, 'removals stick: seeding happens only once');
+  assert.equal(C.themeResolution({ ...seeded, autoAssign: true }, 'https://github.com/naman-dev-00/RepoVibe').source, 'auto');
+  assert.equal(C.themeResolution(seeded, 'https://github.com/someone/else').scope !== 'repository', true, 'unconfigured repos are not affected');
+});
+test('live wallpaper motion: modes, reduced motion, persistence', () => {
+  const config = C.normalizeConfig({ version: 2 });
+  assert.equal(config.motionMode, 'ambient', 'default is Ambient');
+  const neon = C.PRESETS[0], plain = C.PRESETS[1];
+  assert.deepEqual({ ...C.motionFor(neon, config, false) }, { kind: 'rain', mode: 'ambient' });
+  assert.equal(C.motionFor(neon, config, true).kind, 'none', 'prefers-reduced-motion disables motion');
+  assert.equal(C.motionFor(neon, { ...config, motionMode: 'static' }, false).kind, 'none');
+  assert.deepEqual({ ...C.motionFor(neon, { ...config, motionMode: 'cinematic' }, false) }, { kind: 'rain', mode: 'cinematic' });
+  assert.equal(C.motionFor(plain, config, false).kind, 'none', 'non-flagship themes have no live layer');
+  assert.equal(C.normalizeConfig({ version: 2, motionMode: 'cinematic' }).motionMode, 'cinematic');
+  assert.equal(C.normalizeConfig({ version: 2, motionMode: 'turbo' }).motionMode, 'ambient');
+  assert.equal(C.normalizeTheme({ ...neon, id: 'custom-x' }).motion, 'rain', 'customized copies keep their live layer');
+  assert.equal(C.normalizeTheme({ ...neon, id: 'custom-y', motion: 'explode' }).motion, 'none');
 });

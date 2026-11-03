@@ -136,7 +136,8 @@ test('automatic per-repository themes: distinct, persisted, stable across reload
         await page.waitForTimeout(300);
         const cfg = await getConfig(context);
         assert.deepEqual(Object.keys(cfg.autoAssignments).sort(), ['acme/other', 'acme/project'], 'automatic picks are persisted');
-        assert.deepEqual(cfg.repoAssignments, {}, 'automatic picks never become manual assignments');
+        // Only the four seeded default mappings (fresh install) are manual; automatic picks never become manual assignments.
+        assert.deepEqual(cfg.repoAssignments, { 'naman-dev-00/tradpro': 'preset-1', 'naman-dev-00/repovibe': 'preset-8', 'naman-dev-00/pool-souls': 'preset-19', 'naman-dev-00/ai-powered-inbox-assistant': 'preset-15' }, 'automatic picks never become manual assignments');
         await page.reload(); await page.waitForTimeout(300);
         assert.equal(await panel(page), b, 'stable across reload');
         first = { a, b, auto: cfg.autoAssignments };
@@ -365,12 +366,22 @@ test('disabling RepoVibe removes wallpaper, glass and every RepoVibe DOM artifac
 test('popup shows repository, active theme and source; visual baseline', async () => {
   const { context, errors, close } = await launch();
   try {
+    // Fresh install: wait for the service worker to seed the default mappings (naman-dev-00/RepoVibe → Enchanted Forest).
+    const sw = await extPage(context);
+    await sw.waitForFunction(() => chrome.storage.local.get('repovibe.v1').then(o => o['repovibe.v1']?.seededMappings === true));
+    await sw.close();
     const gh = await openGitHub(context, 'naman-dev-00/RepoVibe');
     const popup = await extPage(context); await popup.setViewportSize({ width: 384, height: 640 });
     await gh.bringToFront(); await popup.reload(); await popup.waitForSelector('.theme-tile');
     assert.equal(await popup.textContent('#repoName'), 'naman-dev-00/RepoVibe');
-    assert.match(await popup.textContent('#activeTheme'), /^Active theme: /);
+    assert.equal(await popup.textContent('#activeTheme'), 'Active theme: Enchanted Forest');
+    assert.match(await popup.textContent('#scopeInfo'), /Manually assigned to this repo/);
+    assert.equal(await popup.textContent('#motionNote'), 'Fireflies · ambient');
+    // an unconfigured repository shows its automatic source
+    const other = await openGitHub(context, 'naman-dev-00/notes');
+    await other.bringToFront(); await popup.reload(); await popup.waitForSelector('.theme-tile');
     assert.match(await popup.textContent('#scopeInfo'), /Automatic theme for this repo/);
+    await gh.bringToFront(); await popup.reload(); await popup.waitForSelector('.theme-tile');
     await matchSnapshot(context, popup, 'p1b-popup', 0.02);
     assert.deepEqual(errors, []);
   } finally { await close(); }

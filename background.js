@@ -36,7 +36,9 @@ async function migrateInlineWallpapers() {
   return status;
 }
 
-chrome.runtime.onInstalled.addListener(() => { migrateInlineWallpapers(); });
+// Seed the default repository → theme mappings once (they then behave like any manual choice).
+function seedMappings() { return C.updateConfig(C.seedDefaultMappings).catch(e => console.warn('[RepoVibe] Unable to seed mappings', e)); }
+chrome.runtime.onInstalled.addListener(() => { seedMappings(); migrateInlineWallpapers(); });
 chrome.runtime.onStartup.addListener(() => { migrateInlineWallpapers(); });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

@@ -4,6 +4,9 @@
   const C = globalThis.RepoVibeCore;
   const STYLE_ID = 'repovibe-style-v1';
   const WALLPAPER_STYLE_ID = 'repovibe-wallpaper-v1';
+  const CARDS_STYLE_ID = 'repovibe-cards-v1';
+  const MOTION_CLASSES = ['repv-motion-rain', 'repv-motion-fireflies', 'repv-motion-stars', 'repv-motion-holo', 'repv-motion-cinematic'];
+  const reducedQuery = globalThis.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : null;
   let config = C.normalizeConfig(null);
   let activePreview = null;
   let currentHref = location.href;
@@ -105,11 +108,72 @@ html.repv-active :is(.blob-code, .react-code-text, .react-code-line, .markdown-b
 ${v.layout === 'wide' ? `html.repv-active :is(.container-xl, .container-lg) { max-width:1800px !important; }` : ''}
 ${compact ? `html.repv-active :is(.Box-row, .react-directory-row) {padding-top:5px !important;padding-bottom:5px !important;}
 html.repv-active .Layout {gap:12px !important;}` : ''}
+${glass ? MOTION_CSS : ''}
 @media (prefers-reduced-motion:no-preference) {
  html.repv-active :is(.Box, .btn, .Button) { transition:border-color .18s ease, box-shadow .18s ease; }
  ${v.vibe === 'neon' ? `html.repv-active :is(.Box:hover, .Button:hover) { box-shadow:0 0 14px ${v.accent}45; }` : ''}
 }
 `;
+  }
+
+  /* ---- Live wallpapers: lightweight ambient motion drawn with two fixed, pointer-events:none pseudo-element layers
+     (html::after, body::after) between the wallpaper and the page. Only transform/opacity are animated (compositor
+     work, no layout). Classes on <html>: repv-motion-<kind> (+ repv-motion-cinematic). Disabled entirely for
+     prefers-reduced-motion and in Static mode. Content panels stay above the layers, so motion shows in the margins
+     and softly through glass, and never intercepts input. */
+  const M = 'html.repv-active';
+  const LAYER = 'content:""; position:fixed; pointer-events:none; z-index:-1; will-change:transform, opacity;';
+  const dots = (list, size) => list.map(([x, y, c]) => `radial-gradient(circle at ${x}% ${y}%, ${c} 0, transparent ${size}px)`).join(',');
+  const FLY = [[8, 62], [14, 80], [22, 45], [6, 30], [88, 58], [93, 76], [80, 40], [95, 24], [30, 88], [70, 86], [18, 18], [84, 12], [50, 94], [3, 92]];
+  const STARS = [[7, 12], [15, 33], [4, 56], [11, 78], [21, 91], [89, 9], [95, 27], [86, 49], [93, 70], [83, 88], [30, 6], [64, 4], [48, 97], [97, 95], [2, 3], [77, 64]];
+  const MOTION_CSS = `
+${M}.repv-motion-rain::after { ${LAYER} left:-5%; right:-5%; top:-240px; height:calc(100vh + 480px);
+ background-image:${[[3, 0], [11, 70], [19, 140], [27, 30], [36, 190], [44, 100], [53, 10], [61, 160], [69, 60], [77, 210], [86, 120], [94, 40]].map(([x, y]) => `linear-gradient(transparent ${y}px, rgba(170,205,255,.28) ${y + 26}px, transparent ${y + 27}px)`).join(',')};
+ background-size:${[37, 53, 41, 61, 47, 59, 43, 67, 39, 57, 49, 63].map(w => `${w}px 240px`).join(',')}; background-repeat:repeat;
+ background-position:${[3, 11, 19, 27, 36, 44, 53, 61, 69, 77, 86, 94].map(x => `${x}% 0`).join(',')};
+ transform:translate3d(0,0,0) skewX(-8deg); opacity:.55; animation:repv-rain .7s linear infinite; }
+${M}.repv-motion-rain body::after { ${LAYER} inset:-10%;
+ background:radial-gradient(40% 30% at 15% 30%, rgba(255,60,200,.16), transparent 70%), radial-gradient(35% 28% at 85% 35%, rgba(60,200,255,.14), transparent 70%), radial-gradient(70% 22% at 50% 92%, rgba(150,170,255,.10), transparent 70%);
+ animation:repv-flicker 7s steps(1) infinite, repv-fog 38s ease-in-out infinite alternate; }
+${M}.repv-motion-fireflies::after { ${LAYER} inset:0;
+ background-image:${dots(FLY.map(([x, y], i) => [x, y, i % 3 ? 'rgba(255,226,120,.95)' : 'rgba(150,255,190,.9)']), 3)};
+ filter:drop-shadow(0 0 4px rgba(255,230,140,.9)); animation:repv-fly-a 11s ease-in-out infinite alternate, repv-pulse 3.2s ease-in-out infinite alternate; }
+${M}.repv-motion-fireflies body::after { ${LAYER} inset:-10%;
+ background-image:${dots(FLY.map(([x, y], i) => [(x + 37) % 100, (y + 23) % 100, i % 2 ? 'rgba(255,220,110,.85)' : 'rgba(140,255,210,.85)']), 2)}, radial-gradient(60% 25% at 30% 85%, rgba(120,230,210,.10), transparent 70%), radial-gradient(50% 20% at 80% 70%, rgba(110,200,255,.08), transparent 70%);
+ animation:repv-fly-b 15s ease-in-out infinite alternate, repv-pulse 4.4s ease-in-out infinite alternate-reverse; }
+${M}.repv-motion-stars::after { ${LAYER} inset:0;
+ background-image:${dots(STARS.map(([x, y]) => [x, y, 'rgba(235,240,255,.95)']), 1.6)};
+ animation:repv-twinkle 3.6s ease-in-out infinite alternate; }
+${M}.repv-motion-stars body::after { ${LAYER} inset:-15%;
+ background:${dots(STARS.map(([x, y]) => [(x + 51) % 100, (y + 37) % 100, 'rgba(200,190,255,.8)']), 1.2)}, radial-gradient(40% 30% at 20% 30%, rgba(150,80,255,.14), transparent 70%), radial-gradient(35% 30% at 80% 75%, rgba(60,140,255,.12), transparent 70%);
+ animation:repv-nebula 60s ease-in-out infinite alternate; }
+${M}.repv-motion-holo::after { ${LAYER} left:0; right:0; top:-64px; height:calc(100vh + 128px);
+ background-image:linear-gradient(rgba(0,150,230,.10) 1px, transparent 1px), linear-gradient(90deg, rgba(0,150,230,.10) 1px, transparent 1px);
+ background-size:64px 64px; -webkit-mask-image:linear-gradient(transparent, #000 35%, #000 70%, transparent); mask-image:linear-gradient(transparent, #000 35%, #000 70%, transparent);
+ animation:repv-grid 9s linear infinite; }
+${M}.repv-motion-holo body::after { ${LAYER} left:0; right:0; top:0; height:28vh;
+ background:linear-gradient(transparent, rgba(80,200,255,.13) 48%, rgba(160,235,255,.22) 50%, rgba(80,200,255,.13) 52%, transparent), ${dots(STARS.slice(0, 10).map(([x, y]) => [x, (y * 0.3) % 100, 'rgba(40,170,240,.7)']), 1.5)};
+ animation:repv-scan 12s ease-in-out infinite; }
+${M}.repv-motion-cinematic::after { animation-duration:.5s, 2.2s; opacity:.75; }
+${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-out infinite alternate; will-change:transform; }
+@keyframes repv-rain { from { transform:translate3d(0,0,0) skewX(-8deg); } to { transform:translate3d(-34px,240px,0) skewX(-8deg); } }
+@keyframes repv-flicker { 0%, 100% { opacity:1; } 41% { opacity:.55; } 43% { opacity:1; } 72% { opacity:.7; } 73% { opacity:1; } 88% { opacity:.6; } 89% { opacity:1; } }
+@keyframes repv-fog { from { transform:translate3d(-3%,0,0); } to { transform:translate3d(3%,-1%,0); } }
+@keyframes repv-fly-a { from { transform:translate3d(0,0,0); } 50% { transform:translate3d(18px,-26px,0); } to { transform:translate3d(-14px,-8px,0); } }
+@keyframes repv-fly-b { from { transform:translate3d(0,0,0); } 50% { transform:translate3d(-22px,-14px,0); } to { transform:translate3d(16px,-30px,0); } }
+@keyframes repv-pulse { from { opacity:.25; } to { opacity:1; } }
+@keyframes repv-twinkle { from { opacity:.35; } to { opacity:1; } }
+@keyframes repv-nebula { from { transform:translate3d(-2%,0,0) scale(1); } to { transform:translate3d(2%,-2%,0) scale(1.06); } }
+@keyframes repv-grid { from { transform:translate3d(0,0,0); } to { transform:translate3d(0,64px,0); } }
+@keyframes repv-scan { from { transform:translate3d(0,-30vh,0); } to { transform:translate3d(0,105vh,0); } }
+@keyframes repv-parallax { from { transform:scale(1.03) translate3d(-.8%,0,0); } to { transform:scale(1.07) translate3d(.8%,-.6%,0); } }
+@media (prefers-reduced-motion:reduce) { ${M}::after, ${M} body::after, ${M} body::before { animation:none !important; } }
+`;
+  function applyMotion(root, theme, hasImage) {
+    const motion = hasImage ? C.motionFor(theme, config, Boolean(reducedQuery?.matches)) : { kind: 'none', mode: 'static' };
+    const wanted = motion.kind === 'none' ? [] : [`repv-motion-${motion.kind}`, ...(motion.mode === 'cinematic' ? ['repv-motion-cinematic'] : [])];
+    for (const c of MOTION_CLASSES) if (root.classList.contains(c) !== wanted.includes(c)) root.classList.toggle(c, wanted.includes(c));
+    return wanted.join(' ');
   }
 
   /* ---- Wallpaper resolution: bundled assets, IndexedDB assets (via service worker), legacy inline data. */
@@ -146,18 +210,26 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
     if (el.textContent !== css) el.textContent = css;
   }
 
-  /* ---- Automatic assignment: persist the first deterministic pick so it never changes later. */
+  /* ---- Automatic assignment: persist the first deterministic pick so it never changes later. Batched (in order)
+     so the Home sidebar's rows are stored in one write and siblings pick distinct themes exactly as on their pages. */
   const persisting = new Set();
-  function persistAutoAssignment(key) {
-    if (persisting.has(key)) return;
-    persisting.add(key);
+  function persistAutoAssignments(keys) {
+    keys = keys.filter(k => !persisting.has(k));
+    if (!keys.length) return;
+    keys.forEach(k => persisting.add(k));
     C.updateConfig(latest => {
-      const owner = key.split('/')[0];
       if (!latest.enabled || !latest.autoAssign) return false;
-      if (Object.hasOwn(latest.repoAssignments, key) || Object.hasOwn(latest.ownerAssignments, owner) || Object.hasOwn(latest.autoAssignments, key)) return false;
-      latest.autoAssignments[key] = C.pickAutoTheme(key, latest);
-    }).catch(() => { persisting.delete(key); });
+      let changed = false;
+      for (const key of keys) {
+        const owner = key.split('/')[0];
+        if (Object.hasOwn(latest.repoAssignments, key) || Object.hasOwn(latest.ownerAssignments, owner) || Object.hasOwn(latest.autoAssignments, key)) continue;
+        latest.autoAssignments[key] = C.pickAutoTheme(key, latest);
+        changed = true;
+      }
+      return changed ? latest : false;
+    }).catch(() => { keys.forEach(k => persisting.delete(k)); });
   }
+  const persistAutoAssignment = key => persistAutoAssignments([key]);
 
   // GitHub picks its base token set from data-color-mode. A light RepoVibe theme on a dark-mode
   // account (or vice versa) would otherwise keep the wrong mode for every token we do not override.
@@ -193,9 +265,110 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
     root.removeAttribute(ORIGINAL_MODE_ATTR);
   }
 
+  /* ---- GitHub Home: themed "Top repositories" cards. Each row of the signed-in dashboard sidebar shows a miniature of
+     its own repository's resolved theme (manual > owner > automatic > global), behind guarded glass so the name stays
+     readable. Only rows whose link is exactly /owner/repo are styled; links, avatars and click behaviour are untouched
+     (we only add data-repv-card* attributes and one <style>). Nothing is fetched from GitHub. */
+  const isHome = () => location.hostname === 'github.com' && (location.pathname === '/' || location.pathname === '/dashboard');
+  const HEADING = /^\s*top repositories\s*$/i;
+  function topRepositoryRows() {
+    let container = document.getElementById('dashboard-repos-container') || document.querySelector('.js-repos-container');
+    if (!container) {
+      const heading = [...document.querySelectorAll('aside h2, aside h3, h2, h3, [role="heading"]')].find(h => HEADING.test(h.textContent || ''));
+      for (let el = heading?.parentElement, i = 0; el && i < 5 && !container; el = el.parentElement, i++) if (el.querySelector('li a[href]')) container = el;
+    }
+    if (!container) return [];
+    const rows = [];
+    for (const li of container.querySelectorAll('li')) {
+      for (const a of li.querySelectorAll('a[href]')) {
+        let u; try { u = new URL(a.getAttribute('href'), location.origin); } catch (_) { continue; }
+        if (u.origin !== location.origin || u.pathname.split('/').filter(Boolean).length !== 2) continue;
+        const repo = C.repositoryFromUrl(u.href);
+        if (repo) { rows.push({ li, repo, href: u.href }); break; }
+      }
+    }
+    return rows;
+  }
+  const cardImageCache = new Map(); // idb ref -> { url } | { pending }
+  function cardImage(theme) {
+    if (!theme || theme.backgroundMode !== 'image') return null;
+    const builtin = /^builtin:([a-z0-9-]+)$/.exec(theme.wallpaperRef || '');
+    if (builtin) { const w = C.WALLPAPERS.find(x => x.slug === builtin[1]); return w ? chrome.runtime.getURL(w.thumb) : null; }
+    const idb = /^idb:(.+)$/.exec(theme.wallpaperRef || '');
+    if (!idb) return theme.wallpaper && DATA_IMAGE.test(theme.wallpaper) ? theme.wallpaper : null;
+    const hit = cardImageCache.get(theme.wallpaperRef);
+    if (hit) return hit.url || null;
+    if (cardImageCache.size >= 8) return null; // bounded: further uploads fall back to the theme colours
+    cardImageCache.set(theme.wallpaperRef, { pending: true });
+    try {
+      chrome.runtime.sendMessage({ type: 'WALLPAPER_GET', id: idb[1] }, response => {
+        void chrome.runtime.lastError;
+        cardImageCache.set(theme.wallpaperRef, { url: response && response.ok && DATA_IMAGE.test(response.dataUrl || '') ? response.dataUrl : null });
+        renderCards();
+      });
+    } catch (_) { cardImageCache.set(theme.wallpaperRef, { url: null }); }
+    return null;
+  }
+  function cardRule(theme) {
+    const v = C.normalizeTheme(theme);
+    // Text sits on the left part of the card over theme-coloured glass; guard it like page panels (≥ 4.6:1 for
+    // name, muted owner and accent against the brightest/darkest pixels of the art).
+    const a = C.requiredGlass({ ...v, surface: v.bg, glassOpacity: 62, wallpaperOverlay: 0, wallpaperBrightness: 100, wallpaperOpacity: 100 }, C.wallpaperTone(v.wallpaperRef));
+    const img = cardImage(theme);
+    return `li[data-repv-card="${theme.id}"] { --repv-card-glass:${rgba(v.bg, a)}; --repv-card-solid:${v.bg}; --repv-card-text:${v.text};
+ --repv-card-muted:${v.muted}; --repv-card-accent:${v.accent}; --repv-card-border:${rgba(v.border, 0.9)};
+ --repv-card-img:${img ? `url("${img}")` : `linear-gradient(135deg, ${v.bg}, ${v.gradientTo} 60%, ${v.gradientThird})`}; }`;
+  }
+  const CARD_CSS = `
+li[data-repv-card] { position:relative; list-style:none; margin:6px 0 0 !important; padding:6px 46px 6px 10px !important; border-radius:10px;
+ border:1px solid var(--repv-card-border); overflow:hidden; color:var(--repv-card-text) !important;
+ background-color:var(--repv-card-solid) !important;
+ background-image:linear-gradient(90deg, var(--repv-card-glass) 0, var(--repv-card-glass) calc(100% - 58px), transparent calc(100% - 14px)), var(--repv-card-img) !important;
+ background-size:auto, cover !important; background-position:center, center right !important; background-repeat:no-repeat !important;
+ box-shadow:0 1px 2px rgba(0,0,0,.18); }
+li[data-repv-card] > div { margin-top:0 !important; align-items:center; }
+li[data-repv-card] a, li[data-repv-card] a * { color:var(--repv-card-text) !important; }
+li[data-repv-card] a span, li[data-repv-card] .color-fg-muted { color:var(--repv-card-muted) !important; }
+li[data-repv-card] a:hover { text-decoration:underline; text-decoration-color:var(--repv-card-accent); }
+li[data-repv-card]:focus-within { outline:2px solid var(--repv-card-accent); outline-offset:1px; }
+@media (prefers-reduced-motion:no-preference) {
+ li[data-repv-card] { transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+ li[data-repv-card]:hover { transform:translateY(-1px); border-color:var(--repv-card-accent); box-shadow:0 6px 16px rgba(0,0,0,.28), 0 0 0 1px var(--repv-card-accent); }
+}
+@media (prefers-contrast:more) { li[data-repv-card] { background-image:none !important; } }
+@media (forced-colors:active) { li[data-repv-card] { background:none !important; border:1px solid CanvasText; padding:4px 0 !important; }
+ li[data-repv-card] a, li[data-repv-card] a * { color:LinkText !important; } }
+`;
+  function clearCards() {
+    document.getElementById(CARDS_STYLE_ID)?.remove();
+    for (const li of document.querySelectorAll('li[data-repv-card]')) li.removeAttribute('data-repv-card');
+  }
+  let lastCardsCss = '';
+  function renderCards() {
+    if (tornDown) return;
+    const rows = isHome() && config.enabled ? topRepositoryRows() : [];
+    if (!rows.length) { if (lastCardsCss || document.querySelector('li[data-repv-card]')) { clearCards(); lastCardsCss = ''; } return; }
+    const themes = new Map(), unpersisted = [];
+    for (const { li, repo } of rows) {
+      const r = C.themeResolution(config, `https://github.com/${repo.key}`);
+      if (r.source === 'auto' && !r.persisted) unpersisted.push(repo.key);
+      if (!r.theme) { if (li.hasAttribute('data-repv-card')) li.removeAttribute('data-repv-card'); continue; }
+      themes.set(r.theme.id, r.theme);
+      if (li.getAttribute('data-repv-card') !== r.theme.id) li.setAttribute('data-repv-card', r.theme.id);
+    }
+    if (unpersisted.length) persistAutoAssignments(unpersisted);
+    const css = themes.size ? CARD_CSS + [...themes.values()].map(cardRule).join('\n') : '';
+    let el = document.getElementById(CARDS_STYLE_ID);
+    if (!css) { el?.remove(); lastCardsCss = ''; return; }
+    if (!el) { el = document.createElement('style'); el.id = CARDS_STYLE_ID; (document.head || document.documentElement).appendChild(el); }
+    if (el.textContent !== css) el.textContent = css;
+    lastCardsCss = css;
+  }
+
   let lastTheme = null;
   let lastMode = null;
   let lastWallpaperUrl = null;
+  let lastMotion = '';
   function render() {
     if (tornDown) return;
     const resolution = C.themeResolution(config, location.href);
@@ -207,10 +380,12 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
     if (!root) return;
     let style = document.getElementById(STYLE_ID);
     if (!theme) {
-      root.classList.remove('repv-active');
+      root.classList.remove('repv-active', ...MOTION_CLASSES);
+      lastMotion = '';
       if (style) style.remove();
       renderWallpaper(null);
       applyColorMode(root, null);
+      renderCards();
       return;
     }
     if (!style) {
@@ -224,13 +399,16 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
     const css = buildCss(theme, Boolean(url));
     if (style.textContent !== css) style.textContent = css;
     root.classList.add('repv-active');
+    lastMotion = applyMotion(root, theme, Boolean(url));
     applyColorMode(root, lastMode);
+    renderCards();
   }
   // GitHub navigations can swap <head> or reset <html> attributes; restore our state if lost.
   function ensureApplied() {
     const root = document.documentElement;
     if (!lastTheme || !root) return;
-    if (!document.getElementById(STYLE_ID) || !root.classList.contains('repv-active') || (lastWallpaperUrl && !document.getElementById(WALLPAPER_STYLE_ID))) render();
+    if (!document.getElementById(STYLE_ID) || !root.classList.contains('repv-active') || (lastWallpaperUrl && !document.getElementById(WALLPAPER_STYLE_ID))
+      || lastMotion.split(' ').some(c => c && !root.classList.contains(c))) render();
     else applyColorMode(root, lastMode);
   }
 
@@ -250,11 +428,14 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
     activePreview = null; lastTheme = null; lastMode = null;
     document.getElementById(STYLE_ID)?.remove();
     document.getElementById(WALLPAPER_STYLE_ID)?.remove();
-    if (document.documentElement) { document.documentElement.classList.remove('repv-active'); applyColorMode(document.documentElement, null); }
+    clearCards();
+    reducedQuery?.removeEventListener?.('change', onReducedMotionChange);
+    if (document.documentElement) { document.documentElement.classList.remove('repv-active', ...MOTION_CLASSES); applyColorMode(document.documentElement, null); }
   }
   function guard(fn) {
     return (...args) => { if (tornDown) return; if (!extensionAlive()) { teardown(); return; } fn(...args); };
   }
+  function onReducedMotionChange() { if (!tornDown) render(); }
   function onSystemModeChange() { if (lastMode && document.documentElement) applyColorMode(document.documentElement, lastMode); }
 
   function updateForNavigation() {
@@ -268,13 +449,14 @@ html.repv-active .Layout {gap:12px !important;}` : ''}
   for (const [target, type] of NAV_EVENTS) target.addEventListener(type, onNavigation);
   globalThis.navigation?.addEventListener?.('navigatesuccess', onNavigation);
   darkQuery?.addEventListener?.('change', onSystemModeChange);
+  reducedQuery?.addEventListener?.('change', onReducedMotionChange);
   // URL fallback for GitHub SPA navigation that does not fire a standard event.
   // The observer only checks the URL; it does not restyle per DOM mutation.
   let scheduled = false;
   const observer = new MutationObserver(guard(() => {
     if (scheduled) return;
     scheduled = true;
-    requestAnimationFrame(() => { scheduled = false; if (!tornDown) { updateForNavigation(); ensureApplied(); } });
+    requestAnimationFrame(() => { scheduled = false; if (!tornDown) { updateForNavigation(); ensureApplied(); if (isHome()) renderCards(); } });
   }));
   const rootObserver = new MutationObserver(guard(ensureApplied));
   const startObserver = () => {

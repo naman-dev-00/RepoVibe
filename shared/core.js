@@ -19,18 +19,18 @@
     ['Matrix', 'Into the source', '#071008', '#0d1c10', '#15291a', '#b9f9bd', '#76aa7c', '#4ad66d', '#265637', '#081e0f', '#04110b', '#0a160c', 'neon'],
     ['Dracula', 'Legendary dark', '#191a2a', '#292a40', '#343650', '#f6f5ff', '#b3b2cd', '#bd93f9', '#55506c', '#34233c', '#1b2640', '#202134', 'soft'],
     ['Ocean Depths', 'Twilight swell', '#061b2c', '#0d2a40', '#163954', '#e7f8ff', '#9fc4d2', '#46c6ee', '#315870', '#08324d', '#082333', '#09283b', 'glass'],
-    ['Forest Retreat', 'Natural focus', '#14221c', '#21362a', '#2c4435', '#eaf8e8', '#acc4b1', '#86cd8c', '#42634b', '#233f25', '#13291f', '#1b2e23', 'soft'],
+    ['Enchanted Forest', 'Moonlit glade, fireflies', '#08181a', '#10272a', '#183436', '#e6fbf5', '#9cc7bd', '#5ee0c1', '#2c5753', '#0c3335', '#10263f', '#0d2123', 'glass'],
     ['Retro Terminal', 'Back to basics', '#171911', '#23291a', '#313928', '#f1f3c9', '#a8b28a', '#bdd774', '#5c6440', '#313019', '#181e16', '#1c2119', 'pixel'],
     ['Pixel Paradise', '8-bit nostalgia', '#211a41', '#302959', '#40356c', '#fbf3ff', '#beb1de', '#ff9bd5', '#7350a0', '#33216b', '#14304f', '#29234b', 'pixel'],
     ['Solar Flare', 'Dunes at dusk', '#291913', '#422617', '#5c331c', '#fff1dd', '#d9b297', '#ffad54', '#885337', '#5a2918', '#2b1b19', '#341f19', 'neon'],
     ['Arctic Frost', 'Alpine golden hour', '#eaf5fc', '#fbfdff', '#deecf6', '#213952', '#4b6178', '#2a5f9e', '#bfd7e8', '#e1f5ff', '#d6e4ff', '#f2f8fd', 'glass'],
     ['Lavender Nights', 'A gentle glow', '#1e1837', '#2c2448', '#3a305c', '#f8efff', '#b9abcd', '#d0a6ff', '#5b4d78', '#392252', '#221a43', '#29203f', 'soft'],
     ['Dark Academia', 'Timeless and thoughtful', '#241d19', '#362b23', '#45362b', '#f2e8d3', '#bcb09b', '#d4b47d', '#69513a', '#30221a', '#221a17', '#2e251e', 'minimal'],
-    ['Minimal White', 'Nothing but the work', '#f6f7f9', '#ffffff', '#f1f3f6', '#202631', '#5b6470', '#3454c4', '#dce0e7', '#f8fafc', '#eef1f7', '#fafbfe', 'minimal'],
+    ['Futuristic Sci-Fi', 'Holographic AI core', '#eaf2f9', '#fbfdff', '#e4edf6', '#12233a', '#44576f', '#0866ad', '#c6d6e6', '#dcf1ff', '#e6ebf8', '#f3f7fc', 'glass'],
     ['Obsidian', 'Pure concentration', '#0d0e11', '#18191e', '#202228', '#f4f4f7', '#a1a1ad', '#a5a9bd', '#3b3e48', '#15161a', '#0d0e11', '#17181c', 'minimal'],
     ['Aurora', 'Northern lights over a fjord', '#0c1724', '#122b34', '#1b3b45', '#e8fff8', '#9dcbc6', '#7eedd7', '#355d5c', '#113b4b', '#2d2557', '#142633', 'glass'],
     ['Sunset Boulevard', 'Golden hour', '#301b32', '#4c294a', '#60375b', '#fff1f1', '#d5b0c7', '#ff9d82', '#7d4d73', '#9a4d61', '#442b6e', '#3c2540', 'soft'],
-    ['Galaxy', 'Alien world, giant planet', '#0b0b25', '#17183d', '#24244e', '#f0edff', '#a5a6d3', '#979bff', '#464784', '#251d53', '#102c4b', '#141433', 'glass'],
+    ['Cosmic Galaxy', 'Ringed giant, nebula, deep space', '#0b0b25', '#17183d', '#24244e', '#f0edff', '#a5a6d3', '#979bff', '#464784', '#251d53', '#102c4b', '#141433', 'glass'],
     ['Synthwave', 'Neon valley drive', '#210c37', '#33194a', '#462359', '#fff1ff', '#c9a1df', '#ff65c3', '#76438d', '#551b6c', '#102e5d', '#2b1342', 'neon']
   ];
   // Wallpaper catalogue generated from wallpapers/manifest.json (shared/wallpaper-catalog.js, loaded first).
@@ -41,8 +41,20 @@
   const WALLPAPER_TONES = Object.fromEntries(WALLPAPERS.map(w => [w.slug, w.tone]));
   // Preset N → wallpaper. 3D cinematic renders where available; the rest use the illustrated (2D) scenes.
   const PRESET_WALLPAPERS = ['neon-city-3d', 'midnight-skyline', 'sakura-street', 'cozy-room', 'digital-rain', 'gothic-castle',
-    'ocean-twilight', 'forest-waterfall', 'pixel-dusk', 'pixel-island', 'desert-dunes', 'alpine-lake', 'lavender-fantasy',
-    'academia-library', 'mono-lines', 'obsidian-shards', 'aurora-fjord', 'sunset-village', 'alien-world', 'synthwave-3d'];
+    'ocean-twilight', 'enchanted-forest', 'pixel-dusk', 'pixel-island', 'desert-dunes', 'alpine-lake', 'lavender-fantasy',
+    'academia-library', 'scifi-ai', 'obsidian-shards', 'aurora-fjord', 'sunset-village', 'cosmic-galaxy', 'synthwave-3d'];
+  // Flagship themes and their live-wallpaper ambience (lightweight CSS motion layered over the art).
+  const MOTIONS = ['none', 'rain', 'fireflies', 'stars', 'holo'];
+  const FLAGSHIP_MOTION = { 'preset-1': 'rain', 'preset-8': 'fireflies', 'preset-19': 'stars', 'preset-15': 'holo' };
+  const MOTION_MODES = ['static', 'ambient', 'cinematic'];
+  // Development/testing mappings seeded once (service worker, on install/update). They are ordinary manual
+  // repository assignments afterwards: the user can change or remove them and they are never re-added.
+  const DEFAULT_REPO_MAPPINGS = Object.freeze({
+    'naman-dev-00/tradpro': 'preset-1',
+    'naman-dev-00/repovibe': 'preset-8',
+    'naman-dev-00/pool-souls': 'preset-19',
+    'naman-dev-00/ai-powered-inbox-assistant': 'preset-15'
+  });
   const WALLPAPER_SLUGS = new Set(WALLPAPERS.map(w => w.slug));
   const POSITIONS = ['center', 'top', 'bottom', 'left', 'right'];
   const SIZES = ['cover', 'contain'];
@@ -75,12 +87,14 @@
     wallpaperSize: 'cover',
     font: row[12] === 'pixel' ? 'mono' : 'system',
     codeFontSize: 13,
-    layout: 'standard'
+    layout: 'standard',
+    flagship: Object.hasOwn(FLAGSHIP_MOTION, `preset-${index + 1}`),
+    motion: FLAGSHIP_MOTION[`preset-${index + 1}`] || 'none'
   }));
   const CONFIG_VERSION = 2;
   const DEFAULT = {
     version: CONFIG_VERSION, enabled: true, defaultThemeId: 'native',
-    autoAssign: true, autoAssignments: {},
+    autoAssign: true, autoAssignments: {}, motionMode: 'ambient', seededMappings: false,
     repoAssignments: {}, ownerAssignments: {}, customThemes: {}
   };
   const colorKeys = ['bg', 'surface', 'surface2', 'text', 'muted', 'accent', 'border', 'gradientTo', 'gradientThird', 'codeBg'];
@@ -134,6 +148,7 @@
     theme.font = FONT_VALUES.includes(input.font) ? input.font : 'system';
     theme.codeFontSize = clamp(input.codeFontSize, 11, 20, 13);
     theme.layout = LAYOUTS.includes(input.layout) ? input.layout : 'standard';
+    theme.motion = MOTIONS.includes(input.motion) ? input.motion : 'none';
     return theme;
   }
   function normalizeConfig(raw) {
@@ -144,6 +159,8 @@
     // v1 -> v2 migration: users who chose a shared global theme keep it (auto-assignment off);
     // everyone else gets automatic per-repository themes. v2 stores the user's explicit choice.
     config.autoAssign = raw.version >= 2 ? raw.autoAssign !== false : config.defaultThemeId === 'native';
+    config.motionMode = MOTION_MODES.includes(raw.motionMode) ? raw.motionMode : 'ambient';
+    config.seededMappings = raw.seededMappings === true;
     for (const type of ['repoAssignments', 'ownerAssignments', 'autoAssignments']) {
       if (!raw[type] || typeof raw[type] !== 'object') continue;
       for (const [key, value] of Object.entries(raw[type])) {
@@ -283,8 +300,22 @@
     return config;
   }
   function isPreset(id) { return PRESETS.some(theme => theme.id === id); }
+  /** Adds the default repository mappings once. Existing choices for those repositories are never replaced, and
+      after seeding (seededMappings) removals stick. Returns false when nothing changes (for updateConfig). */
+  function seedDefaultMappings(config) {
+    if (config.seededMappings) return false;
+    for (const [key, id] of Object.entries(DEFAULT_REPO_MAPPINGS)) if (!Object.hasOwn(config.repoAssignments, key)) config.repoAssignments[key] = id;
+    config.seededMappings = true;
+    return config;
+  }
+  /** Effective live-wallpaper motion: 'none' | theme motion, at 'ambient' or 'cinematic' intensity. */
+  function motionFor(theme, config, reducedMotion) {
+    if (!theme || reducedMotion || config.motionMode === 'static' || !theme.motion || theme.motion === 'none') return { kind: 'none', mode: 'static' };
+    return { kind: theme.motion, mode: config.motionMode };
+  }
   root.RepoVibeCore = Object.freeze({
     STORAGE_KEY, PRESETS, DEFAULT, MAX_CUSTOM_THEMES, CONFIG_VERSION, WALLPAPERS, POSITIONS, SIZES,
+    MOTIONS, MOTION_MODES, FLAGSHIP_MOTION, DEFAULT_REPO_MAPPINGS, seedDefaultMappings, motionFor,
     safeWallpaperRef, fnv1a, pickAutoTheme, requiredGlass, wallpaperTone, normalizeConfig, normalizeTheme, safeWallpaper,
     repositoryFromUrl, themeById, themeResolution, loadConfig, saveConfig, updateConfig, themeUsage, assignTheme, isPreset,
     contrastRatio, isLightColor

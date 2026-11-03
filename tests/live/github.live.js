@@ -323,7 +323,7 @@ L.liveTest('LIVE 6: wallpapers are visibly rendered on real GitHub pages (bundle
       await L.logShot(context, page, `after-sunset-${name}`);
     }
     // Screenshot evidence of the 3D cinematic themes on the real site (logged to the job log, 1600px desktop width).
-    for (const [id, slug, label] of [['preset-1', 'neon-city-3d', 'cyberpunk-3d'], ['preset-19', 'alien-world', 'galaxy-3d'], ['preset-17', 'aurora-fjord', 'aurora-3d']]) {
+    for (const [id, slug, label] of [['preset-1', 'neon-city-3d', 'cyberpunk-3d'], ['preset-19', 'cosmic-galaxy', 'galaxy-3d'], ['preset-17', 'aurora-fjord', 'aurora-3d']]) {
       await setConfig(context, { enabled: true, defaultThemeId: id });
       for (const [pageName, url] of [['overview', `https://github.com/${A}`], ['issues', `https://github.com/${A}/issues`]]) {
         const response = await L.gotoLive(page, url);
@@ -433,4 +433,71 @@ L.liveTest('LIVE 7: automatic per-repository themes on real repositories, SPA na
     }
     c.done();
   } finally { fs.rmSync(profile, { recursive: true, force: true }); }
+});
+
+const FLAGSHIPS = [
+  ['naman-dev-00/tradPro', 'preset-1', 'neon-city-3d', 'rain', 'cyberpunk-neon'],
+  ['naman-dev-00/RepoVibe', 'preset-8', 'enchanted-forest', 'fireflies', 'enchanted-forest'],
+  ['naman-dev-00/Pool-Souls', 'preset-19', 'cosmic-galaxy', 'stars', 'cosmic-galaxy'],
+  ['naman-dev-00/ai-powered-inbox-assistant', 'preset-15', 'scifi-ai', 'holo', 'futuristic-scifi']
+];
+const freeze = page => page.evaluate(() => document.getAnimations().forEach(a => { if (a.animationName) { a.pause(); a.currentTime = 1500; } })).catch(() => {});
+L.liveTest('LIVE 8: four flagship worlds with live wallpapers on real pages; default mappings; logged-out Home untouched', async (t, ctx) => {
+  const { context, close } = await launch({ fixture: false, colorScheme: 'dark' });
+  const errors = L.watchErrors(context);
+  const c = checker('Flagship worlds');
+  try {
+    const p = await extPage(context);
+    const seededOk = await p.waitForFunction(() => chrome.storage.local.get('repovibe.v1').then(o => o['repovibe.v1']?.seededMappings === true), null, { timeout: 10000 }).then(() => true, () => false);
+    await p.close();
+    const cfg = await getConfig(context);
+    c.check(seededOk && FLAGSHIPS.every(([r, id]) => cfg.repoAssignments[r.toLowerCase()] === id), 'Default mappings', `fresh install seeds the four repository mappings: ${FLAGSHIPS.map(([r]) => `${r}→${cfg.repoAssignments[r.toLowerCase()]}`).join(', ')}; motion mode ${cfg.motionMode}`);
+    const page = await context.newPage(); ctx.pages.push(page);
+    await page.setViewportSize({ width: 1600, height: 900 });
+    // 1. The mapped repositories themselves (only if publicly visible: the suite never signs in).
+    for (const [repo, id, slug, motion, label] of FLAGSHIPS) {
+      const response = await page.goto(`https://github.com/${repo}`, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => null);
+      if (!response || response.status() === 404) { c.info(`${repo}`, `not publicly visible (HTTP ${response ? response.status() : 'n/a'}; private or nonexistent) — live UNVERIFIED for this repository; the same theme is verified on a public repository below and offline`); continue; }
+      await L.gotoLive(page, `https://github.com/${repo}`);
+      await page.waitForFunction(s => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes(`${s}.webp`), slug, { timeout: 8000 }).catch(() => {});
+      const cls = await page.evaluate(() => document.documentElement.className);
+      await freeze(page); await page.waitForTimeout(400);
+      const vc = await visualContrast(context, page);
+      c.check(cls.includes(`repv-motion-${motion}`) && vc.below3.length === 0, `${repo}`, `mapped world ${id} (${slug}) with live layer ${motion}: classes "${cls}"; contrast min ${vc.min.toFixed(2)}, p10 ${vc.p10.toFixed(2)}, <3:1 ${vc.below3.length}`);
+      await L.logShot(context, page, `flagship-own-${label}`);
+    }
+    // 2. Each world on the same real public repository (overview + issues) — visible art, live layer, readable, links clickable.
+    for (const [, id, slug, motion, label] of FLAGSHIPS) {
+      await setConfig(context, { version: 2, enabled: true, autoAssign: false, motionMode: 'ambient', seededMappings: true, defaultThemeId: 'native', repoAssignments: { [A.toLowerCase()]: id } });
+      for (const [pageName, url] of [['overview', `https://github.com/${A}`], ['issues', `https://github.com/${A}/issues`]]) {
+        const response = await L.gotoLive(page, url);
+        const ev = await L.liveEvidence(page, response, new URL(url).pathname, A);
+        await page.waitForFunction(s => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes(`${s}.webp`), slug, { timeout: 8000 }).catch(() => {});
+        const st = await page.evaluate(() => ({ cls: document.documentElement.className, anims: document.getAnimations().filter(a => a.animationName && a.playState === 'running').map(a => a.animationName),
+          layers: [getComputedStyle(document.documentElement, '::after'), getComputedStyle(document.body, '::after')].map(s => s.pointerEvents) }));
+        await freeze(page); await page.waitForTimeout(400);
+        const vc = await visualContrast(context, page);
+        const link = await page.evaluate(() => { const a = [...document.querySelectorAll('main a[href]')].find(x => { const r = x.getBoundingClientRect(); return r.width > 20 && r.top > 80 && r.bottom < innerHeight; }); if (!a) return null; const r = a.getClientRects()[0]; return document.elementFromPoint(r.left + 3, r.top + r.height / 2)?.closest('a') === a; });
+        c.check(ev.ok && st.cls.includes(`repv-motion-${motion}`) && st.anims.length > 0 && st.layers.every(v => v === 'none') && vc.below3.length === 0 && link !== false, `${label} · ${pageName}`,
+          `evidence ${ev.ok ? 'ok' : 'FAILED'}; live layer ${motion} running (${[...new Set(st.anims)].join(', ')}), pointer-events ${st.layers.join('/')}; contrast min ${vc.min.toFixed(2)}, p10 ${vc.p10.toFixed(2)}, <3:1 ${vc.below3.length}; link hit-test ${link}`);
+        await L.logShot(context, page, `flagship-${label}-${pageName}`);
+      }
+    }
+    // 3. Reduced motion and Static mode on the real page.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.waitForTimeout(300);
+    c.check(await page.evaluate(() => !document.documentElement.className.includes('repv-motion') && document.getAnimations().filter(a => a.animationName).length === 0), 'Reduced motion', 'prefers-reduced-motion: no live-wallpaper classes or animations');
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await setConfig(context, { version: 2, enabled: true, autoAssign: false, motionMode: 'static', seededMappings: true, defaultThemeId: 'native', repoAssignments: { [A.toLowerCase()]: 'preset-1' } });
+    await page.waitForTimeout(500);
+    c.check(await page.evaluate(() => !document.documentElement.className.includes('repv-motion') && getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('neon-city-3d')), 'Static mode', 'Static: wallpaper kept, motion removed');
+    // 4. Logged-out Home (marketing page): the Top repositories feature must be a safe no-op.
+    await L.gotoLive(page, 'https://github.com/');
+    await page.waitForTimeout(800);
+    const home = await page.evaluate(() => ({ cards: document.querySelectorAll('[data-repv-card]').length, style: !!document.getElementById('repovibe-cards-v1'), top: /top repositories/i.test(document.body.innerText) }));
+    c.check(home.cards === 0 && !home.style, 'Home (logged out)', `no Top repositories list logged out (${home.top ? 'heading found' : 'absent'}); RepoVibe added ${home.cards} card attributes and ${home.style ? 'a' : 'no'} card stylesheet`);
+    c.info('Home (signed in)', 'Themed Top repositories cards on the signed-in dashboard are UNVERIFIED live: the suite never signs in or uses credentials. Covered by the authenticated-page fixture (tests/e2e/flagship.e2e.js).');
+    errorCheck(c, errors);
+    c.done();
+  } finally { await close(); }
 });

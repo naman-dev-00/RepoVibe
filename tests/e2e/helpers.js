@@ -11,6 +11,10 @@ const { chromium } = require('playwright');
 
 const EXT = path.resolve(__dirname, '../..');
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.html'), 'utf8');
+const HOME_FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture-home.html'), 'utf8');
+// Signed-in Home "Top repositories" rows (the four mapped repositories plus unconfigured ones).
+const HOME_REPOS = ['naman-dev-00/tradPro', 'naman-dev-00/RepoVibe', 'naman-dev-00/Pool-Souls', 'naman-dev-00/ai-powered-inbox-assistant', 'naman-dev-00/notes', 'octocat/Hello-World'];
+const homeRow = name => { const [o, r] = name.split('/'); return `<li class="public source"><div class="width-full d-flex mt-2"><a class="mr-2 d-flex flex-items-center" href="/${name}" aria-label="Repository"><span class="avatar"></span></a><div class="wb-break-word"><a class="color-fg-default lh-0 mb-2 markdown-title" href="/${name}">${o}<span class="color-fg-muted">/</span>${r}</a></div></div></li>`; };
 const SNAP_DIR = path.join(__dirname, '__screenshots__');
 const OUT_DIR = path.join(__dirname, 'output');
 const KEY = 'repovibe.v1';
@@ -43,6 +47,9 @@ async function launch({ extension = true, mode = 'dark', fixture = true, colorSc
   if (fixture) await context.route('https://github.com/**', route => {
     const url = new URL(route.request().url());
     const title = url.pathname.split('/').filter(Boolean).slice(0, 2).join('/') || 'GitHub';
+    if (url.pathname === '/' || url.pathname === '/dashboard') {
+      return route.fulfill({ contentType: 'text/html; charset=utf-8', body: HOME_FIXTURE.replace('__ROWS__', HOME_REPOS.map(homeRow).join('\n')).replace('__MODE__', mode) });
+    }
     route.fulfill({ contentType: 'text/html; charset=utf-8', body: FIXTURE.replaceAll('__TITLE__', title).replace('__MODE__', mode) });
   });
   const close = async () => { await context.close(); if (!userDataDir) fs.rmSync(dir, { recursive: true, force: true }); };
@@ -54,11 +61,16 @@ async function extPage(context, file = 'popup.html') {
   await page.goto(`chrome-extension://${EXT_ID}/${file}`);
   return page;
 }
-// Configs without a version are written as v2 with automatic assignment OFF, preserving the semantics the
-// pre-Phase-1B tests were written for (unassigned repos stay native). Auto-assignment tests opt in explicitly.
+// Configs without a version are written as v2 with automatic assignment OFF and live-wallpaper motion Static,
+// preserving the semantics the earlier tests were written for (unassigned repos stay native; pixel measurements are
+// not disturbed by ambient motion). Auto-assignment and motion tests opt in explicitly.
 async function setConfig(context, config) {
-  if (config && config.version === undefined) config = { version: 2, autoAssign: false, ...config };
+  if (config && config.version === undefined) config = { version: 2, autoAssign: false, motionMode: 'static', ...config };
   const page = await extPage(context);
+  // The service worker seeds the default repository mappings once at install; wait for it so it cannot race
+  // (and overwrite) the configuration a test writes. Tests that want the seeded mappings read them before this.
+  await page.waitForFunction(k => chrome.storage.local.get(k).then(o => o[k] && o[k].seededMappings === true), KEY, { timeout: 5000 }).catch(() => {});
+  if (config && config.seededMappings === undefined) config = { ...config, seededMappings: true };
   await page.evaluate(([k, v]) => chrome.storage.local.set({ [k]: v }), [KEY, config]);
   await page.close();
 }
@@ -135,7 +147,8 @@ async function withSnapshotFonts(page, fn) {
 }
 
 async function matchSnapshot(context, page, name, tolerance = 0.01) {
-  const shot = await withSnapshotFonts(page, () => page.screenshot());
+  // Live-wallpaper layers animate forever; 'disabled' renders them at their initial frame so baselines are stable.
+  const shot = await withSnapshotFonts(page, () => page.screenshot({ animations: 'disabled' }));
   fs.writeFileSync(path.join(OUT_DIR, `${name}.png`), shot);
   const baseline = path.join(SNAP_DIR, `${name}.png`);
   if (process.env.UPDATE_SNAPSHOTS || !fs.existsSync(baseline)) {
@@ -210,4 +223,4 @@ async function visualContrast(context, page, limit = 150) {
     below3: ratios.filter(r => r.ratio < 3), below45: ratios.filter(r => r.ratio < 4.5).length };
 }
 
-module.exports = { visualContrast, EXT, EXT_ID, KEY, OUT_DIR, launch, extPage, setConfig, getConfig, openGitHub, state, hexToRgb, diffRatio, matchSnapshot, openStudioFor, pixelAt };
+module.exports = { HOME_REPOS, visualContrast, EXT, EXT_ID, KEY, OUT_DIR, launch, extPage, setConfig, getConfig, openGitHub, state, hexToRgb, diffRatio, matchSnapshot, openStudioFor, pixelAt };

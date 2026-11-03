@@ -3,6 +3,36 @@
   'use strict';
   root.RepoVibeWallpaperCatalog = Object.freeze([
     {
+      "slug": "scifi-ai",
+      "name": "Holographic AI hall",
+      "category": "Futuristic",
+      "style": "3d",
+      "tone": [
+        "#d6e8ed",
+        "#858d93"
+      ]
+    },
+    {
+      "slug": "cosmic-galaxy",
+      "name": "Cosmic galaxy",
+      "category": "Space",
+      "style": "3d",
+      "tone": [
+        "#cdc6dd",
+        "#090811"
+      ]
+    },
+    {
+      "slug": "enchanted-forest",
+      "name": "Enchanted forest",
+      "category": "Fantasy",
+      "style": "3d",
+      "tone": [
+        "#68a3af",
+        "#0d1e1a"
+      ]
+    },
+    {
       "slug": "alpine-lake",
       "name": "Alpine lake at golden hour",
       "category": "Nature",

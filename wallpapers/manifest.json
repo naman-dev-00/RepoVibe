@@ -2,6 +2,45 @@
   "$schema": "Wallpaper manifest \u2014 see docs/WALLPAPER_PIPELINE.md",
   "wallpapers": [
     {
+      "slug": "scifi-ai",
+      "name": "Holographic AI hall",
+      "category": "Futuristic",
+      "style": "3d",
+      "source": "rendered-3d",
+      "generator": "scripts/wallpapers/shaders/scifi-ai.glsl",
+      "description": "Clean white sculpted arches with cyan light strips, a glossy reflective floor and a holographic core at the vanishing point.",
+      "width": 2560,
+      "height": 1440,
+      "license": "RepoVibe (original work)",
+      "attribution": "RepoVibe contributors"
+    },
+    {
+      "slug": "cosmic-galaxy",
+      "name": "Cosmic galaxy",
+      "category": "Space",
+      "style": "3d",
+      "source": "rendered-3d",
+      "generator": "scripts/wallpapers/shaders/cosmic-galaxy.glsl",
+      "description": "Ringed gas giant with atmospheric rim, a moon, lit foreground asteroids, a volumetric nebula, a distant spiral galaxy and stars.",
+      "width": 2560,
+      "height": 1440,
+      "license": "RepoVibe (original work)",
+      "attribution": "RepoVibe contributors"
+    },
+    {
+      "slug": "enchanted-forest",
+      "name": "Enchanted forest",
+      "category": "Fantasy",
+      "style": "3d",
+      "source": "rendered-3d",
+      "generator": "scripts/wallpapers/shaders/enchanted-forest.glsl",
+      "description": "Raymarched moonlit forest: bent trunks with root flares and glowing lichen, a reflective stream, bioluminescent plants, fireflies, teal haze and foreground leaf silhouettes.",
+      "width": 2560,
+      "height": 1440,
+      "license": "RepoVibe (original work)",
+      "attribution": "RepoVibe contributors"
+    },
+    {
       "slug": "alpine-lake",
       "name": "Alpine lake at golden hour",
       "category": "Nature",

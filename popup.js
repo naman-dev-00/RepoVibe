@@ -35,7 +35,8 @@
   }
   /** Quick picks: the current theme first, then a fixed varied set. */
   function quickThemes(currentId) {
-    const picks = [C.PRESETS[0], C.PRESETS[1], C.PRESETS[2], C.PRESETS[8], C.PRESETS[14], C.PRESETS[19]];
+    // The four flagship worlds first (Cyberpunk Neon, Enchanted Forest, Cosmic Galaxy, Futuristic Sci-Fi).
+    const picks = [C.PRESETS[0], C.PRESETS[7], C.PRESETS[18], C.PRESETS[14], C.PRESETS[8], C.PRESETS[19]];
     const current = C.PRESETS.find(t => t.id === currentId);
     return current && !picks.includes(current) ? [current, ...picks.slice(0, 5)] : picks;
   }
@@ -51,6 +52,10 @@
     $('resetRepo').disabled = !(repo && Object.hasOwn(config.repoAssignments, repo.key));
     $('openStudio').firstChild.textContent = repo ? '✦ Customize this repository ' : '✦ Open theme studio ';
     $('quickThemes').replaceChildren(...quickThemes(resolved.id).map(makeThemeButton));
+    for (const radio of document.querySelectorAll('input[name="motion"]')) radio.checked = radio.value === config.motionMode;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const kind = resolved.theme?.motion && resolved.theme.motion !== 'none' ? resolved.theme.motion : '';
+    $('motionNote').textContent = reduced ? 'Off: system prefers reduced motion' : !kind ? 'This theme has no live layer' : config.motionMode === 'static' ? 'Paused' : `${kind[0].toUpperCase()}${kind.slice(1)} · ${config.motionMode}`;
   }
   async function init() {
     try {
@@ -63,6 +68,11 @@
       render();
     } catch (e) { announce(`Could not load extension: ${e.message}`, true); }
   }
+  for (const radio of document.querySelectorAll('input[name="motion"]')) radio.addEventListener('change', async event => {
+    const mode = event.target.value;
+    try { config = await C.updateConfig(latest => { latest.motionMode = mode; }); render(); announce(`Live wallpaper: ${mode}.`); }
+    catch (e) { announce(e.message, true); }
+  });
   for (const radio of document.querySelectorAll('input[name="scope"]')) radio.addEventListener('change', event => { selectedScope = event.target.value; render(); });
   $('enabled').addEventListener('change', async event => {
     const enabled = event.target.checked;
