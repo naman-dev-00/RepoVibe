@@ -17,6 +17,10 @@ RepoVibe is an installable, local-first Chrome extension that makes GitHub visua
 
 ## What works in v0.2.0
 
+- **Four flagship live worlds:** Cyberpunk Neon (neon rain canyon), Enchanted Forest (moonlit glade with fireflies), Cosmic Galaxy (ringed giant and nebula) and Futuristic Sci-Fi (holographic AI hall). Each is an original raymarched 3D render with a lightweight live layer: rain, fireflies, twinkling stars or a holographic grid. The motion setting is **Static / Ambient (default) / Cinematic** and is always off when the system asks for reduced motion. See `docs/FLAGSHIP_REPORT.md`.
+- **Themed Top repositories on GitHub Home.** On the signed-in dashboard, each sidebar row shows a miniature of its own repository's theme behind readable glass. Links are unchanged, and the cards stay in sync with the repository pages. Verified against an authenticated-page fixture; real signed-in GitHub is unverified.
+- **Default development mappings**, seeded once: `naman-dev-00/tradPro` → Cyberpunk Neon, `RepoVibe` → Enchanted Forest, `Pool-Souls` → Cosmic Galaxy, `ai-powered-inbox-assistant` → Futuristic Sci-Fi.
+
 - **Immersive wallpapers.** Every one of the 20 presets ships with its own original artwork (bundled WebP, no remote service): neon rain street, cherry-blossom street, cozy room, gothic castle, ocean depths, forest waterfall, pixel-art dusk and island, solar sunset, snow peaks, lavender fantasy, academia library, aurora lake, sunset village, galaxy, synthwave and more. See `wallpapers/LICENSE.md`.
 - **Glass layering on GitHub.** With a wallpaper, GitHub's page canvas becomes transparent and its panels become translucent "glass" (adjustable opacity and blur), so the artwork shows around and behind content. Menus, dialogs and popovers stay opaque; code stays ≥ 90% opaque; links remain clickable; the wallpaper is a fixed layer that stays put while scrolling.
 - **Background controls with live preview:** wallpaper, opacity, brightness, blur, overlay darkness, position, cover/contain, glass panel opacity and glass blur.

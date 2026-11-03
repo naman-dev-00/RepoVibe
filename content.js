@@ -123,42 +123,52 @@ ${glass ? MOTION_CSS : ''}
      and softly through glass, and never intercepts input. */
   const M = 'html.repv-active';
   const LAYER = 'content:""; position:fixed; pointer-events:none; z-index:-1; will-change:transform, opacity;';
-  const dots = (list, size) => list.map(([x, y, c]) => `radial-gradient(circle at ${x}% ${y}%, ${c} 0, transparent ${size}px)`).join(',');
-  const FLY = [[8, 62], [14, 80], [22, 45], [6, 30], [88, 58], [93, 76], [80, 40], [95, 24], [30, 88], [70, 86], [18, 18], [84, 12], [50, 94], [3, 92]];
-  const STARS = [[7, 12], [15, 33], [4, 56], [11, 78], [21, 91], [89, 9], [95, 27], [86, 49], [93, 70], [83, 88], [30, 6], [64, 4], [48, 97], [97, 95], [2, 3], [77, 64]];
+  // Particle tiles are small procedurally generated SVGs (seeded, so identical on every page) used as repeating
+  // data: images — GitHub's CSP already allows data: images (the uploaded-wallpaper path relies on it too).
+  function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const svgUrl = (w, h, body, defs = '') => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'><defs>${defs}</defs>${body}</svg>`)}")`;
+  function rainTile(seed, n, alpha) {
+    const r = rng(seed); let body = '';
+    for (let i = 0; i < n; i++) { const x = r() * 400, y = r() * 400, len = 14 + r() * 30; body += `<line x1='${x.toFixed(1)}' y1='${y.toFixed(1)}' x2='${(x - len * 0.16).toFixed(1)}' y2='${(y + len).toFixed(1)}' stroke='url(#d)' stroke-width='${(0.8 + r() * 0.7).toFixed(2)}' opacity='${(alpha * (0.45 + r() * 0.55)).toFixed(2)}'/>`; }
+    return svgUrl(400, 400, body, `<linearGradient id='d' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#bcd4ff' stop-opacity='0'/><stop offset='1' stop-color='#d9e6ff'/></linearGradient>`);
+  }
+  function glowTile(seed, w, h, n, colors, rMin, rMax) {
+    const r = rng(seed); let body = '';
+    for (let i = 0; i < n; i++) { const c = i % colors.length; body += `<circle cx='${(r() * w).toFixed(1)}' cy='${(r() * h).toFixed(1)}' r='${(rMin + r() * (rMax - rMin)).toFixed(2)}' fill='url(#g${c})' opacity='${(0.55 + r() * 0.45).toFixed(2)}'/>`; }
+    return svgUrl(w, h, body, colors.map((col, i) => `<radialGradient id='g${i}'><stop offset='0' stop-color='#fff'/><stop offset='.18' stop-color='${col}'/><stop offset='1' stop-color='${col}' stop-opacity='0'/></radialGradient>`).join(''));
+  }
+  const RAIN_NEAR = rainTile(7, 34, 0.55), RAIN_FAR = rainTile(19, 60, 0.3);
+  const FLIES_A = glowTile(3, 900, 700, 9, ['#ffe27a', '#b6ff9a', '#fff1a8'], 7, 12), FLIES_B = glowTile(11, 1300, 900, 12, ['#ffd86b', '#9dffd0'], 5, 9);
+  const STARS_A = glowTile(5, 600, 600, 46, ['#eef2ff', '#cfd8ff', '#fff4e0'], 1.4, 3.2), STARS_B = glowTile(23, 820, 820, 40, ['#d8ccff', '#bfe0ff'], 1.1, 2.4);
   const MOTION_CSS = `
-${M}.repv-motion-rain::after { ${LAYER} left:-5%; right:-5%; top:-240px; height:calc(100vh + 480px);
- background-image:${[[3, 0], [11, 70], [19, 140], [27, 30], [36, 190], [44, 100], [53, 10], [61, 160], [69, 60], [77, 210], [86, 120], [94, 40]].map(([x, y]) => `linear-gradient(transparent ${y}px, rgba(170,205,255,.28) ${y + 26}px, transparent ${y + 27}px)`).join(',')};
- background-size:${[37, 53, 41, 61, 47, 59, 43, 67, 39, 57, 49, 63].map(w => `${w}px 240px`).join(',')}; background-repeat:repeat;
- background-position:${[3, 11, 19, 27, 36, 44, 53, 61, 69, 77, 86, 94].map(x => `${x}% 0`).join(',')};
- transform:translate3d(0,0,0) skewX(-8deg); opacity:.55; animation:repv-rain .7s linear infinite; }
-${M}.repv-motion-rain body::after { ${LAYER} inset:-10%;
- background:radial-gradient(40% 30% at 15% 30%, rgba(255,60,200,.16), transparent 70%), radial-gradient(35% 28% at 85% 35%, rgba(60,200,255,.14), transparent 70%), radial-gradient(70% 22% at 50% 92%, rgba(150,170,255,.10), transparent 70%);
+${M}.repv-motion-rain::after { ${LAYER} left:-10%; right:-10%; top:-400px; height:calc(100vh + 800px);
+ background:${RAIN_NEAR} 0 0 / 400px 400px repeat, ${RAIN_FAR} 0 0 / 200px 200px repeat; opacity:.8; animation:repv-rain .6s linear infinite; }
+${M}.repv-motion-rain body::after { ${LAYER} inset:-8%;
+ background:radial-gradient(40% 24% at 15% 34%, rgba(255,60,200,.16), transparent 70%), radial-gradient(35% 22% at 85% 38%, rgba(60,200,255,.14), transparent 70%), radial-gradient(70% 16% at 50% 88%, rgba(150,170,255,.12), transparent 70%);
  animation:repv-flicker 7s steps(1) infinite, repv-fog 38s ease-in-out infinite alternate; }
-${M}.repv-motion-fireflies::after { ${LAYER} inset:0;
- background-image:${dots(FLY.map(([x, y], i) => [x, y, i % 3 ? 'rgba(255,226,120,.95)' : 'rgba(150,255,190,.9)']), 3)};
- filter:drop-shadow(0 0 4px rgba(255,230,140,.9)); animation:repv-fly-a 11s ease-in-out infinite alternate, repv-pulse 3.2s ease-in-out infinite alternate; }
-${M}.repv-motion-fireflies body::after { ${LAYER} inset:-10%;
- background-image:${dots(FLY.map(([x, y], i) => [(x + 37) % 100, (y + 23) % 100, i % 2 ? 'rgba(255,220,110,.85)' : 'rgba(140,255,210,.85)']), 2)}, radial-gradient(60% 25% at 30% 85%, rgba(120,230,210,.10), transparent 70%), radial-gradient(50% 20% at 80% 70%, rgba(110,200,255,.08), transparent 70%);
- animation:repv-fly-b 15s ease-in-out infinite alternate, repv-pulse 4.4s ease-in-out infinite alternate-reverse; }
-${M}.repv-motion-stars::after { ${LAYER} inset:0;
- background-image:${dots(STARS.map(([x, y]) => [x, y, 'rgba(235,240,255,.95)']), 1.6)};
- animation:repv-twinkle 3.6s ease-in-out infinite alternate; }
-${M}.repv-motion-stars body::after { ${LAYER} inset:-15%;
- background:${dots(STARS.map(([x, y]) => [(x + 51) % 100, (y + 37) % 100, 'rgba(200,190,255,.8)']), 1.2)}, radial-gradient(40% 30% at 20% 30%, rgba(150,80,255,.14), transparent 70%), radial-gradient(35% 30% at 80% 75%, rgba(60,140,255,.12), transparent 70%);
- animation:repv-nebula 60s ease-in-out infinite alternate; }
+${M}.repv-motion-fireflies::after { ${LAYER} inset:-40px;
+ background:${FLIES_A} 0 0 / 900px 700px repeat;
+ animation:repv-fly-a 13s ease-in-out infinite alternate, repv-pulse 3.2s ease-in-out infinite alternate; }
+${M}.repv-motion-fireflies body::after { ${LAYER} inset:-60px;
+ background:${FLIES_B} 120px 80px / 1300px 900px repeat, radial-gradient(60% 22% at 30% 88%, rgba(120,230,210,.11), transparent 70%), radial-gradient(50% 18% at 78% 72%, rgba(110,200,255,.08), transparent 70%);
+ animation:repv-fly-b 17s ease-in-out infinite alternate, repv-pulse 4.6s ease-in-out infinite alternate-reverse; }
+${M}.repv-motion-stars::after { ${LAYER} inset:0; background:${STARS_A} 0 0 / 600px 600px repeat;
+ animation:repv-twinkle 3.4s ease-in-out infinite alternate; }
+${M}.repv-motion-stars body::after { ${LAYER} inset:-12%;
+ background:${STARS_B} 0 0 / 820px 820px repeat, radial-gradient(40% 30% at 18% 30%, rgba(150,80,255,.13), transparent 70%), radial-gradient(35% 30% at 82% 75%, rgba(60,140,255,.11), transparent 70%);
+ animation:repv-nebula 70s ease-in-out infinite alternate, repv-twinkle 5.2s ease-in-out infinite alternate-reverse; }
 ${M}.repv-motion-holo::after { ${LAYER} left:0; right:0; top:-64px; height:calc(100vh + 128px);
  background-image:linear-gradient(rgba(0,150,230,.10) 1px, transparent 1px), linear-gradient(90deg, rgba(0,150,230,.10) 1px, transparent 1px);
  background-size:64px 64px; -webkit-mask-image:linear-gradient(transparent, #000 35%, #000 70%, transparent); mask-image:linear-gradient(transparent, #000 35%, #000 70%, transparent);
  animation:repv-grid 9s linear infinite; }
 ${M}.repv-motion-holo body::after { ${LAYER} left:0; right:0; top:0; height:28vh;
- background:linear-gradient(transparent, rgba(80,200,255,.13) 48%, rgba(160,235,255,.22) 50%, rgba(80,200,255,.13) 52%, transparent), ${dots(STARS.slice(0, 10).map(([x, y]) => [x, (y * 0.3) % 100, 'rgba(40,170,240,.7)']), 1.5)};
+ background:linear-gradient(transparent, rgba(80,200,255,.12) 47%, rgba(160,235,255,.22) 50%, rgba(80,200,255,.12) 53%, transparent);
  animation:repv-scan 12s ease-in-out infinite; }
-${M}.repv-motion-cinematic::after { animation-duration:.5s, 2.2s; opacity:.75; }
+${M}.repv-motion-cinematic::after { animation-duration:.4s, 2.4s; }
 ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-out infinite alternate; will-change:transform; }
-@keyframes repv-rain { from { transform:translate3d(0,0,0) skewX(-8deg); } to { transform:translate3d(-34px,240px,0) skewX(-8deg); } }
-@keyframes repv-flicker { 0%, 100% { opacity:1; } 41% { opacity:.55; } 43% { opacity:1; } 72% { opacity:.7; } 73% { opacity:1; } 88% { opacity:.6; } 89% { opacity:1; } }
+@keyframes repv-rain { from { transform:translate3d(0,0,0); } to { transform:translate3d(-64px,400px,0); } }
 @keyframes repv-fog { from { transform:translate3d(-3%,0,0); } to { transform:translate3d(3%,-1%,0); } }
+@keyframes repv-flicker { 0%, 100% { opacity:1; } 41% { opacity:.55; } 43% { opacity:1; } 72% { opacity:.7; } 73% { opacity:1; } 88% { opacity:.6; } 89% { opacity:1; } }
 @keyframes repv-fly-a { from { transform:translate3d(0,0,0); } 50% { transform:translate3d(18px,-26px,0); } to { transform:translate3d(-14px,-8px,0); } }
 @keyframes repv-fly-b { from { transform:translate3d(0,0,0); } 50% { transform:translate3d(-22px,-14px,0); } to { transform:translate3d(16px,-30px,0); } }
 @keyframes repv-pulse { from { opacity:.25; } to { opacity:1; } }
