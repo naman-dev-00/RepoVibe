@@ -103,8 +103,30 @@ async function diffRatio(context, a, b) {
   await page.close();
   return ratio;
 }
+// Visual baselines must not depend on the host's installed system fonts (they differ between this
+// container and GitHub's runners and produced ~14% pixel diffs on text-dense pages). Snapshots are
+// rendered with bundled, subset DejaVu fonts (tests/e2e/fonts, see LICENSE-DejaVu.txt); font *choice*
+// is asserted separately via computed styles, not via screenshots.
+const FONT_DIR = path.join(__dirname, 'fonts');
+const fontUrl = file => `data:font/ttf;base64,${fs.readFileSync(path.join(FONT_DIR, file)).toString('base64')}`;
+const SNAPSHOT_FONT_CSS = `
+@font-face { font-family:RVSnap; font-weight:100 500; src:url("${fontUrl('DejaVuSans.ttf')}") format("truetype"); }
+@font-face { font-family:RVSnap; font-weight:501 1000; src:url("${fontUrl('DejaVuSans-Bold.ttf')}") format("truetype"); }
+@font-face { font-family:RVSnapMono; src:url("${fontUrl('DejaVuSansMono.ttf')}") format("truetype"); }
+*, *::before, *::after { font-family:RVSnap !important; }
+:is(code, pre, textarea, .react-code-text, .react-code-line, .blob-code, .code-preview, .code-preview *) { font-family:RVSnapMono !important; }`;
+async function withSnapshotFonts(page, fn) {
+  const handle = await page.addStyleTag({ content: SNAPSHOT_FONT_CSS });
+  await page.evaluate(async () => {
+    await Promise.all(['400 16px RVSnap', '700 16px RVSnap', '16px RVSnapMono'].map(f => document.fonts.load(f)));
+    await document.fonts.ready;
+  });
+  try { return await fn(); }
+  finally { await handle.evaluate(el => el.remove()); }
+}
+
 async function matchSnapshot(context, page, name, tolerance = 0.01) {
-  const shot = await page.screenshot();
+  const shot = await withSnapshotFonts(page, () => page.screenshot());
   fs.writeFileSync(path.join(OUT_DIR, `${name}.png`), shot);
   const baseline = path.join(SNAP_DIR, `${name}.png`);
   if (process.env.UPDATE_SNAPSHOTS || !fs.existsSync(baseline)) {

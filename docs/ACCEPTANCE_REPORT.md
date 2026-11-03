@@ -74,7 +74,7 @@ Negative controls (same tests, older source):
 - Visual baselines are rendered by Linux Chromium; other platforms may need `UPDATE_SNAPSHOTS=1` locally.
 - `data-color-mode` handling (#3, #15) is verified only against the fixture's simulation of GitHub changing the attribute. Live GitHub's appearance-settings flow, `data-light-theme`/`data-dark-theme` variants (high contrast, colorblind, dimmed) and any GitHub code that reads `data-color-mode` (e.g. embedded renderers) are UNVERIFIED.
 - #18 and #20 have no automated test (performance timing and a load-time race are not reliably testable here).
-- Visual baselines are rendered by Linux Chromium; if CI's Chromium renders fonts differently, baselines may need regenerating in CI.
+- Visual snapshots render with bundled, subset DejaVu fonts (`tests/e2e/fonts`) so they do not depend on host system fonts. CI run #1 failed the popup snapshot (14.17% pixel diff) because the runner's system fonts differ from the authoring machine; this was reproduced locally (13.31% under a different fontconfig) and fixed. As a consequence, screenshots do not test the theme's font *choice*; that is covered by computed-style assertions. Remaining host differences (e.g. antialiasing) are absorbed by the per-channel threshold and 1–2% tolerance.
 - Wallpapers still live in `chrome.storage.local` (≈10 MB quota). **IndexedDB wallpaper persistence is not implemented and its verification is PENDING** (Phase 2).
 - Editing a saved custom theme still updates every target using it by design; the Studio now says so, but per-target forking is a second-assignment item.
 
