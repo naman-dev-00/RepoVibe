@@ -117,18 +117,18 @@ test('Studio: Restore visual defaults clears old blur/glass values but keeps ass
     await studio.waitForSelector('#restoreVisual', { state: 'attached' });
     await studio.click('.sidebar-link[data-view="settings"]');
     await gh.bringToFront();
-    await studio.click('#refreshDiagnostics');
+    await studio.$eval('#refreshDiagnostics', b => b.click()); // Studio is a background tab here (GitHub must stay active for Diagnostics): DOM click, no rAF-based actionability wait
     await studio.waitForFunction(() => /Running on the page: v/.test(document.getElementById('diagnostics').textContent));
     const before = await studio.textContent('#diagnostics');
     assert.match(before, /single installation/); assert.match(before, /wallpaper blur 8px, panel backdrop blur 14px/);
-    await studio.click('#restoreVisual');
+    await studio.$eval('#restoreVisual', b => b.click());
     await gh.waitForFunction(() => getComputedStyle(document.body, '::before').content === 'none' && [...document.querySelectorAll('*')].every(e => getComputedStyle(e).backdropFilter === 'none'));
     const cfg = await getConfig(context);
     const t = cfg.customThemes['custom-old'];
     assert.equal(cfg.appearance, 'crisp');
     assert.deepEqual([t.glass, t.wallpaperBlur, t.wallpaperBrightness], [0, 0, 100]);
     assert.deepEqual([t.name, t.accent, t.wallpaperRef, cfg.repoAssignments['acme/project']], ['My forest', '#5ee0c1', 'builtin:enchanted-forest', 'custom-old']);
-    await studio.click('#refreshDiagnostics');
+    await studio.$eval('#refreshDiagnostics', b => b.click()); // Studio is a background tab here (GitHub must stay active for Diagnostics): DOM click, no rAF-based actionability wait
     await studio.waitForFunction(() => /wallpaper blur 0px, panel backdrop blur 0px \(0 blurred panels\)/.test(document.getElementById('diagnostics').textContent));
     assert.deepEqual(errors, []);
   } finally { await close(); }
