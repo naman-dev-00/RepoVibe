@@ -240,3 +240,57 @@ test('GitHub Home in light mode with a light flagship card keeps readable names'
     fs.writeFileSync(path.join(SHOTS, 'home-top-repositories-light.png'), await page.locator('aside').screenshot());
   } finally { await close(); }
 });
+
+/* Signed-in Home markup variants (the old adapter themed 0 rows on both: it required <li> rows and a specific heading).
+   'react': div[role=listitem] rows, heading in a span, row wrappers painting GitHub's opaque surface.
+   'anchor': each row is the repository link itself. */
+for (const variant of ['react', 'anchor']) {
+  test(`GitHub Home (${variant} sidebar markup): every row gets its own visible scene card; links, sync, dynamic rows, exact restore`, async () => {
+    const base = await launch({ extension: false });
+    let originalHtml;
+    try { const p = await base.context.newPage(); await p.goto(`https://github.com/?variant=${variant}`); await p.waitForSelector('[role=list] a'); originalHtml = await p.$eval('[role=list]', el => el.outerHTML); }
+    finally { await base.close(); }
+    const { context, errors, close } = await launch();
+    try {
+      context.setDefaultTimeout(30000);
+      await seeded(context);
+      const page = await openHome(context);
+      await page.goto(`https://github.com/?variant=${variant}`);
+      await page.waitForFunction(n => document.querySelectorAll('[data-repv-card]').length === n, HOME_REPOS.length);
+      const rows = await page.$$eval('[data-repv-card]', els => els.map(e => ({ theme: e.getAttribute('data-repv-card'), href: (e.matches('a') ? e : e.querySelector('a.markdown-title, a[href]')).getAttribute('href'),
+        image: getComputedStyle(e).backgroundImage,
+        artVisible: (() => { const r = e.getBoundingClientRect(); let t = document.elementFromPoint(r.right - 20, r.top + r.height / 2); while (t && t !== e) { if (!/rgba\(0, 0, 0, 0\)/.test(getComputedStyle(t).backgroundColor)) return false; t = t.parentElement; } return t === e; })() })));
+      const byHref = Object.fromEntries(rows.map(r => [r.href.slice(1).toLowerCase(), r]));
+      for (const [repo, id, slug] of FLAGSHIP) {
+        assert.equal(byHref[repo.toLowerCase()].theme, id, `${repo} → ${id}`);
+        assert.ok(byHref[repo.toLowerCase()].image.includes(`thumbs/${slug}.webp`), `${repo}: its own scene thumbnail`);
+      }
+      assert.ok(rows.every(r => r.artVisible), `card art is not covered by GitHub's row wrappers: ${JSON.stringify(rows.map(r => r.artVisible))}`);
+      // diagnostics explain what was found
+      const diag = await extPage(context).then(async p => { const d = await p.evaluate(() => chrome.tabs.query({ url: 'https://github.com/*' }).then(t => new Promise(res => chrome.tabs.sendMessage(t[0].id, { type: 'GET_REPO' }, res)))); await p.close(); return d.diagnostics.homeCards; });
+      assert.equal(diag.method, 'heading'); assert.equal(diag.rows.length, HOME_REPOS.length); assert.ok(diag.rows.every(r => r.theme));
+      const contrast = await visualContrast(context, page);
+      assert.equal(contrast.below3.length, 0, JSON.stringify(contrast.below3));
+      // theme change → immediate card update
+      await updateConfig(context, "c.repoAssignments['naman-dev-00/repovibe'] = 'preset-20';");
+      await page.waitForFunction(() => [...document.querySelectorAll('[data-repv-card]')].some(e => e.getAttribute('data-repv-card') === 'preset-20'));
+      await updateConfig(context, "c.repoAssignments['naman-dev-00/repovibe'] = 'preset-8';");
+      // dynamic rows
+      await page.click('#showMore');
+      await page.waitForFunction(n => document.querySelectorAll('[data-repv-card]').length === n, HOME_REPOS.length + 2);
+      fs.writeFileSync(path.join(SHOTS, `home-top-repositories-${variant}.png`), await page.locator('aside').screenshot());
+      // disable → identical DOM, no leftovers
+      await updateConfig(context, 'c.enabled = false;');
+      await page.waitForFunction(() => !document.querySelector('[data-repv-card]') && !document.getElementById('repovibe-cards-v1'));
+      await page.reload(); await page.waitForSelector('[role=list] a');
+      assert.equal(await page.$eval('[role=list]', el => el.outerHTML), originalHtml, 'no attributes left behind');
+      await updateConfig(context, 'c.enabled = true;');
+      await page.waitForFunction(n => document.querySelectorAll('[data-repv-card]').length === n, HOME_REPOS.length);
+      // clicking opens the repository in its own world
+      await page.click('[data-repv-card] a[href="/naman-dev-00/RepoVibe"], a[data-repv-card][href="/naman-dev-00/RepoVibe"]');
+      await page.waitForURL(/naman-dev-00\/RepoVibe$/);
+      await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('enchanted-forest.webp'));
+      assert.deepEqual(errors, []);
+    } finally { await close(); }
+  });
+}

@@ -463,6 +463,9 @@
           d.duplicate ? `WARNING: ${d.instances.length} RepoVibe copies active (${d.instances.join(', ')}) — remove older ones in chrome://extensions` : 'single installation',
           d.active ? `stylesheet ${d.stylesheet} bytes, scene on page background: ${d.wallpaperOnRoot ? 'yes' : 'no'}` : 'theme not active on this page',
           `appearance ${C.APPEARANCES[d.appearance]?.label || d.appearance}, scene window ${d.sceneWindow ? 'on' : 'off'}`,
+          d.homeCards && d.homeCards.home ? (d.homeCards.method && d.homeCards.method !== 'none' && d.homeCards.rows
+            ? `Home · Top repositories found via ${d.homeCards.method}: ${d.homeCards.links} repository links, ${d.homeCards.rows.filter(r => r.theme).length}/${d.homeCards.rows.length} rows themed${d.homeCards.rows.filter(r => !r.theme).map(r => `; ${r.repo} not themed: ${r.reason}`).join('')}`
+            : `Home · Top repositories not themed: ${d.homeCards.reason || 'unknown'}`) : '',
           t ? `${t.name}: wallpaper blur ${t.wallpaperBlur}px, panel backdrop blur ${t.panelBlur}px (${d.panelsWithBackdropBlur} blurred panels), overlay ${t.overlay}%, brightness ${t.brightness}%, panel opacity chosen ${t.panelOpacityChosen}% / rendered ${Math.round((d.panelOpacityRendered || 0) * 100)}%` : ''
         ].filter(Boolean).join(' · ');
       });

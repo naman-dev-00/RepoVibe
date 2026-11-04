@@ -362,22 +362,59 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
      readable. Only rows whose link is exactly /owner/repo are styled; links, avatars and click behaviour are untouched
      (we only add data-repv-card* attributes and one <style>). Nothing is fetched from GitHub. */
   const isHome = () => location.hostname === 'github.com' && (location.pathname === '/' || location.pathname === '/dashboard');
-  const HEADING = /^\s*top repositories\s*$/i;
-  function topRepositoryRows() {
-    let container = document.getElementById('dashboard-repos-container') || document.querySelector('.js-repos-container');
-    if (!container) {
-      const heading = [...document.querySelectorAll('aside h2, aside h3, h2, h3, [role="heading"]')].find(h => HEADING.test(h.textContent || ''));
-      for (let el = heading?.parentElement, i = 0; el && i < 5 && !container; el = el.parentElement, i++) if (el.querySelector('li a[href]')) container = el;
-    }
-    if (!container) return [];
-    const rows = [];
-    for (const li of container.querySelectorAll('li')) {
-      for (const a of li.querySelectorAll('a[href]')) {
-        let u; try { u = new URL(a.getAttribute('href'), location.origin); } catch (_) { continue; }
-        if (u.origin !== location.origin || u.pathname.split('/').filter(Boolean).length !== 2) continue;
-        const repo = C.repositoryFromUrl(u.href);
-        if (repo) { rows.push({ li, repo, href: u.href }); break; }
+  /* Homepage adapter. GitHub's signed-in dashboard has been served both as classic markup (#dashboard-repos-container,
+     <li> rows) and as React (hashed classes, div[role=listitem] rows, headings in spans). Nothing here depends on one
+     selector: (1) find the Top repositories list by legacy id, landmark/label or its heading text; (2) find every link
+     whose path is exactly /owner/repo inside it; (3) the row is the largest ancestor of a link that contains no other
+     repository (works for li, div rows and rows that are the link itself). Each decision is recorded for diagnostics. */
+  const HEADING = /^\s*top\s+repositories\s*$/i;
+  const REPO_LIST_LABEL = /top repositories/i;
+  let cardDiag = { home: false };
+  function repoKeyOf(a) {
+    let u; try { u = new URL(a.getAttribute('href'), location.origin); } catch (_) { return null; }
+    if (u.origin !== location.origin || u.search || u.pathname.split('/').filter(Boolean).length !== 2) return null;
+    return C.repositoryFromUrl(u.href);
+  }
+  function findRepoList() {
+    const legacy = document.getElementById('dashboard-repos-container') || document.querySelector('.js-repos-container');
+    if (legacy) return { container: legacy, method: 'legacy id' };
+    const labelled = [...document.querySelectorAll('[aria-label], [data-testid]')].find(el => REPO_LIST_LABEL.test(el.getAttribute('aria-label') || '') || /top-?repositories/i.test(el.getAttribute('data-testid') || ''));
+    if (labelled && labelled.querySelector('a[href]')) return { container: labelled, method: 'label' };
+    // Heading text: any short element whose whole text is "Top repositories" (h1–h6, role=heading, span, div, summary).
+    const heading = [...document.querySelectorAll('h1, h2, h3, h4, h5, h6, [role="heading"], summary, span, div')]
+      .find(el => (el.textContent || '').length <= 40 && HEADING.test(el.textContent || ''));
+    if (!heading) return { container: null, method: 'none', reason: 'no "Top repositories" heading, landmark or legacy container on this page' };
+    for (let el = heading.parentElement, i = 0; el && el !== document.body && i < 10; el = el.parentElement, i++) {
+      const links = [...el.querySelectorAll('a[href]')].filter(a => !heading.contains(a) && repoKeyOf(a));
+      if (links.length) {
+        // Never take a container as wide as the feed: the sidebar list is narrow.
+        if (el.getBoundingClientRect().width > Math.max(560, innerWidth * 0.55)) return { container: null, method: 'heading', reason: 'heading found but its nearest list container is as wide as the page (feed), not themed' };
+        return { container: el, method: 'heading', heading };
       }
+    }
+    return { container: null, method: 'heading', reason: 'heading found but no repository links near it yet (list still loading?)' };
+  }
+  function topRepositoryRows() {
+    const found = findRepoList();
+    cardDiag = { home: true, method: found.method, reason: found.reason || '', links: 0, rows: [] };
+    if (!found.container) return [];
+    const container = found.container;
+    const links = [...container.querySelectorAll('a[href]')].filter(a => !(found.heading && found.heading.contains(a)));
+    const rows = [], seen = new Set();
+    for (const a of links) {
+      const repo = repoKeyOf(a);
+      if (!repo) continue;
+      cardDiag.links++;
+      // Largest ancestor (inside the container) that holds only this repository's links.
+      let row = a;
+      for (let el = a.parentElement; el && el !== container; el = el.parentElement) {
+        const keys = new Set([...el.querySelectorAll('a[href]')].map(x => repoKeyOf(x)?.key).filter(Boolean));
+        if (keys.size > 1 || el.querySelector('input, textarea, select, h1, h2, h3')) break;
+        row = el;
+      }
+      if (seen.has(row)) continue;
+      seen.add(row);
+      rows.push({ row, repo });
     }
     return rows;
   }
@@ -407,46 +444,56 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     // name, muted owner and accent against the brightest/darkest pixels of the art).
     const a = C.requiredGlass({ ...v, surface: v.bg, glassOpacity: 62, wallpaperOverlay: 0, wallpaperBrightness: 100, wallpaperOpacity: 100 }, C.wallpaperTone(v.wallpaperRef));
     const img = cardImage(theme);
-    return `li[data-repv-card="${theme.id}"] { --repv-card-glass:${rgba(v.bg, a)}; --repv-card-solid:${v.bg}; --repv-card-text:${v.text};
+    return `[data-repv-card="${theme.id}"] { --repv-card-glass:${rgba(v.bg, a)}; --repv-card-solid:${v.bg}; --repv-card-text:${v.text};
  --repv-card-muted:${v.muted}; --repv-card-accent:${v.accent}; --repv-card-border:${rgba(v.border, 0.9)};
  --repv-card-img:${img ? `url("${img}")` : `linear-gradient(135deg, ${v.bg}, ${v.gradientTo} 60%, ${v.gradientThird})`}; }`;
   }
   const CARD_CSS = `
-li[data-repv-card] { position:relative; list-style:none; margin:6px 0 0 !important; padding:6px 46px 6px 10px !important; border-radius:10px;
+[data-repv-card] { position:relative; list-style:none; margin:6px 0 0 !important; padding:8px 84px 8px 10px !important; border-radius:10px; min-height:40px; box-sizing:border-box;
  border:1px solid var(--repv-card-border); overflow:hidden; color:var(--repv-card-text) !important;
  background-color:var(--repv-card-solid) !important;
- background-image:linear-gradient(90deg, var(--repv-card-glass) 0, var(--repv-card-glass) calc(100% - 58px), transparent calc(100% - 14px)), var(--repv-card-img) !important;
- background-size:auto, cover !important; background-position:center, center right !important; background-repeat:no-repeat !important;
- box-shadow:0 1px 2px rgba(0,0,0,.18); }
-li[data-repv-card] > div { margin-top:0 !important; align-items:center; }
-li[data-repv-card] a, li[data-repv-card] a * { color:var(--repv-card-text) !important; }
-li[data-repv-card] a span, li[data-repv-card] .color-fg-muted { color:var(--repv-card-muted) !important; }
-li[data-repv-card] a:hover { text-decoration:underline; text-decoration-color:var(--repv-card-accent); }
-li[data-repv-card]:focus-within { outline:2px solid var(--repv-card-accent); outline-offset:1px; }
+ background-image:radial-gradient(120% 140% at 100% 0%, rgba(255,255,255,.14), transparent 55%), linear-gradient(90deg, var(--repv-card-glass) 0, var(--repv-card-glass) calc(100% - 110px), rgba(0,0,0,.04) calc(100% - 30px)), var(--repv-card-img) !important;
+ background-size:auto, auto, cover !important; background-position:center, center, center right !important; background-repeat:no-repeat !important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 2px 6px rgba(0,0,0,.22); }
+[data-repv-card][data-repv-card-inline] { display:block !important; }
+/* GitHub's own row wrappers must not paint over the card art (React rows often carry an opaque background). */
+[data-repv-card] :is(div, span, li, ul, p, strong, small, header, footer, section) { background-color:transparent !important; background-image:none !important; }
+[data-repv-card] > div { margin-top:0 !important; align-items:center; }
+[data-repv-card] a, [data-repv-card] a *, a[data-repv-card], a[data-repv-card] * { color:var(--repv-card-text) !important; }
+[data-repv-card] a span, [data-repv-card] .color-fg-muted { color:var(--repv-card-muted) !important; }
+[data-repv-card] a:hover, a[data-repv-card]:hover { text-decoration:underline; text-decoration-color:var(--repv-card-accent); }
+[data-repv-card]:focus-within, a[data-repv-card]:focus-visible { outline:2px solid var(--repv-card-accent); outline-offset:1px; }
 @media (prefers-reduced-motion:no-preference) {
- li[data-repv-card] { transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
- li[data-repv-card]:hover { transform:translateY(-1px); border-color:var(--repv-card-accent); box-shadow:0 6px 16px rgba(0,0,0,.28), 0 0 0 1px var(--repv-card-accent); }
+ [data-repv-card] { transition:transform .22s cubic-bezier(.2,.7,.2,1), box-shadow .22s ease, border-color .22s ease, background-position .6s ease; transform-origin:50% 100%; }
+ [data-repv-card]:hover { transform:perspective(520px) rotateX(4deg) translateY(-2px); border-color:var(--repv-card-accent);
+  background-position:center, center, 70% 40% !important; box-shadow:inset 0 1px 0 rgba(255,255,255,.18), 0 10px 22px rgba(0,0,0,.35), 0 0 0 1px var(--repv-card-accent), 0 0 18px -4px var(--repv-card-accent); }
 }
-@media (prefers-contrast:more) { li[data-repv-card] { background-image:none !important; } }
-@media (forced-colors:active) { li[data-repv-card] { background:none !important; border:1px solid CanvasText; padding:4px 0 !important; }
- li[data-repv-card] a, li[data-repv-card] a * { color:LinkText !important; } }
+@media (prefers-contrast:more) { [data-repv-card] { background-image:none !important; } }
+@media (forced-colors:active) { [data-repv-card] { background:none !important; border:1px solid CanvasText; padding:4px 0 !important; }
+ [data-repv-card] a, [data-repv-card] a * { color:LinkText !important; } }
 `;
   function clearCards() {
     document.getElementById(CARDS_STYLE_ID)?.remove();
-    for (const li of document.querySelectorAll('li[data-repv-card]')) li.removeAttribute('data-repv-card');
+    for (const el of document.querySelectorAll('[data-repv-card]')) { el.removeAttribute('data-repv-card'); el.removeAttribute('data-repv-card-inline'); }
   }
   let lastCardsCss = '';
   function renderCards() {
     if (tornDown) return;
-    const rows = isHome() && config.enabled ? topRepositoryRows() : [];
-    if (!rows.length) { if (lastCardsCss || document.querySelector('li[data-repv-card]')) { clearCards(); lastCardsCss = ''; } return; }
+    if (!isHome()) { cardDiag = { home: false }; if (lastCardsCss || document.querySelector('[data-repv-card]')) { clearCards(); lastCardsCss = ''; } return; }
+    if (!config.enabled) { cardDiag = { home: true, reason: 'RepoVibe is turned off' }; clearCards(); lastCardsCss = ''; return; }
+    const rows = topRepositoryRows();
+    if (!rows.length) { if (lastCardsCss || document.querySelector('[data-repv-card]')) { clearCards(); lastCardsCss = ''; } return; }
     const themes = new Map(), unpersisted = [];
-    for (const { li, repo } of rows) {
+    for (const { row, repo } of rows) {
       const r = C.themeResolution(config, `https://github.com/${repo.key}`);
       if (r.source === 'auto' && !r.persisted) unpersisted.push(repo.key);
-      if (!r.theme) { if (li.hasAttribute('data-repv-card')) li.removeAttribute('data-repv-card'); continue; }
+      const why = !r.theme ? (r.id === 'native' ? `${r.scope} choice is "Original GitHub"` : r.scope === 'global' && !config.autoAssign ? 'automatic themes are off and the global theme is Original GitHub' : 'no theme resolved') : '';
+      cardDiag.rows.push({ repo: repo.label, row: row.tagName.toLowerCase(), theme: r.theme ? r.theme.name : null, source: r.scope, reason: why });
+      if (!r.theme) { if (row.hasAttribute('data-repv-card')) row.removeAttribute('data-repv-card'); continue; }
       themes.set(r.theme.id, r.theme);
-      if (li.getAttribute('data-repv-card') !== r.theme.id) li.setAttribute('data-repv-card', r.theme.id);
+      if (row.getAttribute('data-repv-card') !== r.theme.id) row.setAttribute('data-repv-card', r.theme.id);
+      const inline = getComputedStyle(row).display === 'inline';
+      if (inline !== row.hasAttribute('data-repv-card-inline')) row.toggleAttribute('data-repv-card-inline', inline);
     }
     if (unpersisted.length) persistAutoAssignments(unpersisted);
     const css = themes.size ? CARD_CSS + [...themes.values()].map(cardRule).join('\n') : '';
@@ -616,7 +663,8 @@ li[data-repv-card]:focus-within { outline:2px solid var(--repv-card-accent); out
       theme: t && { id: t.id, name: t.name, wallpaperBlur: t.wallpaperBlur, panelBlur: t.glass, overlay: t.wallpaperOverlay, brightness: t.wallpaperBrightness, opacity: t.wallpaperOpacity, panelOpacityChosen: t.glassOpacity },
       panelOpacityRendered: Number(cs.getPropertyValue('--repv-panel-opacity')) || null,
       panelsWithBackdropBlur: blurs.length, panelsDetected: document.querySelectorAll('[data-repv-panel]').length,
-      wallpaperOnRoot: /url\(/.test(cs.backgroundImage)
+      wallpaperOnRoot: /url\(/.test(cs.backgroundImage),
+      homeCards: cardDiag
     };
   }
 

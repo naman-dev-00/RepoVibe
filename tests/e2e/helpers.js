@@ -13,6 +13,16 @@ const EXT = path.resolve(__dirname, '../..');
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.html'), 'utf8');
 const HOME_FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture-home.html'), 'utf8');
 const LAYOUT_FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture-layout.html'), 'utf8');
+const HOME_REACT_FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture-home-react.html'), 'utf8');
+// Signed-in Home variants (GitHub has served both): 'react' = div[role=listitem] rows whose inner wrapper paints an opaque
+// surface, heading inside a span; 'anchor' = each row IS the repository link.
+const HOME_ROW = {
+  react: n => { const [o, r] = n.split('/'); return `<div role="listitem" class="ListItem__q"><div class="ActionRow__x RowWrapper__bg"><a href="/${n}" data-hovercard-type="repository" aria-label="${n}"><span class="avatar"></span></a><a class="Link__b markdown-title" href="/${n}"><span>${o}</span><span class="color-fg-muted">/</span><span>${r}</span></a></div></div>`; },
+  anchor: n => { const [o, r] = n.split('/'); return `<a class="TopRepoLink__z RowWrapper__bg markdown-title" href="/${n}" style="display:flex;align-items:center;gap:8px;padding:6px 0"><span class="avatar"></span><span>${o}<span class="color-fg-muted">/</span>${r}</span></a>`; }
+};
+const homeVariant = (variant, mode) => HOME_REACT_FIXTURE
+  .replace('__REACT_LIST__', `<div role="list" class="List__a${variant === 'anchor' ? ' AnchorList' : ''}">${HOME_REPOS.map(HOME_ROW[variant]).join('')}</div>`)
+  .replace('__ROWFN__', HOME_ROW[variant].toString()).replace('__VARIANT__', variant).replace('__MODE__', mode);
 // Signed-in Home "Top repositories" rows (the four mapped repositories plus unconfigured ones).
 const HOME_REPOS = ['naman-dev-00/tradPro', 'naman-dev-00/RepoVibe', 'naman-dev-00/Pool-Souls', 'naman-dev-00/ai-powered-inbox-assistant', 'naman-dev-00/notes', 'octocat/Hello-World'];
 const homeRow = name => { const [o, r] = name.split('/'); return `<li class="public source"><div class="width-full d-flex mt-2"><a class="mr-2 d-flex flex-items-center" href="/${name}" aria-label="Repository"><span class="avatar"></span></a><div class="wb-break-word"><a class="color-fg-default lh-0 mb-2 markdown-title" href="/${name}">${o}<span class="color-fg-muted">/</span>${r}</a></div></div></li>`; };
@@ -51,6 +61,9 @@ async function launch({ extension = true, mode = 'dark', fixture = true, colorSc
     // /<owner>/<repo>/layout: GitHub's current React repository layout (full-width PageLayout wrappers, file table, list).
     if (/^\/[^/]+\/[^/]+\/layout$/.test(url.pathname)) {
       return route.fulfill({ contentType: 'text/html; charset=utf-8', body: LAYOUT_FIXTURE.replaceAll('__TITLE__', title).replace('__MODE__', mode) });
+    }
+    if ((url.pathname === '/' || url.pathname === '/dashboard') && HOME_ROW[url.searchParams.get('variant')]) {
+      return route.fulfill({ contentType: 'text/html; charset=utf-8', body: homeVariant(url.searchParams.get('variant'), mode) });
     }
     if (url.pathname === '/' || url.pathname === '/dashboard') {
       return route.fulfill({ contentType: 'text/html; charset=utf-8', body: HOME_FIXTURE.replace('__ROWS__', HOME_REPOS.map(homeRow).join('\n')).replace('__MODE__', mode) });
