@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- Offline stand-in for the SIGNED-IN GitHub Home dashboard (authenticated-page fixture). It mirrors the markup
+     RepoVibe relies on: the left sidebar "Top repositories" list (#dashboard-repos-container, one <li> per repository
+     with an avatar link and an owner/repo name link), a "Show more" button that appends rows dynamically, the
+     Home/feed column and the global header. This is NOT real logged-in GitHub; real-account visuals are UNVERIFIED. -->
+<html lang="en" data-color-mode="__MODE__" data-light-theme="light" data-dark-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>GitHub</title>
+<style>
+  [data-color-mode=light] { --bgColor-default:#ffffff; --bgColor-muted:#f6f8fa; --bgColor-inset:#f6f8fa; --fgColor-default:#1f2328;
+    --fgColor-muted:#59636e; --fgColor-accent:#0969da; --borderColor-default:#d1d9e0; color-scheme:light; }
+  [data-color-mode=dark] { --bgColor-default:#0d1117; --bgColor-muted:#151b23; --bgColor-inset:#010409; --fgColor-default:#f0f6fc;
+    --fgColor-muted:#9198a1; --fgColor-accent:#4493f8; --borderColor-default:#3d444d; color-scheme:dark; }
+  body { margin:0; background:var(--bgColor-default); color:var(--fgColor-default); font:14px/1.5 sans-serif; }
+  .AppHeader { display:flex; gap:16px; align-items:center; padding:12px 16px; background:var(--bgColor-inset); border-bottom:1px solid var(--borderColor-default); }
+  .AppHeader nav a { color:var(--fgColor-default); text-decoration:none; font-weight:600; margin-right:12px; }
+  .layout { display:grid; grid-template-columns:320px 1fr; min-height:calc(100vh - 50px); }
+  .feed-left-sidebar { border-right:1px solid var(--borderColor-default); padding:16px 24px; background:var(--bgColor-default); }
+  .feed-main { padding:24px 32px; }
+  h2 { font-size:14px; margin:0; }
+  .d-flex { display:flex; } .flex-items-center { align-items:center; } .flex-justify-between { justify-content:space-between; }
+  .width-full { width:100%; } .mt-2 { margin-top:8px; } .mr-2 { margin-right:8px; } .mb-2 { margin-bottom:8px; }
+  .list-style-none { list-style:none; margin:8px 0 0; padding:0; }
+  .avatar { width:16px; height:16px; border-radius:50%; background:#8b949e; display:inline-block; }
+  .color-fg-default { color:var(--fgColor-default); } .color-fg-muted { color:var(--fgColor-muted); }
+  .markdown-title { font-weight:600; text-decoration:none; font-size:14px; }
+  .form-control { width:100%; box-sizing:border-box; padding:5px 8px; border:1px solid var(--borderColor-default); border-radius:6px; background:var(--bgColor-muted); color:inherit; }
+  .btn { border:1px solid var(--borderColor-default); background:var(--bgColor-muted); color:var(--fgColor-default); border-radius:6px; padding:3px 10px; font-size:12px; }
+  .btn-link { border:0; background:none; color:var(--fgColor-muted); padding:0; cursor:pointer; font-size:12px; }
+  .Box { border:1px solid var(--borderColor-default); border-radius:6px; padding:16px; margin-bottom:16px; background:var(--bgColor-default); }
+  .UnderlineNav a { display:inline-block; padding:8px 12px; color:var(--fgColor-default); text-decoration:none; }
+  .UnderlineNav a[aria-current] { border-bottom:2px solid #fd8c73; font-weight:600; }
+</style>
+</head>
+<body>
+  <header class="AppHeader"><strong>GitHub</strong><nav aria-label="Global"><a id="navHome" href="/" aria-current="page">Dashboard</a><a href="/pulls">Pull requests</a><a href="/issues">Issues</a></nav><span class="avatar" aria-label="Signed in as naman-dev-00"></span></header>
+  <div class="layout">
+    <aside class="feed-left-sidebar" aria-label="Account context">
+      <div class="js-repos-container" id="dashboard-repos-container" role="navigation" aria-label="Repositories">
+        <div class="d-flex flex-justify-between flex-items-center"><h2>Top repositories</h2><a class="btn" href="/new">New</a></div>
+        <div class="mt-2"><input class="form-control" type="text" placeholder="Find a repository…" aria-label="Find a repository…"></div>
+        <ul class="list-style-none" id="topRepos">
+          __ROWS__
+        </ul>
+        <button class="btn-link mt-2" id="showMore" type="button">Show more</button>
+      </div>
+      <h2 class="mt-2" style="margin-top:24px">Recent activity</h2>
+      <ul class="list-style-none" id="recent"><li><a class="color-fg-default" href="/naman-dev-00/RepoVibe/pull/2">Phase 1B pull request</a></li></ul>
+    </aside>
+    <main class="feed-main" id="main">
+      <h1 style="font-size:20px;margin:0 0 12px">Home</h1>
+      <nav class="UnderlineNav" aria-label="Feed"><a href="/" aria-current="page" id="feedHome">For you</a><a href="/?feed=following" id="feedFollowing">Following</a></nav>
+      <div class="Box mt-2"><b>octocat</b> starred <a href="/octocat/Hello-World">octocat/Hello-World</a><p class="color-fg-muted">A feed item that RepoVibe must leave untouched.</p></div>
+      <div class="Box"><b>naman-dev-00</b> pushed to <a href="/naman-dev-00/tradPro">naman-dev-00/tradPro</a><p class="color-fg-muted">2 commits</p></div>
+    </main>
+  </div>
+<script>
+  // "Show more" appends rows like GitHub's include-fragment does.
+  document.getElementById('showMore').addEventListener('click', () => {
+    for (const name of ['naman-dev-00/dotfiles', 'octo-org/widgets']) {
+      const li = document.createElement('li');
+      li.className = 'public source';
+      li.innerHTML = `<div class="width-full d-flex mt-2"><a class="mr-2 d-flex flex-items-center" href="/${name}" aria-label="Repository"><span class="avatar"></span></a><div class="wb-break-word"><a class="color-fg-default lh-0 mb-2 markdown-title" href="/${name}">${name.split('/')[0]}<span class="color-fg-muted">/</span>${name.split('/')[1]}</a></div></div>`;
+      document.getElementById('topRepos').appendChild(li);
+    }
+    document.getElementById('showMore').remove();
+  });
+</script>
+</body>
+</html>
