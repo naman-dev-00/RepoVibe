@@ -71,6 +71,41 @@ The screenshot mentioned in the request did not reach this session. Diagnosis th
 - The Forest band shows the trunks, mist and fireflies. The glowing ground plants appear lower, around the content.
 - Your logged-in pages remain UNVERIFIED by the automated suites, which never sign in. Use Studio → Settings → Diagnostics in your browser to confirm the version, the absence of a duplicate installation, and the effective values.
 
+**Live result on real github.com (logged out), commit `0e7dc25`** ([run 41772640412](https://github.com/naman-dev-00/RepoVibe/actions/runs/41772640412)): **15/15 tests, 238 PASS, 0 FAIL, 0 BLOCKED**. CI is green on the same commit (27 unit, 49 E2E).
+
+Crisp Immersive by default, on every real Code / Issues / Pull request page for all four worlds:
+
+| Check | Result |
+|---|---|
+| RepoVibe backdrop blur | **None**: 4 blurred elements, exactly native GitHub's own (logged-out header buttons) |
+| Blurred wallpaper copy | None |
+| Scene window | 207 px at 1366 px; 292 px at 1920 px |
+| Exposed scene | **35–66 %** of the viewport, against 12–23 % in the frosted build and 0 % before the P0 fix |
+| Sharpness of the exposed scene | 1.12–2.03, against 0.12–0.41 for a 6 px-blurred control on the same page |
+| README | Readable panel (theme surface at 0.86–0.88); text 6.4–9.1:1 |
+| Text | 0 elements below 4.5:1 and none below native |
+| Diagnostic configuration | Uncovered 33 %, sharpness ≈ 1.0 |
+| Live motion and restore | PASS |
+
+The three presets on the real page:
+- Backdrop-blurred elements: Crisp 4 and Balanced 4 (both native GitHub's own), Frosted 17.
+- Pixel differences: Crisp vs Balanced 23.3 %, Crisp vs Frosted 11.1 %, Balanced vs Frosted 32.0 %.
+
+**One real defect found and fixed in this round (CI):** a fresh-install race could drop the four seeded default mappings. A GitHub tab persisting its automatic pick could write back a config read just before seeding. The service worker now records seeding separately and re-applies only the missing mappings. The previously intermittent test then passed 8/8.
+
+Live screenshots, inspected:
+- `docs/screenshots/flagship/live-github-crisp.jpg`: Code, Issues and README at 1366 for each world.
+- `docs/screenshots/flagship/live-github-appearance-presets.jpg`: Crisp, Balanced and Frosted on the same real page.
+
+| World | Code (scene window) | Issues | README |
+|---|---|---|---|
+| Enchanted Forest | Trunks, mist, fireflies | Forest band above the list | Glowing ground plants and trunks beside a solid README panel |
+| Cosmic Galaxy | Ringed planet, moon, asteroids, spiral galaxy | Planet and moon above the list | Planet, rings and asteroid around the README |
+| Cyberpunk Neon | Neon tower canyon, signs, light trails | Towers above the list | Towers and neon on both sides |
+| Futuristic Sci-Fi | Arched white hall, corridor | Arches above the list | Hall columns either side of a crisp white README |
+
+Every environment is recognisable at a glance on the real site.
+
 **Tests added.**
 - `tests/e2e/crisp.e2e.js` (7 tests):
   - Crisp by default from a pre-redesign config, per flagship: **zero elements with backdrop blur**, no blurred wallpaper copy, scene window ≥ 140 px, single panel layer with no nested glass, ≥ 25 % exposed, sharpness ≥ 1.6× a blurred control, AA text.
