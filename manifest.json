@@ -45,7 +45,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "wallpapers/*.webp"
+        "wallpapers/*.webp",
+        "wallpapers/depth/*/*.webp"
       ],
       "matches": [
         "https://github.com/*"

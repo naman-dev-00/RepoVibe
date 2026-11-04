@@ -41,7 +41,11 @@ const STYLES = ['3d', 'illustrated', 'photo'];
     }, `data:image/webp;base64,${fs.readFileSync(file).toString('base64')}`);
     if (w.width && (info.width !== w.width || info.height !== w.height)) problems.push(`${w.slug}: is ${info.width}x${info.height}, manifest says ${w.width}x${w.height}`);
     if (info.width < 1920) problems.push(`${w.slug}: below 1920px wide`);
-    out.push({ slug: w.slug, name: w.name, category: w.category, style: w.style, tone: info.tone, toneSoft: info.toneSoft });
+    // Depth layers (2.5D engine): present only when rendered with render3d.js --layers.
+    const depthDir = path.join(ROOT, 'wallpapers', 'depth', w.slug);
+    const depth = ['far', 'mid', 'near', 'front', 'rays'].filter(l => fs.existsSync(path.join(depthDir, `${l}.webp`)));
+    if (depth.length && !depth.includes('far')) problems.push(`${w.slug}: depth layers need at least 'far'`);
+    out.push({ slug: w.slug, name: w.name, category: w.category, style: w.style, tone: info.tone, toneSoft: info.toneSoft, ...(depth.length ? { depth } : {}) });
   }
   await browser.close();
   if (problems.length) { console.error(`Wallpaper catalog FAILED:\n - ${problems.join('\n - ')}`); process.exit(1); }

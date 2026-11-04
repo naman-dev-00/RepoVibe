@@ -1,133 +1,208 @@
-// Enchanted forest at night: SDF trunks receding along a clearing with a stream, glowing plants and mushrooms,
-// moonlit teal haze, fireflies (3D points), and dark foreground foliage framing the view.
-const vec3 MOON = normalize(vec3(0.15, 0.55, 1.0));
+// Enchanted forest at night — layered 3D scene (RepoVibe depth engine).
+// Raymarched SDF trees (trunks with root flare, branches, displaced canopy clumps), glowing mushrooms and flowers as
+// real geometry, a reflective stream, moonlit teal haze. uLayer selects a depth slab (see common.glsl):
+// 1 far: sky, ground, stream, ground glow, trees ≥ D2 · 2 mid: trees/plants in [D1, D2) · 3 near: trees/plants < D1
+// 4 front: decorative foreground leaves and ferns (2D, alpha) · 5 rays: moonlight shafts (alpha) · 0: everything.
+const vec3 MOON = normalize(vec3(0.22, 0.62, 1.0));
+const float D1 = 11.0, D2 = 27.0;
 vec3 RO; mat3 CAM;
+
+bool inLayer(float d) {
+  if (uLayer == 0) return true;
+  if (uLayer == 1) return d >= D2;
+  if (uLayer == 2) return d >= D1 && d < D2;
+  if (uLayer == 3) return d < D1;
+  return false;
+}
+bool groundLayer() { return uLayer == 0 || uLayer == 1; }
 
 float pathX(float z) { return 2.5 * sin(z * 0.035) + 1.2 * sin(z * 0.011 + 1.0); }
 float groundH(vec2 p) { return 0.6 * fbm(p * 0.08, 4) + 0.25 * noise(p * 0.5) - 0.6 * exp(-pow((p.x - pathX(p.y)) * 0.32, 2.0)); }
+float sdCapsule(vec3 p, vec3 a, vec3 b, float r) { vec3 pa = p - a, ba = b - a; float h = SAT(dot(pa, ba) / dot(ba, ba)); return length(pa - ba * h) - r; }
 
-// trees: one per 7x7 cell, jittered, none inside the clearing
-float trees(vec3 p, out float id) {
+// One tree per 7×7 m cell (jittered), none inside the clearing. mat: 1 bark, 2 foliage, 3 glowing cap, 4 stem
+float trees(vec3 p, out float mat, out float id) {
   vec2 cell = floor(p.xz / 7.0);
-  float d = 1e9; id = 0.0;
+  float d = 1e9; mat = 1.0; id = 0.0;
   for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
     vec2 c = cell + vec2(i, j);
     vec2 h = hash22(c);
     vec2 base = (c + 0.2 + 0.6 * h) * 7.0;
-    if (abs(base.x - pathX(base.y)) < 5.5) continue;
-    float r = 0.45 + 0.6 * h.x;
+    if (abs(base.x - pathX(base.y)) < 5.0) continue;
+    float dist = length(base - RO.xz);
+    if (!inLayer(dist)) continue;
+    float r = 0.42 + 0.55 * h.x;
     vec3 q = p - vec3(base.x, 0.0, base.y);
-    q.xz += vec2(sin(q.y * 0.15 + h.y * 6.0), cos(q.y * 0.12 + h.x * 6.0)) * 0.6; // gentle bend
-    float rr = r * (1.0 + 0.6 * exp(-q.y * 1.2)) + 0.08 * noise(vec2(q.y * 2.0, atan(q.z, q.x) * 3.0)); // root flare + bark
-    float t = max(length(q.xz) - rr, q.y - 40.0);
-    if (t < d) { d = t; id = h.x + h.y * 7.0; }
+    vec3 qb = q; qb.xz += vec2(sin(q.y * 0.15 + h.y * 6.0), cos(q.y * 0.12 + h.x * 6.0)) * 0.55;
+    float rr = r * (1.0 + 0.7 * exp(-max(qb.y, 0.0) * 1.3)) + 0.07 * noise(vec2(qb.y * 2.0, atan(qb.z, qb.x) * 3.0));
+    float t = max(length(qb.xz) - rr, qb.y - 34.0);
+    float m = 1.0;
+    // branches: two capsules angling up and out
+    for (int k = 0; k < 2; k++) {
+      float fk = float(k), a = h.x * 6.28 + fk * 2.6, y0 = 6.0 + fk * 3.5 + h.y * 2.0;
+      vec3 b0 = vec3(0.0, y0, 0.0), b1 = vec3(cos(a) * 3.6, y0 + 2.6, sin(a) * 3.6);
+      t = smin(t, sdCapsule(qb, b0, b1, 0.18 * r + 0.06), 0.25);
+    }
+    // canopy clumps (noise-displaced spheres) high up
+    for (int k = 0; k < 3; k++) {
+      float fk = float(k), a = h.y * 6.28 + fk * 2.1;
+      vec3 cc = vec3(cos(a) * (2.6 + fk), 12.0 + fk * 3.0 + h.x * 3.0, sin(a) * (2.6 + fk));
+      float f = length(qb - cc) - (3.2 + h.x * 1.6) + 0.9 * noise3((qb - cc) * 0.9 + fk);
+      if (f < t) { t = f; m = 2.0; }
+    }
+    // glowing mushrooms / flowers around the roots (part of this tree's depth slab)
+    for (int k = 0; k < 3; k++) {
+      float fk = float(k), a = h.x * 9.0 + fk * 2.3;
+      vec2 mp = vec2(cos(a), sin(a)) * (r * 1.9 + 0.5 + 0.4 * hash11(fk + h.y * 9.0));
+      float sz = 0.16 + 0.18 * hash11(fk * 3.1 + h.x * 11.0);
+      vec3 mq = q - vec3(mp.x, 0.0, mp.y);
+      float stem = sdCapsule(mq, vec3(0.0), vec3(0.0, sz * 2.0, 0.0), sz * 0.22);
+      float cap = max(length(mq - vec3(0.0, sz * 2.0, 0.0)) - sz, -(mq.y - sz * 1.75));
+      if (stem < t) { t = stem; m = 4.0; }
+      if (cap < t) { t = cap; m = 3.0; id = h.x + fk; }
+    }
+    if (t < d) { d = t; mat = m; if (m != 3.0) id = h.x + h.y * 7.0; }
   }
   return d;
 }
 float map(vec3 p, out float mat, out float id) {
-  float g = p.y - groundH(p.xz);
-  float t = trees(p, id);
-  mat = t < g ? 1.0 : 0.0;
-  return min(g, t);
+  float tm, tid; float t = trees(p, tm, tid);
+  t = max(t, groundH(p.xz) - 0.05 - p.y); // objects end at the terrain (needed once layers move independently)
+  float g = groundLayer() ? p.y - groundH(p.xz) : 1e9;
+  if (g < t) { mat = 0.0; id = 0.0; return g; }
+  mat = tm; id = tid; return t;
 }
 float mapD(vec3 p) { float m, i; return map(p, m, i); }
 vec3 nrm(vec3 p) { vec2 e = vec2(0.02, 0.0); return normalize(vec3(mapD(p + e.xyy) - mapD(p - e.xyy), mapD(p + e.yxy) - mapD(p - e.yxy), mapD(p + e.yyx) - mapD(p - e.yyx))); }
 
 vec3 sky(vec3 rd) {
-  vec3 col = mix(vec3(0.02, 0.06, 0.09), vec3(0.01, 0.02, 0.05), SAT(rd.y * 1.5));
+  vec3 col = mix(vec3(0.03, 0.08, 0.11), vec3(0.01, 0.025, 0.06), SAT(rd.y * 1.5));
   float m = SAT(dot(rd, MOON));
-  col += vec3(0.55, 0.8, 0.95) * pow(m, 900.0) * 6.0 + vec3(0.2, 0.45, 0.55) * pow(m, 12.0) * 0.5;
+  col += vec3(0.65, 0.88, 1.0) * pow(m, 1200.0) * 9.0 + vec3(0.25, 0.5, 0.6) * pow(m, 14.0) * 0.6;
   vec3 s = floor(rd * 700.0);
-  col += step(0.997, hash12(s.xy + s.z)) * SAT(rd.y * 3.0) * 0.6;
+  col += step(0.997, hash12(s.xy + s.z)) * SAT(rd.y * 3.0) * 0.7;
   return col;
 }
-vec3 shade(vec3 p, vec3 rd, float mat, float id, float t) {
+vec3 shade(vec3 p, vec3 rd, float mat, float id) {
   vec3 n = nrm(p);
+  float moon = SAT(dot(n, MOON));
+  float rim = pow(1.0 - SAT(dot(n, -rd)), 3.0) * SAT(dot(n, MOON) + 0.4);
   vec3 col;
-  float moon = SAT(dot(n, MOON)) * 0.35;
-  if (mat > 0.5) {
-    vec3 bark = mix(vec3(0.03, 0.04, 0.04), vec3(0.07, 0.08, 0.07), noise(p.xz * 3.0 + p.y));
-    float moss = smoothstep(0.2, 0.8, n.y + 0.4 * noise(p.xz * 2.0 + p.y * 0.5)) * smoothstep(6.0, 0.0, p.y);
-    col = mix(bark, vec3(0.05, 0.18, 0.12), moss) * (0.25 + moon * 2.0);
-    // bioluminescent lichen rings on some trunks
-    float lich = smoothstep(0.75, 0.95, noise(vec2(p.y * 1.5, atan(p.z, p.x) * 4.0 + id))) * step(0.5, fract(id * 3.1)) * smoothstep(8.0, 1.0, p.y);
-    col += lich * vec3(0.1, 0.9, 0.7) * 0.9;
-  } else {
-    vec3 grass = mix(vec3(0.02, 0.06, 0.04), vec3(0.04, 0.12, 0.08), fbm(p.xz * 0.6, 3) * 0.5 + 0.5);
-    col = grass * (0.3 + moon * 2.0);
-    // glowing plants scattered on the ground, denser near the stream banks
-    float bank = exp(-pow((p.x - pathX(p.z)) * 0.4 - 1.3, 2.0)) + exp(-pow((p.x - pathX(p.z)) * 0.4 + 1.3, 2.0));
-    vec2 gc = floor(p.xz * 1.6); vec2 gf = fract(p.xz * 1.6) - 0.5;
-    float pl = step(0.82 - 0.25 * bank, hash12(gc)) * smoothstep(0.32, 0.0, length(gf + (hash22(gc) - 0.5) * 0.4));
-    vec3 pc = mix(vec3(0.1, 0.85, 0.75), vec3(0.4, 0.55, 1.0), hash12(gc + 3.0));
-    col += pl * pc * 1.6;
+  if (mat == 3.0) { // glowing caps: emissive, hue per cluster
+    vec3 g = mix(vec3(0.2, 1.0, 0.85), vec3(0.55, 0.6, 1.0), fract(id * 3.7));
+    g = mix(g, vec3(1.0, 0.55, 0.85), step(0.8, fract(id * 7.1)));
+    return g * (1.6 + 0.8 * pow(SAT(dot(n, -rd)), 2.0));
   }
-  return col;
+  if (mat == 4.0) return vec3(0.35, 0.75, 0.7) * 0.5;
+  if (mat == 2.0) { // foliage
+    vec3 leaf = mix(vec3(0.02, 0.07, 0.06), vec3(0.05, 0.16, 0.13), noise3(p * 1.7) * 0.5 + 0.5);
+    col = leaf * (0.35 + moon * 1.6) + vec3(0.25, 0.55, 0.6) * rim * 0.9;
+    return col;
+  }
+  if (mat == 1.0) { // bark + moss + bioluminescent lichen
+    vec3 bark = mix(vec3(0.03, 0.04, 0.04), vec3(0.08, 0.09, 0.08), noise(p.xz * 3.0 + p.y));
+    float moss = smoothstep(0.2, 0.8, n.y + 0.4 * noise(p.xz * 2.0 + p.y * 0.5)) * smoothstep(6.0, 0.0, p.y);
+    col = mix(bark, vec3(0.05, 0.18, 0.12), moss) * (0.3 + moon * 1.4) + vec3(0.2, 0.45, 0.5) * rim * 0.7;
+    float lich = smoothstep(0.82, 0.97, noise(vec2(p.y * 3.0, atan(p.z, p.x) * 6.0 + id * 5.0))) * step(0.5, fract(id * 3.1)) * smoothstep(5.0, 0.5, p.y);
+    return col + lich * vec3(0.1, 0.9, 0.7) * 0.55;
+  }
+  // ground with scattered glowing plants (denser along the stream banks)
+  vec3 grass = mix(vec3(0.02, 0.06, 0.04), vec3(0.04, 0.12, 0.08), fbm(p.xz * 0.6, 3) * 0.5 + 0.5);
+  col = grass * (0.35 + moon * 1.6);
+  float bank = exp(-pow((p.x - pathX(p.z)) * 0.4 - 1.3, 2.0)) + exp(-pow((p.x - pathX(p.z)) * 0.4 + 1.3, 2.0));
+  vec2 gc = floor(p.xz * 1.6); vec2 gf = fract(p.xz * 1.6) - 0.5;
+  float pl = step(0.84 - 0.25 * bank, hash12(gc)) * smoothstep(0.3, 0.0, length(gf + (hash22(gc) - 0.5) * 0.4));
+  return col + pl * mix(vec3(0.1, 0.85, 0.75), vec3(0.45, 0.55, 1.0), hash12(gc + 3.0)) * 1.5;
 }
 vec3 fog(vec3 col, vec3 rd, float t, vec3 p) {
   float m = SAT(dot(rd, MOON));
-  vec3 fc = mix(vec3(0.02, 0.07, 0.09), vec3(0.12, 0.3, 0.36), pow(m, 6.0));
+  vec3 fc = mix(vec3(0.03, 0.09, 0.11), vec3(0.16, 0.36, 0.42), pow(m, 5.0));
   float hf = exp(-max(p.y, 0.0) * 0.12);
-  float a = 1.0 - exp(-t * (0.006 + 0.012 * hf) * (0.8 + 0.4 * noise(p.xz * 0.05 + p.y * 0.1)));
+  float a = 1.0 - exp(-t * (0.007 + 0.013 * hf) * (0.8 + 0.4 * noise(p.xz * 0.05 + p.y * 0.1)));
   return mix(col, fc, a);
 }
+// Returns colour; tHit < 0 when the ray hit nothing in this layer.
 vec3 trace(vec3 ro, vec3 rd, out float tHit) {
   float t = 0.2, mat = 0.0, id = 0.0;
-  for (int i = 0; i < 200; i++) {
+  for (int i = 0; i < 220; i++) {
     vec3 p = ro + rd * t;
     float d = map(p, mat, id);
     if (d < 0.002 * t) break;
     t += d * 0.75;
     if (t > 260.0) break;
   }
+  if (t > 260.0) { tHit = -1.0; return groundLayer() ? fog(sky(rd), rd, 260.0, ro + rd * 260.0) : vec3(0.0); }
   tHit = t;
-  if (t > 260.0) return fog(sky(rd), rd, 260.0, ro + rd * 260.0);
   vec3 p = ro + rd * t;
-  return fog(shade(p, rd, mat, id, t), rd, t, p);
+  vec3 c = shade(p, rd, mat, id);
+  return mat == 3.0 ? mix(c, fog(c, rd, t, p), 0.5) : fog(c, rd, t, p);
+}
+// Decorative foreground (front layer): large leaves hanging from the top corners and fern fronds at the bottom.
+vec4 foreground(vec2 uv) {
+  // Placed to frame the scene window: GitHub's header covers roughly the top 22 % of the viewport, so leaves hang from
+  // just below it (uv.y ≈ 0.28) at both sides, plus leafy branches climbing the left and right edges.
+  vec4 acc = vec4(0.0);
+  for (int i = 0; i < 26; i++) {
+    float fi = float(i), side = mod(fi, 2.0) < 1.0 ? -1.0 : 1.0;
+    float k = floor(fi / 2.0) / 12.0;                       // 0..1 along the cluster
+    vec2 c = vec2(side * (0.84 - 0.24 * k - 0.04 * hash11(fi)), 0.27 - 0.07 * k + 0.05 * (hash11(fi + 4.0) - 0.5));
+    if (k > 0.6) c = vec2(side * (0.80 + 0.04 * hash11(fi + 6.0)), 0.16 - 0.30 * (k - 0.6) / 0.4); // climbing the edges
+    float a = (hash11(fi + 8.0) - 0.5) * 1.4 + side * 1.1 - 1.57 * 0.55;
+    vec2 q = uv - c; q = mat2(cos(a), -sin(a), sin(a), cos(a)) * q;
+    float len = 0.10 + 0.05 * hash11(fi + 2.0), wid = len * 0.36;
+    float x = q.x / len;
+    float halfW = wid * pow(max(1.0 - x * x, 0.0), 0.8) * (1.0 - 0.25 * x);
+    float inside = smoothstep(0.003, -0.003, abs(q.y) - halfW) * step(abs(x), 1.0);
+    if (inside <= 0.0) continue;
+    float vein = smoothstep(0.003, 0.0, abs(q.y)) + 0.5 * smoothstep(0.0025, 0.0, abs(fract(x * 4.0 + q.y / wid * 1.6) - 0.5) * wid * 0.6);
+    float edge = smoothstep(halfW * 0.5, halfW, abs(q.y));
+    vec3 col = mix(vec3(0.014, 0.045, 0.036), vec3(0.04, 0.11, 0.085), 0.5 + 0.5 * x)
+             + vec3(0.30, 0.62, 0.66) * edge * 0.45 * SAT(q.y * -side + 0.6)          // moonlit rim
+             + vec3(0.10, 0.32, 0.28) * vein * 0.3;
+    acc = vec4(mix(acc.rgb, col, inside), max(acc.a, inside));
+  }
+  // twig connecting each cluster
+  for (int s = 0; s < 2; s++) {
+    float side = s == 0 ? -1.0 : 1.0;
+    vec2 a0 = vec2(side * 0.92, 0.29), a1 = vec2(side * 0.58, 0.20);
+    vec2 pa = uv - a0, ba = a1 - a0; float h = SAT(dot(pa, ba) / dot(ba, ba));
+    float twig = smoothstep(0.004, 0.0, length(pa - ba * h) - 0.004 * (1.0 - h * 0.6));
+    acc = vec4(mix(acc.rgb, vec3(0.02, 0.035, 0.03), twig), max(acc.a, twig));
+  }
+  return acc;
+}
+// Moonlight shafts (rays layer): streaks radiating from the moon through gaps in the canopy, strongest in the haze.
+vec4 rays(vec2 uv) {
+  vec3 mv = vec3(dot(MOON, CAM[0]), dot(MOON, CAM[1]), dot(MOON, CAM[2]));
+  vec2 ms = mv.xy / mv.z * 1.25;
+  vec2 d = uv - ms;
+  float ang = atan(d.y, d.x), r = length(d);
+  float shafts = pow(SAT(noise(vec2(ang * 9.0, 1.3)) * 0.5 + 0.5), 5.0) + 0.6 * pow(SAT(noise(vec2(ang * 23.0, 7.1)) * 0.5 + 0.5), 8.0);
+  float fall = exp(-r * 1.1) * smoothstep(0.0, 0.25, r) * SAT(0.6 - d.y * 0.4);
+  float a = SAT(shafts * fall * 1.4);
+  return vec4(vec3(0.55, 0.85, 0.95), a * 0.85);
 }
 vec3 render(vec2 uv) {
   RO = vec3(pathX(0.0) + 0.3, 1.7, 0.0);
   vec3 ta = vec3(pathX(60.0), 4.5, 60.0);
   CAM = camera(RO, ta, 0.0);
+  if (uLayer == 4) { vec4 f = foreground(uv); gAlpha = f.a; return f.rgb; }
+  if (uLayer == 5) { vec4 r = rays(uv); gAlpha = r.a; return r.rgb; }
   vec3 rd = CAM * normalize(vec3(uv, 1.25));
   float t;
   vec3 col = trace(RO, rd, t);
-  vec3 p = RO + rd * t;
-  // stream: reflective water in the clearing
+  if (!groundLayer()) { gAlpha = t > 0.0 ? 1.0 : 0.0; return col; }
+  // stream: reflective water in the clearing (far layer / flat)
   float tw = rd.y < 0.0 ? (-0.35 - RO.y) / rd.y : 1e9;
   vec3 pw = RO + rd * tw;
-  if (tw < t && abs(pw.x - pathX(pw.z)) < 1.6) {
+  if ((t < 0.0 || tw < t) && abs(pw.x - pathX(pw.z)) < 1.6) {
     vec3 n = normalize(vec3(noise(pw.xz * 2.0) * 0.06, 1.0, noise(pw.xz * 2.0 + 4.0) * 0.06));
     float t2; vec3 rc = trace(pw + vec3(0, 0.05, 0), reflect(rd, n), t2);
     col = fog(mix(vec3(0.0, 0.02, 0.03), rc, 0.75), rd, tw, pw);
-    t = tw;
   }
-  // fireflies: 3D points projected to the screen, occluded by the scene depth
-  for (int i = 0; i < 70; i++) {
-    float fi = float(i);
-    vec3 fp = vec3(pathX(4.0 + fi * 0.9) + (hash11(fi) - 0.5) * 9.0, 0.6 + hash11(fi + 7.0) * 4.5, 4.0 + fi * 0.9 + hash11(fi + 3.0) * 6.0);
-    vec3 v = fp - RO;
-    float vz = dot(v, CAM[2]);
-    if (vz < 0.5 || vz > t) continue;
-    vec2 sp = vec2(dot(v, CAM[0]), dot(v, CAM[1])) / vz * 1.25;
-    float d = length(uv - sp) * vz;
-    vec3 fc = mix(vec3(1.0, 0.85, 0.35), vec3(0.5, 1.0, 0.7), hash11(fi + 11.0));
-    col += fc * (0.002 / (d * d + 0.0004)) * exp(-vz * 0.02) * 0.25;
+  if (uLayer == 0) {
+    vec4 f = foreground(uv); col = mix(col, f.rgb, f.a);
+    vec4 r = rays(uv); col += r.rgb * r.a * 0.25;
   }
-  // moon shafts: soft beams through the haze
-  float beams = pow(SAT(noise(vec2(uv.x * 9.0 - uv.y * 4.0, 2.0)) * 0.5 + 0.5), 4.0) * SAT(uv.y + 0.3);
-  col += vec3(0.25, 0.5, 0.55) * beams * 0.12;
-  // foreground: dark leaf clusters hanging from the top corners (closest depth layer), smooth ellipses
-  float leaves = 0.0;
-  for (int i = 0; i < 26; i++) {
-    float fi = float(i);
-    float side = fi < 13.0 ? -1.0 : 1.0;
-    vec2 c = vec2(side * (0.62 + 0.3 * hash11(fi)), 0.32 + 0.3 * hash11(fi + 4.0));
-    float a = (hash11(fi + 8.0) - 0.5) * 2.4 + side * 0.6;
-    vec2 q = uv - c; q = mat2(cos(a), -sin(a), sin(a), cos(a)) * q;
-    leaves = max(leaves, smoothstep(1.0, 0.92, length(q / vec2(0.16, 0.05))));
-  }
-  float rim = 0.0; // faint moonlit edge on the leaves
-  col = mix(col, vec3(0.006, 0.02, 0.016), leaves * 0.95);
-  return col * 1.15;
+  return col * 1.12;
 }

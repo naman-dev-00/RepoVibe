@@ -52,9 +52,12 @@ test('fresh install: the four default mappings are seeded and each repository re
       await page.goto(`https://github.com/${repo}`);
       await page.waitForFunction(s => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes(`${s}.webp`), slug);
       const s = await page.evaluate(() => ({ cls: document.documentElement.className, panel: getComputedStyle(document.documentElement).getPropertyValue('--repv-panel').trim(),
-        anim: getComputedStyle(document.documentElement, '::after').animationName, layer: getComputedStyle(document.documentElement).backgroundImage }));
+        anim: getComputedStyle(document.documentElement, '::after').animationName, layer: getComputedStyle(document.documentElement).backgroundImage,
+        depth: document.getElementById('repovibe-depth')?.dataset.scene || null }));
       assert.ok(s.cls.includes(`repv-motion-${motion}`), `${repo}: live layer ${motion} (${s.cls})`);
-      assert.notEqual(s.anim, 'none', `${repo}: ambient layer animates`);
+      // Ambient default: the layered depth scene replaces the flat live layer (which is what Static/depth-off use)
+      assert.equal(s.depth, slug, `${repo}: depth scene`);
+      assert.equal(s.anim, 'none', `${repo}: flat live layer is not stacked under the depth scene`);
       assert.ok(s.layer.includes(`${slug}.webp`), `${repo}: wallpaper layer`);
       seen.add(`${slug}|${s.panel}`);
       await page.reload(); // persistence across refresh
@@ -85,7 +88,8 @@ test('live wallpapers: Static / Ambient / Cinematic, prefers-reduced-motion, per
   const { context, errors, close } = await launch();
   try {
     context.setDefaultTimeout(30000);
-    await setConfig(context, { enabled: true, defaultThemeId: 'preset-1', motionMode: 'ambient' });
+    // the flat live layer (used whenever the depth engine is off: Static, depth effects off, uploads, blur)
+    await setConfig(context, { enabled: true, defaultThemeId: 'preset-1', motionMode: 'ambient', depthEffects: false });
     const page = await context.newPage();
     await page.goto('https://github.com/acme/project');
     const cls = () => page.evaluate(() => [...document.documentElement.classList].filter(c => c.startsWith('repv-motion')).sort().join(' '));
@@ -226,7 +230,7 @@ test('GitHub Home: Top repositories rows show their own themes; links, sync, dyn
   } finally { await close(); }
 });
 
-test('GitHub Home in light mode with a light flagship card keeps readable names', async () => {
+test('GitHub Home in GitHub light mode: flagship cards keep their own readable text colours', async () => {
   const { context, close } = await launch({ mode: 'light' });
   try {
     context.setDefaultTimeout(30000);
@@ -234,7 +238,7 @@ test('GitHub Home in light mode with a light flagship card keeps readable names'
     const page = await openHome(context);
     await page.waitForFunction(() => document.querySelectorAll('li[data-repv-card]').length >= 4);
     const sci = await page.$eval('a[href="/naman-dev-00/ai-powered-inbox-assistant"].markdown-title', a => getComputedStyle(a).color);
-    assert.equal(sci, 'rgb(18, 35, 58)', 'light world uses its dark text colour');
+    assert.equal(sci, 'rgb(232, 247, 255)', 'the dark Sci-Fi world keeps its light text colour on GitHub light mode');
     const contrast = await visualContrast(context, page);
     assert.equal(contrast.below3.length, 0, JSON.stringify(contrast.below3));
     fs.writeFileSync(path.join(SHOTS, 'home-top-repositories-light.png'), await page.locator('aside').screenshot());

@@ -26,7 +26,7 @@
     ['Arctic Frost', 'Alpine golden hour', '#eaf5fc', '#fbfdff', '#deecf6', '#213952', '#4b6178', '#2a5f9e', '#bfd7e8', '#e1f5ff', '#d6e4ff', '#f2f8fd', 'glass'],
     ['Lavender Nights', 'A gentle glow', '#1e1837', '#2c2448', '#3a305c', '#f8efff', '#b9abcd', '#d0a6ff', '#5b4d78', '#392252', '#221a43', '#29203f', 'soft'],
     ['Dark Academia', 'Timeless and thoughtful', '#241d19', '#362b23', '#45362b', '#f2e8d3', '#c9bea9', '#d4b47d', '#69513a', '#30221a', '#221a17', '#2e251e', 'minimal'],
-    ['Futuristic Sci-Fi', 'Holographic AI core', '#eaf2f9', '#fbfdff', '#e4edf6', '#12233a', '#3a4b61', '#075a99', '#c6d6e6', '#dcf1ff', '#e6ebf8', '#f3f7fc', 'glass'],
+    ['Futuristic Sci-Fi', 'Holographic AI core', '#08131d', '#0f1e2b', '#16293a', '#e8f7ff', '#a3c3d6', '#5fd4ff', '#2a4a60', '#0f3a52', '#122a44', '#0c1823', 'glass'],
     ['Obsidian', 'Pure concentration', '#0d0e11', '#18191e', '#202228', '#f4f4f7', '#a1a1ad', '#a5a9bd', '#3b3e48', '#15161a', '#0d0e11', '#17181c', 'minimal'],
     ['Aurora', 'Northern lights over a fjord', '#0c1724', '#122b34', '#1b3b45', '#e8fff8', '#9dcbc6', '#7eedd7', '#355d5c', '#113b4b', '#2d2557', '#142633', 'glass'],
     ['Sunset Boulevard', 'Golden hour', '#301b32', '#4c294a', '#60375b', '#fff1f1', '#d5b0c7', '#ff9d82', '#7d4d73', '#9a4d61', '#442b6e', '#3c2540', 'soft'],
@@ -37,7 +37,8 @@
   const CATALOG = root.RepoVibeWallpaperCatalog || [];
   const WORST_CASE_TONE = ['#ffffff', '#000000']; // unknown (uploaded) images
   const WALLPAPERS = CATALOG.map(w => ({ slug: w.slug, name: w.name, category: w.category, style: w.style,
-    ref: `builtin:${w.slug}`, path: `wallpapers/${w.slug}.webp`, thumb: `wallpapers/thumbs/${w.slug}.webp`, tone: w.tone, toneSoft: w.toneSoft || w.tone }));
+    ref: `builtin:${w.slug}`, path: `wallpapers/${w.slug}.webp`, thumb: `wallpapers/thumbs/${w.slug}.webp`, tone: w.tone, toneSoft: w.toneSoft || w.tone,
+    depth: (w.depth || []).map(l => ({ layer: l, path: `wallpapers/depth/${w.slug}/${l}.webp` })) }));
   const WALLPAPER_TONES = Object.fromEntries(WALLPAPERS.map(w => [w.slug, w.tone]));
   const WALLPAPER_TONES_SOFT = Object.fromEntries(WALLPAPERS.map(w => [w.slug, w.toneSoft]));
   // Preset N → wallpaper. 3D cinematic renders where available; the rest use the illustrated (2D) scenes.
@@ -48,6 +49,7 @@
   const MOTIONS = ['none', 'rain', 'fireflies', 'stars', 'holo'];
   const FLAGSHIP_MOTION = { 'preset-1': 'rain', 'preset-8': 'fireflies', 'preset-19': 'stars', 'preset-15': 'holo' };
   const MOTION_MODES = ['static', 'ambient', 'cinematic'];
+  const SCENE_HEIGHTS = ['compact', 'standard', 'tall'];
   /* Appearance presets for the built-in themes (config.appearance). Each sets the six visual controls explicitly; they
      never change one another afterwards. Crisp Immersive is the default: sharp scene (no wallpaper blur, no panel
      backdrop blur, native brightness, minimal overlay) and clean, nearly solid reading panels. Balanced adds a subtle
@@ -106,7 +108,7 @@
   const CONFIG_VERSION = 2;
   const DEFAULT = {
     version: CONFIG_VERSION, enabled: true, defaultThemeId: 'native',
-    autoAssign: true, autoAssignments: {}, motionMode: 'ambient', seededMappings: false, appearance: 'crisp', sceneWindow: true,
+    autoAssign: true, autoAssignments: {}, motionMode: 'ambient', seededMappings: false, appearance: 'crisp', sceneWindow: true, sceneHeight: 'standard', depthEffects: true,
     repoAssignments: {}, ownerAssignments: {}, customThemes: {}
   };
   const colorKeys = ['bg', 'surface', 'surface2', 'text', 'muted', 'accent', 'border', 'gradientTo', 'gradientThird', 'codeBg'];
@@ -174,6 +176,8 @@
     config.motionMode = MOTION_MODES.includes(raw.motionMode) ? raw.motionMode : 'ambient';
     config.appearance = Object.hasOwn(APPEARANCES, raw.appearance) ? raw.appearance : 'crisp';
     config.sceneWindow = raw.sceneWindow !== false;
+    config.sceneHeight = SCENE_HEIGHTS.includes(raw.sceneHeight) ? raw.sceneHeight : 'standard';
+    config.depthEffects = raw.depthEffects !== false;
     config.seededMappings = raw.seededMappings === true;
     for (const type of ['repoAssignments', 'ownerAssignments', 'autoAssignments']) {
       if (!raw[type] || typeof raw[type] !== 'object') continue;
@@ -215,6 +219,7 @@
       Returns the number of custom themes changed. */
   function restoreVisualDefaults(config) {
     config.appearance = 'crisp';
+    config.sceneHeight = 'standard';
     let changed = 0;
     for (const theme of Object.values(config.customThemes)) {
       const v = appearanceValues('crisp', theme);
@@ -365,7 +370,7 @@
   }
   root.RepoVibeCore = Object.freeze({
     STORAGE_KEY, PRESETS, DEFAULT, MAX_CUSTOM_THEMES, CONFIG_VERSION, WALLPAPERS, POSITIONS, SIZES,
-    APPEARANCES, VISUAL_FIELDS, appearanceValues, restoreVisualDefaults,
+    APPEARANCES, VISUAL_FIELDS, SCENE_HEIGHTS, appearanceValues, restoreVisualDefaults,
     MOTIONS, MOTION_MODES, FLAGSHIP_MOTION, DEFAULT_REPO_MAPPINGS, seedDefaultMappings, motionFor,
     safeWallpaperRef, fnv1a, pickAutoTheme, requiredGlass, wallpaperTone, panelOpacity, normalizeConfig, normalizeTheme, safeWallpaper,
     repositoryFromUrl, themeById, themeResolution, loadConfig, saveConfig, updateConfig, themeUsage, assignTheme, isPreset,

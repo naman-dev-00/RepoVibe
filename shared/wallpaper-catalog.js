@@ -8,12 +8,19 @@
       "category": "Futuristic",
       "style": "3d",
       "tone": [
-        "#d6e8ed",
-        "#858d93"
+        "#a4d5db",
+        "#374a5b"
       ],
       "toneSoft": [
-        "#d5e8ec",
-        "#90989f"
+        "#9fced5",
+        "#3d5163"
+      ],
+      "depth": [
+        "far",
+        "mid",
+        "near",
+        "front",
+        "rays"
       ]
     },
     {
@@ -28,6 +35,13 @@
       "toneSoft": [
         "#cdc6dd",
         "#0a0913"
+      ],
+      "depth": [
+        "far",
+        "mid",
+        "near",
+        "front",
+        "rays"
       ]
     },
     {
@@ -36,12 +50,19 @@
       "category": "Fantasy",
       "style": "3d",
       "tone": [
-        "#68a3af",
-        "#0d1e1a"
+        "#81b2b4",
+        "#182c31"
       ],
       "toneSoft": [
-        "#65a0ab",
-        "#0f1f1c"
+        "#72a3a9",
+        "#192d31"
+      ],
+      "depth": [
+        "far",
+        "mid",
+        "near",
+        "front",
+        "rays"
       ]
     },
     {
@@ -70,6 +91,13 @@
       "toneSoft": [
         "#bbacce",
         "#281b35"
+      ],
+      "depth": [
+        "far",
+        "mid",
+        "near",
+        "front",
+        "rays"
       ]
     },
     {

@@ -55,6 +55,7 @@
     for (const radio of document.querySelectorAll('input[name="motion"]')) radio.checked = radio.value === config.motionMode;
     for (const radio of document.querySelectorAll('input[name="appearance"]')) radio.checked = radio.value === config.appearance;
     $('sceneWindow').checked = config.sceneWindow;
+    $('depthEffects').checked = config.depthEffects;
     $('appearanceNote').textContent = { crisp: 'Sharp scene, clean panels', balanced: 'Sharp scene, calmer reading', frosted: 'Frosted glass panels' }[config.appearance];
     $('version').textContent = `v${chrome.runtime.getManifest().version}`;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -80,6 +81,11 @@
   $('sceneWindow').addEventListener('change', async event => {
     const on = event.target.checked;
     try { config = await C.updateConfig(latest => { latest.sceneWindow = on; }); render(); announce(on ? 'Scene window on.' : 'Scene window off.'); }
+    catch (e) { announce(e.message, true); }
+  });
+  $('depthEffects').addEventListener('change', async event => {
+    const on = event.target.checked;
+    try { config = await C.updateConfig(latest => { latest.depthEffects = on; }); render(); announce(on ? '3D depth on.' : '3D depth off.'); }
     catch (e) { announce(e.message, true); }
   });
   for (const radio of document.querySelectorAll('input[name="motion"]')) radio.addEventListener('change', async event => {

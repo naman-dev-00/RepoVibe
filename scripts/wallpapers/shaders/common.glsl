@@ -4,6 +4,12 @@ precision highp float;
 uniform vec2 uRes;      // full image resolution
 uniform vec2 uOffset;   // tile offset in pixels
 uniform float uSeed;
+// Depth layers (2.5D engine). 0 = flat composite (the classic wallpaper); scenes that support layers render
+// 1 = far (sky, ground, distant objects), 2 = mid, 3 = near, 4 = decorative foreground, 5 = light rays, each with alpha.
+// Objects are assigned to a layer per instance (distance from the camera), so nothing is cut in half and every layer
+// is complete behind nearer objects (no holes when layers move in parallax).
+uniform int uLayer;
+float gAlpha = 1.0; // set by render() for layered output (coverage of this sample)
 out vec4 fragColor;
 
 #define PI 3.14159265
@@ -65,12 +71,16 @@ vec3 render(vec2 uv);
 void main() {
   // 2x2 supersampling (rotated grid).
   vec2 px = gl_FragCoord.xy + uOffset;
-  vec3 acc = vec3(0.0);
+  vec4 acc = vec4(0.0); // premultiplied colour + coverage
   vec2 o[4] = vec2[4](vec2(0.125, 0.375), vec2(0.375, -0.125), vec2(-0.125, -0.375), vec2(-0.375, 0.125));
   for (int i = 0; i < 4; i++) {
     vec2 uv = (px + o[i] - 0.5 * uRes) / uRes.y;
-    acc += render(uv);
+    gAlpha = 1.0;
+    vec3 c = render(uv);
+    acc += vec4(c * gAlpha, gAlpha);
   }
   vec2 uv0 = (px - 0.5 * uRes) / uRes.y;
-  fragColor = vec4(finish(acc * 0.25, uv0 * vec2(uRes.y / uRes.x, 1.0) * vec2(1.0, 1.0)), 1.0);
+  float a = acc.a * 0.25;
+  vec3 rgb = a > 0.0 ? acc.rgb / acc.a : vec3(0.0);
+  fragColor = vec4(finish(rgb, uv0 * vec2(uRes.y / uRes.x, 1.0) * vec2(1.0, 1.0)), a);
 }

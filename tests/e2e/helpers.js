@@ -286,14 +286,14 @@ async function sceneMetrics(context, page) {
     const onRoot = /url\(/.test(r.backgroundImage);
     return m && { url: m[1], size: onRoot ? r.backgroundSize.split(', ').at(-2) : 'cover', pos: onRoot ? r.backgroundPosition.split(', ').at(-2) : 'center', w: innerWidth, h: innerHeight };
   });
-  let correlation = null, sharpness = null;
+  let correlation = null, sharpness = null, exposedCorrelation = null;
   if (scene) {
     const helper = await extPage(context); // extension origin: bundled wallpapers are loadable there
     await helper.setViewportSize({ width: scene.w, height: scene.h });
     await helper.setContent(`<body style="margin:0;width:100vw;height:100vh;background:url('${scene.url}') ${scene.pos} / ${scene.size} no-repeat #000"></body>`);
     await helper.waitForTimeout(400);
     const ref = await helper.screenshot();
-    [correlation, sharpness] = await helper.evaluate(async ([a, b, mask]) => {
+    [correlation, sharpness, exposedCorrelation] = await helper.evaluate(async ([a, b, mask]) => {
       const load = async src => { const i = new Image(); i.src = src; await i.decode(); const c = new OffscreenCanvas(i.width, i.height); const g = c.getContext('2d'); g.drawImage(i, 0, 0); return g.getImageData(0, 0, i.width, i.height); };
       const A = await load(a), B = await load(b), S = 16, xs = [], ys = [];
       for (let y = 0; y + S <= A.height; y += S) for (let x = 0; x + S <= A.width; x += S) {
@@ -301,8 +301,14 @@ async function sceneMetrics(context, page) {
         for (let yy = 0; yy < S; yy += 4) for (let xx = 0; xx < S; xx += 4) { const i = ((y + yy) * A.width + x + xx) * 4; la += A.data[i] * .2126 + A.data[i + 1] * .7152 + A.data[i + 2] * .0722; lb += B.data[i] * .2126 + B.data[i + 1] * .7152 + B.data[i + 2] * .0722; }
         xs.push(la); ys.push(lb);
       }
-      const mean = v => v.reduce((s, x) => s + x, 0) / v.length, ma = mean(xs), mb = mean(ys);
-      let n = 0, da = 0, db = 0; for (let i = 0; i < xs.length; i++) { n += (xs[i] - ma) * (ys[i] - mb); da += (xs[i] - ma) ** 2; db += (ys[i] - mb) ** 2; }
+      const pearson = (P, Q) => {
+        const mean = v => v.reduce((s, x) => s + x, 0) / v.length, ma = mean(P), mb = mean(Q);
+        let n = 0, da = 0, db = 0; for (let i = 0; i < P.length; i++) { n += (P[i] - ma) * (Q[i] - mb); da += (P[i] - ma) ** 2; db += (Q[i] - mb) ** 2; }
+        return da && db ? n / Math.sqrt(da * db) : 0;
+      };
+      // over exposed blocks only (where the scene is meant to be seen; same 16 px grid as the mask)
+      const ex = xs.map((_, i) => i).filter(i => mask[i]);
+      const exposedCorr = ex.length >= 8 ? pearson(ex.map(i => xs[i]), ex.map(i => ys[i])) : null;
       // Sharpness: Laplacian edge energy of the page vs the source wallpaper inside exposed blocks (1 ≈ native sharpness,
       // blur → much lower). Text never sits in exposed blocks by construction.
       const L = (D, x, y) => { const i = (y * D.width + x) * 4; return D.data[i] * .2126 + D.data[i + 1] * .7152 + D.data[i + 2] * .0722; };
@@ -315,12 +321,12 @@ async function sceneMetrics(context, page) {
           eb += Math.abs(4 * L(B, X, Y) - L(B, X - 1, Y) - L(B, X + 1, Y) - L(B, X, Y - 1) - L(B, X, Y + 1));
         }
       }
-      return [n / Math.sqrt(da * db), blocks >= 8 && eb > 0 ? ea / eb : null];
+      return [pearson(xs, ys), blocks >= 8 && eb > 0 ? ea / eb : null, exposedCorr];
     }, [`data:image/png;base64,${shot.toString('base64')}`, `data:image/png;base64,${ref.toString('base64')}`, exposed]);
     await helper.close();
   }
   const sorted = [...transmission].sort((x, y) => x - y);
-  return { median: sorted[sorted.length >> 1], min: sorted[0], clear: transmission.filter(t => t >= 0.9).length / transmission.length, correlation, sharpness,
+  return { median: sorted[sorted.length >> 1], min: sorted[0], clear: transmission.filter(t => t >= 0.9).length / transmission.length, correlation, exposedCorrelation, sharpness,
     exposedShare: exposed.reduce((s, v) => s + v, 0) / exposed.length };
 }
 

@@ -38,10 +38,13 @@ for (const [id, label] of FLAGSHIPS) {
       await setConfig(context, { enabled: true, motionMode: 'static', defaultThemeId: 'custom-blur', customThemes: { 'custom-blur': { ...preset, id: 'custom-blur', wallpaperBlur: 6 } } });
       await page.goto(URL_LAYOUT); await page.waitForTimeout(700);
       const blurred = await sceneMetrics(context, page);
-      LOG.push(`${label}: crisp sharpness ${crisp.sharpness?.toFixed(2)} vs 6px-blurred ${blurred.sharpness?.toFixed(2)}; exposed ${(crisp.exposedShare * 100).toFixed(0)}%; correlation ${crisp.correlation.toFixed(2)}`);
+      LOG.push(`${label}: crisp sharpness ${crisp.sharpness?.toFixed(2)} vs 6px-blurred ${blurred.sharpness?.toFixed(2)}; exposed ${(crisp.exposedShare * 100).toFixed(0)}%; correlation ${crisp.correlation.toFixed(2)} (full frame), ${crisp.exposedCorrelation?.toFixed(2)} (exposed scene)`);
       assert.ok(crisp.exposedShare >= 0.25, `≥ 25 % of the viewport shows the scene with nothing over it (${(crisp.exposedShare * 100).toFixed(0)}%)`);
       assert.ok(crisp.sharpness >= blurred.sharpness * 1.6, `exposed scene keeps its native detail: sharpness ${crisp.sharpness.toFixed(2)} vs blurred ${blurred.sharpness.toFixed(2)}`);
-      assert.ok(crisp.correlation >= 0.5, `scene shapes visible (correlation ${crisp.correlation.toFixed(2)})`);
+      // Shapes: where the scene is exposed it must match the source art closely (full-frame correlation also mixes in the
+      // panel layout, which dominates for dark low-variance scenes, so it is a weaker floor)
+      assert.ok(crisp.exposedCorrelation >= 0.8, `scene shapes visible in the exposed area (correlation ${crisp.exposedCorrelation?.toFixed(2)})`);
+      assert.ok(crisp.correlation >= 0.3, `scene shapes visible over the full frame (correlation ${crisp.correlation.toFixed(2)})`);
       await setConfig(context, { enabled: true, defaultThemeId: id, motionMode: 'static' });
       await page.goto(URL_LAYOUT); await page.waitForTimeout(700);
       const contrast = await visualContrast(context, page);

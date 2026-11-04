@@ -119,6 +119,8 @@ html.repv-active :where(header.GlobalNav, .AppHeader, .Header, .js-header-wrappe
 /* Scene window: a transparent band between GitHub's repository tabs and the repository content shows the scene at full,
    native sharpness. Nothing is covered or moved out of reach: the content simply starts lower. Toggle: popup / Studio. */
 html.repv-active.repv-scene-window #repo-content-pjax-container, html.repv-active.repv-scene-window turbo-frame#repo-content-turbo-frame:not(:has(#repo-content-pjax-container)) { padding-top:clamp(140px, 27vh, 320px) !important; }
+html.repv-active.repv-scene-window.repv-scene-compact #repo-content-pjax-container, html.repv-active.repv-scene-window.repv-scene-compact turbo-frame#repo-content-turbo-frame:not(:has(#repo-content-pjax-container)) { padding-top:clamp(96px, 16vh, 180px) !important; }
+html.repv-active.repv-scene-window.repv-scene-tall #repo-content-pjax-container, html.repv-active.repv-scene-window.repv-scene-tall turbo-frame#repo-content-turbo-frame:not(:has(#repo-content-pjax-container)) { padding-top:clamp(200px, 40vh, 480px) !important; }
 @media (max-width:767px) { html.repv-active.repv-scene-window #repo-content-pjax-container, html.repv-active.repv-scene-window turbo-frame#repo-content-turbo-frame:not(:has(#repo-content-pjax-container)) { padding-top:72px !important; } }
 html.repv-active :is(.HeaderMktg, header.header-logged-out) { background-color:rgba(1,4,9,${Math.max(0.85, a)}) !important; } /* logged-out header text is always white */
 html.repv-active :where(${PANELS}) :where(${PANELS}) { background-color:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; box-shadow:none !important; }
@@ -149,7 +151,7 @@ html.repv-active :is(.blob-code, .react-code-text, .react-code-line, .markdown-b
 ${v.layout === 'wide' ? `html.repv-active :is(.container-xl, .container-lg) { max-width:1800px !important; }` : ''}
 ${compact ? `html.repv-active :is(.Box-row, .react-directory-row) {padding-top:5px !important;padding-bottom:5px !important;}
 html.repv-active .Layout {gap:12px !important;}` : ''}
-${glass ? MOTION_CSS : ''}
+${glass ? MOTION_CSS + DEPTH_CSS : ''}
 @media (prefers-reduced-motion:no-preference) {
  html.repv-active :is(.Box, .btn, .Button) { transition:border-color .18s ease, box-shadow .18s ease; }
  ${v.vibe === 'neon' ? `html.repv-active :is(.Box:hover, .Button:hover) { box-shadow:0 0 14px ${v.accent}45; }` : ''}
@@ -267,6 +269,139 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     for (const c of MOTION_CLASSES) if (root.classList.contains(c) !== wanted.includes(c)) root.classList.toggle(c, wanted.includes(c));
     return wanted.join(' ');
   }
+
+  /* ---- Depth engine (2.5D). Scenes rendered as separate depth slabs from the same 3D camera (far, mid, near,
+     decorative front, light rays — real occlusion + alpha, see scripts/wallpapers/shaders) are stacked in ONE injected
+     element, #repovibe-depth, a sibling of <body> (GitHub's DOM tree is not touched), fixed, pointer-events:none, behind
+     all content. Each layer moves in proportion to its depth (parallax factor k): the pointer drives a smoothed offset
+     (rAF only while it changes), Cinematic adds a slow camera drift that is itself parallaxed per layer, swaying
+     foreground leaves and breathing light rays. Particle planes sit between the slabs at their own depths. Only
+     transform/opacity animate (compositor). Static mode, reduced motion, uploads, custom position/size or wallpaper blur
+     use the flat root scene instead (no engine). This is layered 2.5D, not real-time 3D geometry. */
+  const DEPTH_ID = 'repovibe-depth';
+  const LAYER_K = { far: 0.12, pfar: 0.26, mist: 0.32, mid: 0.48, pmid: 0.7, near: 1.0, rays: 0.55, front: 1.65, pnear: 2.1 };
+  function bokehTile(seed, w, h, n, colors) {
+    const r = rng(seed); let body = '';
+    for (let i = 0; i < n; i++) body += `<circle cx='${(r() * w).toFixed(1)}' cy='${(r() * h).toFixed(1)}' r='${(9 + r() * 14).toFixed(1)}' fill='url(#g${i % colors.length})' opacity='${(0.35 + r() * 0.35).toFixed(2)}'/>`;
+    return svgUrl(w, h, body, colors.map((col, i) => `<radialGradient id='g${i}'><stop offset='0' stop-color='${col}' stop-opacity='.95'/><stop offset='.45' stop-color='${col}' stop-opacity='.45'/><stop offset='1' stop-color='${col}' stop-opacity='0'/></radialGradient>`).join(''));
+  }
+  // Per-scene particle planes and atmosphere (only scenes with rendered depth layers use the engine).
+  const DEPTH_PARTICLES = {
+    'enchanted-forest': { pfar: [glowTile(31, 700, 520, 22, ['#ffe27a', '#b6ff9a'], 2, 4), '700px 520px'], pmid: [glowTile(37, 900, 700, 10, ['#ffe27a', '#9dffd0', '#fff1a8'], 5, 9), '900px 700px'],
+      pnear: [bokehTile(41, 1400, 900, 6, ['#fff0a0', '#a8ffd8']), '1400px 900px'], mist: 'radial-gradient(60% 22% at 30% 78%, rgba(130,235,215,.16), transparent 70%), radial-gradient(50% 18% at 78% 66%, rgba(120,205,255,.12), transparent 70%), radial-gradient(70% 16% at 50% 92%, rgba(150,230,220,.12), transparent 70%)' },
+    'cosmic-galaxy': { pfar: [glowTile(53, 600, 600, 70, ['#eef2ff', '#cfd8ff', '#fff4e0'], 0.9, 2.2), '600px 600px'], pmid: [glowTile(57, 820, 820, 36, ['#d8ccff', '#bfe0ff'], 1.4, 3), '820px 820px'],
+      pnear: [bokehTile(59, 1500, 1000, 4, ['#c9b8ff', '#9fd0ff']), '1500px 1000px'], mist: 'radial-gradient(45% 32% at 20% 30%, rgba(150,80,255,.14), transparent 70%), radial-gradient(40% 30% at 82% 72%, rgba(60,140,255,.12), transparent 70%)' },
+    'neon-city-3d': { pfar: [rainTile(61, 70, 0.28), '200px 200px'], pmid: [rainTile(67, 40, 0.5), '400px 400px'],
+      pnear: [bokehTile(71, 1400, 900, 7, ['#ff4fd8', '#4fe3ff', '#b48cff']), '1400px 900px'], mist: 'radial-gradient(60% 20% at 50% 88%, rgba(150,170,255,.16), transparent 70%), radial-gradient(40% 24% at 15% 40%, rgba(255,60,200,.14), transparent 70%), radial-gradient(35% 22% at 85% 40%, rgba(60,200,255,.12), transparent 70%)' },
+    'scifi-ai': { pfar: [glowTile(73, 640, 480, 26, ['#7fdcff', '#c8f2ff'], 1, 2.4), '640px 480px'], pmid: [glowTile(79, 900, 640, 12, ['#5fd0ff', '#ffffff'], 2, 4), '900px 640px'],
+      pnear: [bokehTile(83, 1400, 900, 5, ['#9fe6ff', '#ffffff']), '1400px 900px'], mist: 'radial-gradient(60% 24% at 50% 80%, rgba(160,225,255,.20), transparent 70%)' }
+  };
+  let depthState = { key: '', listening: false };
+  const ptr = { tx: 0, ty: 0, x: 0, y: 0, raf: 0 };
+  function stepPointer() {
+    ptr.raf = 0;
+    const el = document.getElementById(DEPTH_ID); if (!el) return;
+    ptr.x += (ptr.tx - ptr.x) * 0.1; ptr.y += (ptr.ty - ptr.y) * 0.1;
+    el.style.setProperty('--px', (-ptr.x).toFixed(4)); el.style.setProperty('--py', (-ptr.y).toFixed(4));
+    if (Math.abs(ptr.tx - ptr.x) + Math.abs(ptr.ty - ptr.y) > 0.002) ptr.raf = requestAnimationFrame(stepPointer);
+  }
+  function onPointer(e) {
+    ptr.tx = Math.max(-1, Math.min(1, (e.clientX / innerWidth - 0.5) * 2)); ptr.ty = Math.max(-1, Math.min(1, (e.clientY / innerHeight - 0.5) * 2));
+    if (!ptr.raf) ptr.raf = requestAnimationFrame(stepPointer);
+  }
+  function onPointerAway() { ptr.tx = 0; ptr.ty = 0; if (!ptr.raf) ptr.raf = requestAnimationFrame(stepPointer); }
+  // Hidden tab: pause every depth animation outright (Chrome throttles too, this makes it explicit) and stop the rAF.
+  function onVisibility() {
+    const hidden = document.visibilityState === 'hidden' && depthState.listening;
+    document.documentElement?.classList.toggle('repv-depth-paused', hidden);
+    if (hidden && ptr.raf) { cancelAnimationFrame(ptr.raf); ptr.raf = 0; }
+  }
+  function listenPointer(on) {
+    if (on === depthState.listening) return;
+    depthState.listening = on;
+    const m = on ? 'addEventListener' : 'removeEventListener';
+    window[m]('pointermove', onPointer, { passive: true }); document.documentElement[m]('pointerleave', onPointerAway); window[m]('blur', onPointerAway);
+    document[m]('visibilitychange', onVisibility);
+    onVisibility();
+    if (!on && ptr.raf) { cancelAnimationFrame(ptr.raf); ptr.raf = 0; }
+  }
+  function depthFor(theme, url) {
+    if (!theme || !url || !config.depthEffects) return null;
+    if (config.motionMode === 'static' || reducedQuery?.matches) return null; // Static / reduced motion: sharp flat scene
+    const v = C.normalizeTheme(theme);
+    if (v.wallpaperBlur > 0 || v.wallpaperSize !== 'cover' || v.wallpaperPosition !== 'center') return null;
+    const m = /^builtin:([a-z0-9-]+)$/.exec(v.wallpaperRef || '');
+    const w = m && C.WALLPAPERS.find(x => x.slug === m[1]);
+    if (!w || !w.depth || !w.depth.length) return null;
+    return { slug: w.slug, layers: Object.fromEntries(w.depth.map(d => [d.layer, chrome.runtime.getURL(d.path)])), mode: config.motionMode, veil: sceneLayers(v).map(l => l.replace(' fixed', '')).join(', ') };
+  }
+  function removeDepth() {
+    document.getElementById(DEPTH_ID)?.remove();
+    document.documentElement?.classList.remove('repv-depth', 'repv-depth-cinematic', 'repv-depth-paused');
+    listenPointer(false); depthState.key = '';
+  }
+  function renderDepth(theme, url) {
+    const d = depthFor(theme, url);
+    const root = document.documentElement;
+    if (!d) { if (depthState.key || document.getElementById(DEPTH_ID)) removeDepth(); return; }
+    const key = `${d.slug}|${d.mode}|${d.veil}`;
+    let el = document.getElementById(DEPTH_ID);
+    if (!el || depthState.key !== key) {
+      el?.remove();
+      el = document.createElement('div');
+      el.id = DEPTH_ID; el.setAttribute('aria-hidden', 'true'); el.dataset.scene = d.slug; el.dataset.mode = d.mode;
+      const P = DEPTH_PARTICLES[d.slug] || {};
+      const order = ['far', 'pfar', 'mist', 'mid', 'pmid', 'near', 'rays', 'front', 'pnear'];
+      for (const name of order) {
+        const img = d.layers[name] ? `url("${d.layers[name]}")` : null;
+        const part = P[name];
+        if (!img && !part) continue;
+        const layer = document.createElement('div');
+        layer.className = 'repv-l'; layer.dataset.l = name; layer.style.setProperty('--k', String(LAYER_K[name]));
+        const inner = document.createElement('i');
+        if (img) inner.style.backgroundImage = img;
+        else if (Array.isArray(part)) { layer.dataset.tile = ''; inner.style.backgroundImage = part[0]; inner.style.backgroundSize = part[1]; }
+        else inner.style.backgroundImage = part;
+        layer.appendChild(inner); el.appendChild(layer);
+      }
+      const veil = document.createElement('div'); veil.className = 'repv-veil'; if (d.veil) veil.style.backgroundImage = d.veil; el.appendChild(veil);
+      root.appendChild(el);
+      depthState.key = key;
+    }
+    root.classList.add('repv-depth');
+    root.classList.toggle('repv-depth-cinematic', d.mode === 'cinematic');
+    listenPointer(true);
+  }
+  const DEPTH_CSS = `
+html.repv-depth #${'repovibe-depth'} { position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden; contain:strict; --amp:13px; }
+html.repv-depth-cinematic #repovibe-depth { --amp:30px; }
+#repovibe-depth > .repv-l { position:absolute; inset:-6%; will-change:transform;
+ transform:translate3d(calc(var(--px, 0) * var(--k) * var(--amp)), calc(var(--py, 0) * var(--k) * var(--amp) * .55), 0); }
+#repovibe-depth > .repv-l > i { position:absolute; inset:0; background-position:center; background-size:cover; background-repeat:no-repeat; }
+#repovibe-depth > .repv-l[data-tile] > i { background-position:0 0; background-repeat:repeat; }
+#repovibe-depth > .repv-veil { position:absolute; inset:0; }
+#repovibe-depth > [data-l="rays"] { mix-blend-mode:screen; opacity:.8; }
+#repovibe-depth > [data-l="front"] > i { transform-origin:50% 0; }
+html.repv-depth.repv-active::after, html.repv-depth body::after { content:none !important; animation:none !important; }
+html.repv-depth body::before { animation:none !important; will-change:auto !important; } /* covered by the depth scene: no hidden work */
+@media (prefers-reduced-motion:no-preference) {
+ #repovibe-depth > [data-l="pfar"] > i { animation:repv-fly-a 16s ease-in-out infinite alternate, repv-pulse 3.6s ease-in-out infinite alternate; }
+ #repovibe-depth > [data-l="pmid"] > i { animation:repv-fly-b 12s ease-in-out infinite alternate, repv-pulse 2.8s ease-in-out infinite alternate-reverse; }
+ #repovibe-depth > [data-l="pnear"] > i { animation:repv-bokeh 22s ease-in-out infinite alternate; }
+ #repovibe-depth > [data-l="mist"] > i { animation:repv-fog 30s ease-in-out infinite alternate; }
+ #repovibe-depth > [data-l="rays"] > i { animation:repv-breathe 9s ease-in-out infinite alternate; }
+ #repovibe-depth[data-scene="neon-city-3d"] > [data-l="pfar"] > i, #repovibe-depth[data-scene="neon-city-3d"] > [data-l="pmid"] > i { animation:repv-rain .9s linear infinite; }
+ html.repv-depth-cinematic #repovibe-depth > .repv-l:not([data-tile]) > i { animation:repv-cam 26s ease-in-out infinite alternate; }
+ html.repv-depth-cinematic #repovibe-depth > .repv-l[data-l="front"] > i { animation:repv-sway 7s ease-in-out infinite alternate; }
+ html.repv-depth-cinematic #repovibe-depth > .repv-l[data-l="rays"] > i { animation:repv-breathe 5s ease-in-out infinite alternate, repv-cam 26s ease-in-out infinite alternate; }
+}
+@keyframes repv-cam { from { transform:translate3d(calc(var(--k) * -16px), calc(var(--k) * 4px), 0) scale(calc(1 + var(--k) * .012)); } to { transform:translate3d(calc(var(--k) * 16px), calc(var(--k) * -6px), 0) scale(calc(1 + var(--k) * .03)); } }
+@keyframes repv-sway { from { transform:rotate(-.7deg) translate3d(-6px, 0, 0); } to { transform:rotate(.7deg) translate3d(6px, 2px, 0); } }
+@keyframes repv-breathe { from { opacity:.45; } to { opacity:1; } }
+@keyframes repv-bokeh { from { transform:translate3d(-20px, 10px, 0); } to { transform:translate3d(24px, -18px, 0); } }
+html.repv-depth-paused #repovibe-depth *, html.repv-depth-paused #repovibe-depth { animation-play-state:paused !important; }
+@media (prefers-reduced-motion:reduce) { #repovibe-depth { display:none; } }
+`;
 
   /* ---- Wallpaper resolution: bundled assets, IndexedDB assets (via service worker), legacy inline data. */
   const DATA_IMAGE = /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
@@ -519,7 +654,8 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     if (!root) return;
     let style = document.getElementById(STYLE_ID);
     if (!theme) {
-      root.classList.remove('repv-active', 'repv-scene-window', ...MOTION_CLASSES);
+      root.classList.remove('repv-active', 'repv-scene-window', 'repv-scene-compact', 'repv-scene-tall', ...MOTION_CLASSES);
+      removeDepth();
       registerInstance(false);
       lastMotion = '';
       clearPanels();
@@ -545,6 +681,8 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     const wantWindow = Boolean(url) && config.sceneWindow && Boolean(resolution.repository) && !activePreview?.noWindow;
     if (root.classList.contains('repv-scene-window') !== wantWindow) root.classList.toggle('repv-scene-window', wantWindow);
     if (wantWindow) lastMotion = `${lastMotion} repv-scene-window`.trim();
+    for (const h of ['compact', 'tall']) if (root.classList.contains(`repv-scene-${h}`) !== (wantWindow && config.sceneHeight === h)) root.classList.toggle(`repv-scene-${h}`, wantWindow && config.sceneHeight === h);
+    renderDepth(theme, resolution.repository ? url : null); // one depth scene, repository pages only (never on Home)
     applyColorMode(root, lastMode);
     if (url) queuePanelScan(); else clearPanels();
     renderCards();
@@ -554,7 +692,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     const root = document.documentElement;
     if (!lastTheme || !root) return;
     if (!document.getElementById(STYLE_ID) || !root.classList.contains('repv-active') || (lastWallpaperUrl && !document.getElementById(WALLPAPER_STYLE_ID))
-      || lastMotion.split(' ').some(c => c && !root.classList.contains(c))) render();
+      || lastMotion.split(' ').some(c => c && !root.classList.contains(c)) || (depthState.key && !document.getElementById(DEPTH_ID))) render();
     else applyColorMode(root, lastMode);
   }
 
@@ -576,9 +714,10 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     document.getElementById(WALLPAPER_STYLE_ID)?.remove();
     clearCards();
     clearPanels();
+    removeDepth();
     registerInstance(false);
     reducedQuery?.removeEventListener?.('change', onReducedMotionChange);
-    if (document.documentElement) { document.documentElement.classList.remove('repv-active', 'repv-scene-window', ...MOTION_CLASSES); applyColorMode(document.documentElement, null); }
+    if (document.documentElement) { document.documentElement.classList.remove('repv-active', 'repv-scene-window', 'repv-scene-compact', 'repv-scene-tall', ...MOTION_CLASSES); applyColorMode(document.documentElement, null); }
   }
   function guard(fn) {
     return (...args) => { if (tornDown) return; if (!extensionAlive()) { teardown(); return; } fn(...args); };
@@ -664,7 +803,8 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
       panelOpacityRendered: Number(cs.getPropertyValue('--repv-panel-opacity')) || null,
       panelsWithBackdropBlur: blurs.length, panelsDetected: document.querySelectorAll('[data-repv-panel]').length,
       wallpaperOnRoot: /url\(/.test(cs.backgroundImage),
-      homeCards: cardDiag
+      homeCards: cardDiag,
+      depth: (() => { const el = document.getElementById(DEPTH_ID); return el ? { scene: el.dataset.scene, mode: el.dataset.mode, layers: [...el.children].map(c => c.dataset.l).filter(Boolean) } : null; })()
     };
   }
 

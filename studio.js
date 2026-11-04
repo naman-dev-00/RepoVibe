@@ -424,6 +424,9 @@
   function paintAppearance() {
     for (const b of document.querySelectorAll('[data-appearance]')) { const on = b.dataset.appearance === config.appearance; b.classList.toggle('selected', on); b.setAttribute('aria-checked', String(on)); }
     $('sceneWindowToggle').checked = config.sceneWindow;
+    $('sceneHeight').value = config.sceneHeight;
+    $('sceneHeight').disabled = !config.sceneWindow;
+    $('depthEffectsToggle').checked = config.depthEffects;
   }
   for (const button of document.querySelectorAll('[data-appearance]')) button.addEventListener('click', async () => {
     const name = button.dataset.appearance;
@@ -436,7 +439,15 @@
   });
   $('sceneWindowToggle').addEventListener('change', async event => {
     const on = event.target.checked;
-    try { config = await C.updateConfig(latest => { latest.sceneWindow = on; }); say(on ? 'Scene window on.' : 'Scene window off.'); } catch (e) { say(e.message, true); }
+    try { config = await C.updateConfig(latest => { latest.sceneWindow = on; }); paintAppearance(); say(on ? 'Scene window on.' : 'Scene window off.'); } catch (e) { say(e.message, true); }
+  });
+  $('sceneHeight').addEventListener('change', async event => {
+    const h = event.target.value;
+    try { config = await C.updateConfig(latest => { latest.sceneHeight = h; }); say(`Scene window height: ${h}.`); } catch (e) { say(e.message, true); }
+  });
+  $('depthEffectsToggle').addEventListener('change', async event => {
+    const on = event.target.checked;
+    try { config = await C.updateConfig(latest => { latest.depthEffects = on; }); say(on ? '3D depth effects on.' : '3D depth effects off: flat sharp scene.'); } catch (e) { say(e.message, true); }
   });
   $('restoreVisual').addEventListener('click', async () => {
     let changed = 0;

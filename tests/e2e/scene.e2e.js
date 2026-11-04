@@ -38,10 +38,14 @@ for (const [id, slug, label] of FLAGSHIPS) {
       await show({ enabled: true, motionMode: 'static', defaultThemeId: 'custom-solid', customThemes: { 'custom-solid': { ...preset, id: 'custom-solid', backgroundMode: 'solid' } } });
       const solid = await page.screenshot({ animations: 'disabled' });
       const changed = await diffRatio(context, solid, art);
-      LOG.push(`${label}: diag corr ${diag.correlation.toFixed(2)} median ${diag.median.toFixed(2)} clear ${(diag.clear * 100).toFixed(0)}% | prod corr ${prod.correlation.toFixed(2)} median ${prod.median.toFixed(2)} min ${prod.min.toFixed(2)} clear ${(prod.clear * 100).toFixed(0)}% | vs solid ${(changed * 100).toFixed(1)}% | panel ${preset.guard.opacity} | text min ${contrast.min.toFixed(2)}`);
+      LOG.push(`${label}: diag corr ${diag.correlation.toFixed(2)} median ${diag.median.toFixed(2)} clear ${(diag.clear * 100).toFixed(0)}% | prod corr ${prod.correlation.toFixed(2)} (exposed ${prod.exposedCorrelation?.toFixed(2)}) median ${prod.median.toFixed(2)} min ${prod.min.toFixed(2)} clear ${(prod.clear * 100).toFixed(0)}% | vs solid ${(changed * 100).toFixed(1)}% | panel ${preset.guard.opacity} | text min ${contrast.min.toFixed(2)}`);
       // Recognisable: the page's luminance structure follows the scene's own shapes.
-      assert.ok(diag.correlation >= 0.6, `diagnostic: scene shapes visible (correlation ${diag.correlation.toFixed(2)})`);
-      assert.ok(prod.correlation >= 0.45, `production: scene shapes visible (correlation ${prod.correlation.toFixed(2)})`);
+      // Exposed-area correlation is the strict check; full-frame correlation also reflects the panel layout, which
+      // dominates for dark low-variance scenes (forest, sci-fi hall), so it only has a lower floor.
+      for (const [name, m] of [['diagnostic', diag], ['production', prod]]) {
+        assert.ok(m.exposedCorrelation >= 0.8, `${name}: scene shapes visible where exposed (correlation ${m.exposedCorrelation?.toFixed(2)})`);
+        assert.ok(m.correlation >= 0.3, `${name}: scene shapes visible over the full frame (correlation ${m.correlation.toFixed(2)})`);
+      }
       // Visible: a large part of the viewport shows the scene unobstructed, and nowhere does glass stack.
       assert.ok(prod.clear >= 0.45, `≥ 45 % of the viewport shows the scene unobstructed (${(prod.clear * 100).toFixed(0)}%)`);
       assert.ok(prod.median >= 0.6, `the typical point shows ≥ 60 % of the scene (median transmission ${prod.median.toFixed(2)}; the pre-fix renderer measured 0.27–0.44 here)`);

@@ -61,7 +61,7 @@ test('every preset meets WCAG AA (4.5:1) for text, secondary text and links on a
 });
 test('light/dark detection uses luminance, not string prefixes', () => {
   const light = [...C.PRESETS.filter(t => C.isLightColor(t.bg)).map(t => t.name)].sort();
-  assert.deepEqual(light, ['Arctic Frost', 'Futuristic Sci-Fi', 'Sakura Dreams']);
+  assert.deepEqual(light, ['Arctic Frost', 'Sakura Dreams']);
   assert.equal(C.isLightColor('not a color'), false);
 });
 test('prototype-like keys never resolve to inherited Object members', () => {
@@ -196,7 +196,7 @@ test('four flagship themes with 3D artwork and a live layer each', () => {
   const slugs = flagships.map(t => t.wallpaperRef.replace('builtin:', ''));
   assert.deepEqual([...slugs], ['neon-city-3d', 'enchanted-forest', 'scifi-ai', 'cosmic-galaxy']);
   for (const slug of slugs) assert.equal(C.WALLPAPERS.find(w => w.slug === slug).style, '3d', `${slug} is a 3D render`);
-  assert.ok(C.isLightColor(C.PRESETS[14].bg) && !C.isLightColor(C.PRESETS[0].bg), 'sci-fi is the light world, the rest are dark');
+  assert.ok(flagships.every(t => !C.isLightColor(t.bg)), 'all four flagship worlds are dark scenes (Sci-Fi became a dark cyan-lit hall in v0.3)');
   // every flagship keeps readable text over its own artwork
   for (const t of flagships) assert.ok(C.requiredGlass(t, C.wallpaperTone(t.wallpaperRef)) <= 0.9, `${t.name} guard`);
 });
@@ -289,4 +289,29 @@ test('restore visual defaults resets only visual controls; assignments, wallpape
   assert.deepEqual([t.name, t.accent, t.wallpaperRef], ['Mine', '#123456', 'idb:w0123456789abcdef012345']);
   assert.equal(cfg.repoAssignments['a/b'], 'custom-old'); assert.equal(cfg.autoAssignments['c/d'], 'preset-3');
   assert.equal(C.restoreVisualDefaults(cfg), 0, 'idempotent');
+});
+
+test('depth effects and scene-window height are normalized, defaulted and restored', () => {
+  const d = C.normalizeConfig({});
+  assert.equal(d.depthEffects, true); assert.equal(d.sceneHeight, 'standard');
+  const c = C.normalizeConfig({ depthEffects: false, sceneHeight: 'tall' });
+  assert.equal(c.depthEffects, false); assert.equal(c.sceneHeight, 'tall');
+  assert.equal(C.normalizeConfig({ sceneHeight: '<script>' }).sceneHeight, 'standard');
+  assert.equal(C.normalizeConfig({ depthEffects: 'no' }).depthEffects, true);
+  C.restoreVisualDefaults(c); assert.equal(c.sceneHeight, 'standard');
+});
+
+test('flagship wallpapers declare depth layers that exist on disk, starting with a far layer', () => {
+  const path = require('node:path');
+  const flagship = ['enchanted-forest', 'cosmic-galaxy', 'neon-city-3d', 'scifi-ai'];
+  for (const slug of flagship) {
+    const w = Object.values(C.WALLPAPERS).find(x => x.slug === slug || x.id === slug);
+    assert.ok(w, slug);
+    assert.ok(Array.isArray(w.depth) && w.depth.length >= 3, `${slug} depth layers`);
+    assert.equal(w.depth[0].layer, 'far');
+    for (const l of w.depth) {
+      assert.match(l.path, /^wallpapers\/depth\/[a-z0-9-]+\/(far|mid|near|front|rays)\.webp$/);
+      assert.ok(fs.existsSync(path.join(__dirname, '..', l.path)), l.path);
+    }
+  }
 });

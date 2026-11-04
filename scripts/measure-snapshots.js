@@ -19,7 +19,7 @@ const R = require('../tests/e2e/real-snapshot');
         await setConfig(context, { enabled: true, motionMode: 'static', defaultThemeId: 'custom-solid', customThemes: { 'custom-solid': { ...p, id: 'custom-solid', backgroundMode: 'solid' } } });
         await page.goto(snap.main); await page.waitForTimeout(600);
         const solid = await page.screenshot();
-        await setConfig(context, { enabled: true, motionMode: 'static', defaultThemeId: id, appearance: process.env.APPEARANCE || 'crisp' });
+        await setConfig(context, { enabled: true, motionMode: process.env.MOTION || 'static', defaultThemeId: id, appearance: process.env.APPEARANCE || 'crisp' });
         await page.goto(snap.main); await page.waitForTimeout(900);
         const art = await page.screenshot();
         const changed = await diffRatio(context, solid, art);

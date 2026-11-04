@@ -74,25 +74,67 @@ vec3 asteroids(vec3 ro, vec3 rd, out float tA) {
   }
   return col;
 }
+// Big close asteroids for the decorative front layer (3D-shaded, near the scene window's edges).
+vec3 bigRocks(vec3 ro, vec3 rd, out float tA) {
+  tA = 1e9; vec3 col = vec3(0.0);
+  // small, close rocks framing the scene window's edges (kept clear of the repository title area)
+  vec3 C[3] = vec3[3](vec3(-7.6, 3.1, 9.5), vec3(7.7, 2.3, 11.0), vec3(5.2, 3.9, 16.0));
+  float Rr[3] = float[3](0.95, 1.1, 0.42);
+  for (int i = 0; i < 3; i++) {
+    float fi = float(i) + 20.0; vec3 c = C[i]; float r = Rr[i];
+    vec2 h = sphere(ro, rd, c, r * 1.2);
+    if (h.x <= 0.0 || h.x > tA) continue;
+    float t = h.x;
+    for (int k = 0; k < 32; k++) { vec3 q = ro + rd * t - c; float d = length(q) - r * (1.0 + 0.16 * noise3(q * 2.0 / r + fi) + 0.08 * noise3(q * 7.0 / r)); if (d < 0.002) break; t += d * 0.6; if (t > h.y) break; }
+    if (t >= h.y) continue;
+    vec3 q = ro + rd * t - c; vec2 e = vec2(0.01 * r, 0.0);
+    float f0 = length(q) - r * (1.0 + 0.16 * noise3(q * 2.0 / r + fi) + 0.08 * noise3(q * 7.0 / r));
+    vec3 n = normalize(vec3(
+      length(q + e.xyy) - r * (1.0 + 0.16 * noise3((q + e.xyy) * 2.0 / r + fi) + 0.08 * noise3((q + e.xyy) * 7.0 / r)) - f0,
+      length(q + e.yxy) - r * (1.0 + 0.16 * noise3((q + e.yxy) * 2.0 / r + fi) + 0.08 * noise3((q + e.yxy) * 7.0 / r)) - f0,
+      length(q + e.yyx) - r * (1.0 + 0.16 * noise3((q + e.yyx) * 2.0 / r + fi) + 0.08 * noise3((q + e.yyx) * 7.0 / r)) - f0));
+    tA = t;
+    float cav = 0.6 + 0.4 * noise3(q * 5.0 / r + fi);
+    col = vec3(0.30, 0.26, 0.27) * cav * (SAT(dot(n, STAR)) * 1.8 + 0.03) + vec3(0.45, 0.28, 0.85) * pow(1.0 - SAT(dot(n, -rd)), 3.0) * 0.7;
+  }
+  return col;
+}
 vec3 render(vec2 uv) {
   vec3 ro = vec3(0.0, 0.0, 0.0);
   vec3 rd = camera(ro, vec3(-0.05, 0.08, 1.0), 0.06) * normalize(vec3(uv, 1.1));
-  vec3 col = background(rd) + nebula(ro, rd);
-  float tr; float ring = rings(ro, rd, tr);
-  vec2 h1 = sphere(ro, rd, P1, R1), h2 = sphere(ro, rd, P2, R2);
-  bool behind = h1.x > 0.0 && tr > h1.x; // ring part hidden behind the planet
-  if (ring > 0.0 && !behind && (h1.x < 0.0 || tr < h1.x)) {} // drawn after the planet below
-  if (h2.x > 0.0) col = planet(ro, rd, P2, R2, h2, 0.0);
-  if (h1.x > 0.0) col = planet(ro, rd, P1, R1, h1, 1.0);
-  // atmosphere halo around the giant planet
-  vec3 oc = P1 - ro; float dd = length(cross(rd, oc)) - R1;
-  if (dot(rd, oc) > 0.0 && dd > 0.0) col += vec3(0.35, 0.5, 1.0) * exp(-dd * 0.35) * 0.6;
-  if (ring > 0.0 && (h1.x < 0.0 || tr < h1.x)) {
-    vec3 rp = ro + rd * tr; float shadowP = sphere(rp, STAR, P1, R1).x > 0.0 ? 0.25 : 1.0;
-    col = mix(col, vec3(0.85, 0.75, 0.95) * 0.9 * shadowP, ring * 0.75);
+  if (uLayer == 4) { float tb; vec3 c = bigRocks(ro, rd, tb); gAlpha = tb < 1e8 ? 1.0 : 0.0; return c; }
+  if (uLayer == 5) { // starlight shafts from the off-screen sun
+    vec3 sv = vec3(dot(STAR, camera(ro, vec3(-0.05, 0.08, 1.0), 0.06)[0]), dot(STAR, camera(ro, vec3(-0.05, 0.08, 1.0), 0.06)[1]), 1.0);
+    vec2 sp = vec2(1.15, 0.45); vec2 d = uv - sp; float ang = atan(d.y, d.x), r = length(d);
+    float shafts = pow(SAT(noise(vec2(ang * 7.0, 2.0)) * 0.5 + 0.5), 4.0) + 0.5 * pow(SAT(noise(vec2(ang * 19.0, 5.0)) * 0.5 + 0.5), 7.0);
+    float a = SAT(shafts * exp(-r * 0.9) * 1.1);
+    gAlpha = a * 0.7; return vec3(1.0, 0.86, 0.75);
   }
+  vec2 h1 = sphere(ro, rd, P1, R1), h2 = sphere(ro, rd, P2, R2);
+  float tr; float ring = rings(ro, rd, tr);
+  if (uLayer == 1 || uLayer == 0) {
+    vec3 col = background(rd) + nebula(ro, rd);
+    if (h2.x > 0.0) col = planet(ro, rd, P2, R2, h2, 0.0);
+    if (uLayer == 1) return col + vec3(1.0, 0.85, 0.7) * pow(SAT(dot(rd, STAR)), 60.0) * 1.5;
+    // flat composite: everything (as before)
+    if (h1.x > 0.0) col = planet(ro, rd, P1, R1, h1, 1.0);
+    vec3 oc = P1 - ro; float dd = length(cross(rd, oc)) - R1;
+    if (dot(rd, oc) > 0.0 && dd > 0.0) col += vec3(0.35, 0.5, 1.0) * exp(-dd * 0.35) * 0.6;
+    if (ring > 0.0 && (h1.x < 0.0 || tr < h1.x)) { vec3 rp = ro + rd * tr; float shadowP = sphere(rp, STAR, P1, R1).x > 0.0 ? 0.25 : 1.0; col = mix(col, vec3(0.85, 0.75, 0.95) * 0.9 * shadowP, ring * 0.75); }
+    float tA; vec3 ac = asteroids(ro, rd, tA); if (tA < 1e8) col = ac;
+    float tb; vec3 bc = bigRocks(ro, rd, tb); if (tb < 1e8) col = bc;
+    return col + vec3(1.0, 0.85, 0.7) * pow(SAT(dot(rd, STAR)), 60.0) * 1.5;
+  }
+  if (uLayer == 2) { // giant planet + atmosphere halo + rings, with alpha
+    vec3 col = vec3(0.0); float a = 0.0;
+    vec3 oc = P1 - ro; float dd = length(cross(rd, oc)) - R1;
+    if (dot(rd, oc) > 0.0 && dd > 0.0) { float hal = SAT(exp(-dd * 0.35) * 0.6); col = vec3(0.35, 0.5, 1.0) * 1.6; a = hal; }
+    if (h1.x > 0.0) { col = planet(ro, rd, P1, R1, h1, 1.0); a = 1.0; }
+    if (ring > 0.0 && (h1.x < 0.0 || tr < h1.x)) { vec3 rp = ro + rd * tr; float shadowP = sphere(rp, STAR, P1, R1).x > 0.0 ? 0.25 : 1.0;
+      float ra = ring * 0.75; col = mix(col * a, vec3(0.85, 0.75, 0.95) * 0.9 * shadowP, ra) / max(a + ra - a * ra, 1e-3); a = a + ra - a * ra; }
+    gAlpha = a; return col;
+  }
+  // near: asteroid field
   float tA; vec3 ac = asteroids(ro, rd, tA);
-  if (tA < 1e8) col = ac;
-  col += vec3(1.0, 0.85, 0.7) * pow(SAT(dot(rd, STAR)), 60.0) * 1.5;
-  return col;
+  gAlpha = tA < 1e8 ? 1.0 : 0.0; return ac;
 }
