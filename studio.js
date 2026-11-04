@@ -493,7 +493,7 @@
           d.duplicate ? `WARNING: ${d.instances.length} RepoVibe copies active (${d.instances.join(', ')}) — remove older ones in chrome://extensions` : 'single installation',
           d.active ? `stylesheet ${d.stylesheet} bytes, scene on page background: ${d.wallpaperOnRoot ? 'yes' : 'no'}` : 'theme not active on this page',
           `appearance ${C.APPEARANCES[d.appearance]?.label || d.appearance}, scene window ${d.sceneWindow ? 'on' : 'off'}, readability backing ${d.readingBacking === 'text' ? 'text only' : 'full panels'}`,
-          d.depth ? `3D depth: ${d.depth.scene}, ${d.depth.mode}, ${d.depth.layers.length} layers, quality ${d.depth.quality}${d.depth.lite ? ' (Lite active)' : ''}${d.depth.measuredFps ? `, measured ${d.depth.measuredFps} fps` : ''}` : '3D depth: not running on this page (Static, reduced motion, depth off, Home, or a non-flagship scene)',
+          d.depth ? `3D depth: ${d.depth.scene}, ${d.depth.mode}, ${d.depth.layers.length} layers, quality ${d.depth.quality}${d.depth.minimal ? ' (Minimal active)' : d.depth.lite ? ' (Lite active)' : ''}${d.depth.measuredFps ? `, measured ${d.depth.measuredFps} fps` : ''}` : '3D depth: not running on this page (Static, reduced motion, depth off, Home, or a non-flagship scene)',
           d.homeCards && d.homeCards.home ? (d.homeCards.method && d.homeCards.method !== 'none' && d.homeCards.rows
             ? `Home · Top repositories found via ${d.homeCards.method}: ${d.homeCards.links} repository links, ${d.homeCards.rows.filter(r => r.theme).length}/${d.homeCards.rows.length} rows themed${d.homeCards.rows.filter(r => !r.theme).map(r => `; ${r.repo} not themed: ${r.reason}`).join('')}`
             : `Home · Top repositories not themed: ${d.homeCards.reason || 'unknown'}`) : '',

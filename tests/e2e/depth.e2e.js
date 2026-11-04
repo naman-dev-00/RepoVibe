@@ -12,8 +12,8 @@ const updateConfig = (context, fnSource) => extPage(context).then(async p => {
   await p.evaluate(src => RepoVibeCore.updateConfig(new Function('c', src)), fnSource);
   await p.close();
 });
-const layerX = page => page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#repovibe-depth > .repv-l, #repovibe-depth > .repv-s, #repovibe-popout > .repv-s')]
-  .map(l => [l.dataset.l || `${l.parentElement.id === 'repovibe-popout' ? 'pop' : 'sprite'}:${l.dataset.sprite}:${l.dataset.k}`, new DOMMatrixReadOnly(getComputedStyle(l).transform).m41])));
+const layerX = page => page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#repovibe-depth > .repv-l, #repovibe-depth > .repv-b, #repovibe-popout > .repv-s')]
+  .map(l => [l.dataset.l || (l.classList.contains('repv-b') ? `sprite:bucket:${l.dataset.k}` : `pop:${l.dataset.sprite}:${l.dataset.k}`), new DOMMatrixReadOnly(getComputedStyle(l).transform).m41])));
 async function sweep(page) {
   const { width, height } = page.viewportSize();
   // wait for the smoothed pointer (--px = -pointer x in [-1, 1]) to settle at each end
@@ -132,7 +132,7 @@ test('depth engine: each flagship world builds its own layered scene', async () 
       const layers = await page.evaluate(() => [...document.querySelectorAll('#repovibe-depth > .repv-l')].map(l => l.dataset.l));
       for (const l of ['far', 'mid', 'rays']) assert.ok(layers.includes(l), `${slug}: ${l} in ${layers}`);
       // individually moving objects: scene sprites behind the page and pop-out sprites in front of it (safe regions only)
-      const sp = await page.evaluate(() => ({ scene: document.querySelectorAll('#repovibe-depth > .repv-s').length, pop: document.querySelectorAll('#repovibe-popout > .repv-s').length,
+      const sp = await page.evaluate(() => ({ scene: document.querySelectorAll('#repovibe-depth .repv-s').length, pop: document.querySelectorAll('#repovibe-popout > .repv-s').length,
         popPE: document.getElementById('repovibe-popout') ? getComputedStyle(document.getElementById('repovibe-popout')).pointerEvents : null }));
       assert.ok(sp.scene >= 2 && sp.pop >= 2 && sp.popPE === 'none', `${slug}: sprites ${JSON.stringify(sp)}`);
       const d = await sweep(page);
@@ -157,7 +157,7 @@ test('Cosmic Galaxy hero: asteroids move on their own, pop-out objects sit in fr
     await page.waitForSelector('#repovibe-popout .repv-s:not([hidden])', { state: 'attached' });
     await page.mouse.move(960, 540); await page.waitForTimeout(800);
     // autonomous motion: with the pointer still, sprites keep moving (drift/rotation loops)
-    const pos = () => page.evaluate(() => [...document.querySelectorAll('#repovibe-depth > .repv-s > img, #repovibe-popout > .repv-s:not([hidden]) > img')].map(i => { const r = i.getBoundingClientRect(); return [i.parentElement.dataset.sprite, r.x, r.y, getComputedStyle(i).transform]; }));
+    const pos = () => page.evaluate(() => [...document.querySelectorAll('#repovibe-depth .repv-s > img, #repovibe-popout > .repv-s:not([hidden]) > img')].map(i => { const r = i.getBoundingClientRect(); return [i.parentElement.dataset.sprite, r.x, r.y, getComputedStyle(i).transform]; }));
     const a = await pos(); await page.waitForTimeout(3000); const b = await pos();
     const moved = a.filter((p, i) => Math.hypot(p[1] - b[i][1], p[2] - b[i][2]) > 3 || p[3] !== b[i][3]).map(p => p[0]);
     assert.ok(moved.length >= 6, `objects move on their own without input: ${moved.join(', ')}`);
@@ -181,6 +181,29 @@ test('Cosmic Galaxy hero: asteroids move on their own, pop-out objects sit in fr
     await page.waitForFunction(() => !document.getElementById('repovibe-popout'));
     await updateConfig(context, 'c.enabled = false;');
     await page.waitForFunction(() => !document.getElementById('repovibe-depth') && !document.getElementById('repovibe-popout'));
+    assert.deepEqual(errors, []);
+  } finally { await close(); }
+});
+
+test('true defaults: pop-out layer on, Auto quality decides once and never oscillates across mode changes', async () => {
+  const { context, errors, close } = await launch();
+  try {
+    context.setDefaultTimeout(30000);
+    // an explicit v2 config without depth settings → real defaults (Ambient, Auto quality, foreground 100 %)
+    await setConfig(context, { version: 2, enabled: true, autoAssign: false, seededMappings: true, defaultThemeId: 'preset-1' });
+    const page = await context.newPage(); await page.setViewportSize({ width: 1600, height: 900 });
+    await page.goto('https://github.com/acme/project/layout');
+    await page.evaluate(() => { const c = document.createElement('div'); c.id = 'repo-content-pjax-container'; c.innerHTML = '<p style="margin:0 40px">Repository content</p>'; (document.querySelector('main, .application-main') || document.body).prepend(c); });
+    await page.waitForSelector('#repovibe-popout .repv-s:not([hidden])', { state: 'attached' });
+    const pops = await page.evaluate(() => document.querySelectorAll('#repovibe-popout .repv-s:not([hidden])').length);
+    assert.ok(pops >= 1, 'pop-out objects are shown with the default settings');
+    // count every Lite on/off change from here on
+    await page.evaluate(() => { window.__liteFlips = []; let was = document.documentElement.classList.contains('repv-depth-lite');
+      new MutationObserver(() => { const now = document.documentElement.classList.contains('repv-depth-lite'); if (now !== was) { window.__liteFlips.push(now); was = now; } }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] }); });
+    await page.waitForTimeout(5000); // Auto measures once (1.5 s settle + 2 s probe)
+    for (const mode of ['cinematic', 'ambient', 'static', 'cinematic', 'ambient']) { await updateConfig(context, `c.motionMode = '${mode}';`); await page.waitForTimeout(4200); }
+    const flips = await page.evaluate(() => window.__liteFlips);
+    assert.ok(flips.length <= 1 && !flips.includes(false), `Auto switched at most once and never back to Full: ${JSON.stringify(flips)}`);
     assert.deepEqual(errors, []);
   } finally { await close(); }
 });

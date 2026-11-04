@@ -41,7 +41,9 @@ test('text-only readability backing: compact per-block backings, empty space ope
         side: bg(document.getElementById('tSide')), sideRow: bg(document.querySelector('#tSide .BorderGrid-row')), sideH2: bg(document.querySelector('#tSide h2')), sideA: bg(document.querySelector('#tSide a')) };
     });
     // broad surfaces are gone
-    for (const k of ['md', 'side', 'sideRow']) assert.equal(alpha(s[k]), 0, `${k} has no broad backing (${s[k]})`);
+    assert.equal(alpha(s.md), 0, `README has no broad backing (${s.md})`);
+    // sidebar sections are anchored by a light surface + themed frame (not a reading panel): alpha stays low
+    for (const k of ['side', 'sideRow']) assert.ok(alpha(s[k]) <= 0.35, `${k}: only a light anchoring surface (${s[k]})`);
     // each text block has its own backing; nested inline text does not stack a second one
     s.stat = await page.evaluate(() => getComputedStyle(document.getElementById('tStat')).backgroundColor);
     for (const k of ['h1', 'p', 'li', 'sideH2', 'sideA', 'stat']) assert.ok(alpha(s[k]) >= 0.5, `${k} backed (${s[k]})`);

@@ -95,11 +95,13 @@ async function perf(page, client, ms, move) {
       let video;
       try {
         await setConfig(context, { enabled: true, motionMode: 'ambient', defaultThemeId: id, depthEffects: true, depthQuality: 'full' });
+        // control page opened BEFORE the recorded tab (opening a page mid-recording disturbs the recorded screencast)
+        const ctl = await extPage(context); await ctl.waitForFunction(() => !!globalThis.RepoVibeCore);
         const page = await open(context, 960, 540);
         video = page.video();
         await page.waitForSelector('#repovibe-depth .repv-l[data-l="far"]', { state: 'attached' }); await page.waitForTimeout(1200);
         for (let i = 0; i <= 80; i++) { await page.mouse.move(480 + 470 * Math.sin(i / 80 * Math.PI * 2), 270 + 120 * Math.sin(i / 40 * Math.PI)); await page.waitForTimeout(60); }
-        await setMode(context, "c.motionMode = 'cinematic';"); await page.waitForTimeout(600);
+        await ctl.evaluate(() => RepoVibeCore.updateConfig(c => { c.motionMode = 'cinematic'; })); await page.bringToFront(); await page.waitForTimeout(600);
         for (let i = 0; i <= 80; i++) { await page.mouse.move(480 + 470 * Math.sin(i / 80 * Math.PI * 2), 270); await page.waitForTimeout(60); }
         await page.waitForTimeout(2500);
         await page.close();

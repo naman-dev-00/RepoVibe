@@ -2,6 +2,152 @@
 
 Branch `feature/phase1b-immersive-themes` (PR #2, stacked on PR #1). Not merged.
 
+## 0f. Final verification, performance review and themed border & glow — latest
+
+### 1. CI and live results for `cd7165d`
+
+- **CI** ([run](https://github.com/naman-dev-00/RepoVibe/actions/runs/41824478588)): green. Check, unit, E2E and package all pass.
+- **Live github.com** ([run](https://github.com/naman-dev-00/RepoVibe/actions/runs/41824478605)): 14/15 tests, 237 PASS, **2 FAIL**, 0 BLOCKED.
+  - LIVE 8 passed on real pages for all four worlds: the depth scene, the moving objects, pointer-events none, AA text.
+  - The failure was LIVE 9's Sci-Fi README check: 2 text elements at 3.85:1, in Static mode at 1366 px.
+  - It does not reproduce on the local page replay (7.25:1 minimum). That replay is older than today's live page.
+
+**Changes made in response:**
+1. **Readability tones now cover what the engine shows.** They are measured on the depth composite (layers, plus light shafts at their runtime opacity) and on the opaque pixels of the moving objects, at the 99th percentile. Before, they came only from the flat image, but objects such as Sci-Fi's near-white holo ring can sit behind any panel. Production panel opacity stays 0.86 (AA even over white). Lower user choices are now raised further.
+2. **LIVE 9 logs specifics.** The README check now logs the exact lowest elements, their ratios and their positions, so a remaining live failure is diagnosable from the job log.
+
+The next live run is reported in the PR description.
+
+### 2. Motion evidence inspected
+
+Frames extracted from `docs/recordings/cosmic-galaxy-depth.webm`, plus the autonomous-motion strip `docs/screenshots/depth/cosmic-galaxy-autonomous.jpg` (pointer held still, t = 0 / 2 / 4 s). Confirmed:
+- every rock changes position and rotation between frames with no input;
+- the rocks cropped by the screen edges and the pop-out rocks move the most with the pointer;
+- the planet and sky barely move.
+
+**Defect found in the recording itself.** After the switch to Cinematic, the recorded page rendered shrunken in the corner of the video. The cause: the harness opened a new extension page mid-recording, which disturbed the recorded tab's screencast. Fixed by opening the control page before recording; the recordings were regenerated.
+
+### 3. Performance review: what was found and fixed
+
+Profiler: `scripts/perf-profile.js`. It reports:
+- rAF frame times;
+- CDP main-thread metrics;
+- paint, raster and composite time from a Chrome trace;
+- composited layer count and area;
+- JS heap;
+- CPU of all Chromium processes, read from `/proc`.
+
+**Rendering here is software: the GPU string is "ANGLE (SwiftShader)".**
+
+| Finding | Evidence | Fix |
+|---|---|---|
+| **Every pointer frame repainted the whole document and the repository container** (32 document paints in 2 s; raster about 650 ms/s against 238 ms/s with depth off). | Trace `Paint` events by DOM node. Gone with pop-out off or parallax off. | Pop-out objects cropped at the screen edge changed the page's *scrollable overflow* when they moved. The pop-out container is now `overflow-x:clip`. Result: **0 paints** during pointer motion in all four worlds; raster about 650 → 140 ms/s. |
+| Autonomous motion cost | With the pointer still: no paint, no raster, no main-frame work. | None needed: all drift, spin, flicker, fall and cross animations run on the compositor. |
+| Per-frame style writes | About 25 inline `transform` writes per frame. | Scene objects share 5 depth buckets (one mover each); unchanged transforms are skipped. Scene movers drop from about 25 to about 13. |
+| Layer area | Blanket 6 % overscan on every plane. | Overscan sized per layer: k × 54 px + 10 px. |
+| Placement checks (`elementsFromPoint`) | Several hundred probes per placement. | Run only when the layout signature changes (size, band position, document height, settings, images). Never per frame. |
+| Per-frame allocation | — | One template string per mover per changed frame. No objects or arrays allocated in the loop. |
+| **Auto quality could oscillate** | It re-probed on every mode change. With Lite active it measured faster and switched back to Full. | **One decision per page.** Measured once (never in Static, only while visible), on a one-way ladder: Full ≥ 40 fps, Lite 25–40, Minimal < 25. Never switches back mid-page. E2E proves at most one switch across 5 mode changes. |
+| Slowest machines | Lite still about 21–29 fps in software. | New **Minimal** tier (Auto only): no particle planes or light shafts; the layers, moving objects and pop-out objects stay. Forest under Auto: 15 → 38 fps in software. |
+
+**Measured, 1366 × 768, real-page replay, 5 s of pointer motion, software rendering (SwiftShader):**
+
+| World · mode | avg fps | p95 frame | frames > 33 ms | main thread ms/s (style) | paint ms/s | CPU (all Chromium processes) | layers (area) | JS heap |
+|---|---|---|---|---|---|---|---|---|
+| Galaxy · Static | 57.6 | 16.8 ms | 0.7 % | 91 (3) | 15 | 0.28 cores | 22 (27 vp) | 2.1 MB |
+| Galaxy · depth off | 58.8 | 16.8 ms | 0.3 % | 108 (14) | 21 | 1.14 | 12 (21 vp) | 2.3 MB |
+| Galaxy · Ambient Full | 19.3 | 83 ms | 84 % | 154 (26) | 8 | 1.23 | 36 (28 vp) | 2.0 MB |
+| Galaxy · Ambient Lite | 28.5 | 50 ms | 19 % | 273 (31) | 11 | 1.27 | 26 (25 vp) | 2.1 MB |
+| Galaxy · Cinematic Full | 18.6 | 83 ms | 76 % | 159 (29) | 10 | 1.24 | 37 (29 vp) | 2.0 MB |
+| Forest · Static / Full / Lite / Cinematic | 57.0 / 15.1 / 22.4 / 16.1 | 17 / 117 / 83 / 117 ms | 1 / 92 / 54 / 95 % | 96 / 310 / 152 / 159 | 15 / 10 / 9 / 10 | 0.30 / 1.23 / 1.23 / 1.23 | 25 / 30 / 25 / 31 | 2.0–2.6 MB |
+| Cyberpunk · Static / Full / Lite / Cinematic | 56.4 / 17.6 / 20.1 / 14.9 | 17 / 100 / 83 / 133 ms | 1 / 96 / 75 / 91 % | 98 / 164 / 139 / 174 | 14 / 13 / 11 / 11 | 0.30 / 1.23 / 1.21 / 1.23 | 23 / 27 / 22 / 28 | 2.0–2.6 MB |
+| Sci-Fi · Static / Full / Lite / Cinematic | 56.0 / 15.2 / 22.5 / 15.3 | 17 / 117 / 83 / 117 ms | 1 / 92 / 58 / 94 % | 111 / 191 / 167 / 181 | 18 / 9 / 11 / 10 | 0.33 / 1.24 / 1.22 / 1.24 | 23 / 27 / 22 / 28 | 2.0–2.6 MB |
+| Depth off (all worlds) | 58.8–60 | 16.7–16.8 ms | 0–0.3 % | 80–108 | 15–21 | 0.99–1.14 | 12 (20–22 vp) | 2.3 MB |
+
+**Auto, the default**, after its single decision. Software rendering selects Minimal in all four worlds. Measured without tracing, 5 s of pointer motion:
+
+| World | Galaxy | Forest | Cyberpunk | Sci-Fi |
+|---|---|---|---|---|
+| fps | 30.8 | 40.0 | 29.0 | 26.8 |
+| main thread ms/s | 91 | 119 | 80 | 79 |
+
+The layers, moving objects and pop-out objects stay in Minimal; only the particle planes and light shafts are dropped.
+
+Notes on the table:
+- **Source:** `docs/perf-profile.json`.
+- **Tracing overhead:** main thread and CPU are measured *with tracing on*, which inflates them.
+- **Paint** is the residual GitHub hover repaint under the moving pointer. It is equal with depth off.
+- **Raster** is about 100–180 ms/s, down from about 650 before the overflow fix.
+- **Heap** stays about 2–2.6 MB, with no growth across modes.
+
+**What limits software rendering.** Each moving plane damages the full viewport, so the compositor re-blends every layer on the CPU each frame. Software compositing saturates at about 1.2 CPU cores, regardless of our main-thread work, which is now small.
+
+**Hardware.** On a GPU those blends are textured quads, cheap at 60 fps. The **50–60 fps target on ordinary GPU-accelerated desktop Chrome is UNVERIFIED**: no GPU hardware was available for measurement. Profiling with `scripts/perf-profile.js` on such a machine will show the result: its output records whether the GPU is hardware or SwiftShader.
+
+### 4. Default pop-out behaviour is tested (foreground on)
+
+- A new E2E test uses the true defaults (Ambient, Auto quality, foreground 100 %). It shows the pop-out objects and verifies the Auto ladder decides at most once.
+- The Galaxy hero test also runs with the foreground on.
+- Only the legacy pixel-baseline tests switch pop-out off, because their placement is deferred until images load.
+
+### 5. Themed border & glow system
+
+| World | Edge | Glow |
+|---|---|---|
+| Enchanted Forest | mint/teal `#5fe0b9` | soft mint `#9dffd8`, strength 0.34 |
+| Cosmic Galaxy | violet `#a98bff` | cosmic blue `#6f9bff`, strength 0.38 |
+| Cyberpunk Neon | magenta `#ff4fd8` | cyan `#3ff0ff`, strength 0.5 (strongest) |
+| Futuristic Sci-Fi | cyan `#7fe6ff` | cyan-white `#e8fbff`, strength 0.4 |
+| Other themes | accent | accent; strength by theme character |
+
+Treatment:
+- **Edges.** About 1.5 px: a 1 px themed border plus a 0.5 px outer ring.
+- **Glow.** Two soft outer layers, 10 px and 26 px, at low alpha, so the edge looks like it gently emits light.
+- **Highlight.** A faint inner top highlight.
+- **Shadow.** A grounding drop shadow.
+
+Where it applies:
+- **Panels and boxes:** themed edge and glow.
+- **Buttons, inputs and search:** themed edge and gentle glow, stronger on hover and focus.
+- **Menus, dialogs and popovers:** edge and stronger glow.
+- **Home cards:** a resting accent ring and glow.
+- **Sidebar sections:** they no longer float. They get a light anchoring surface (26 % in dark themes), a themed frame and glow, and 12 px inner padding; text keeps its own readable backing.
+- **README:** a themed frame and glow around an open interior.
+
+Small dividers are untouched. No blur was added.
+
+Before/after on the real-page replay (Static, 1366 px), with sidebar, README and button group for each world: `docs/screenshots/borders/<world>.jpg`. The before is `cd7165d`, loaded via `REPOVIBE_EXT`.
+
+### 6. Readability
+
+Screenshot-measured text contrast on the real-page replays, with the border & glow, the new tones, the moving objects and Static's layered scene all active:
+- coverage: code, issues and PR list × 4 worlds × Static and Ambient × 1366 and 1920 px;
+- result: **48/48 runs, 0 text elements below 4.5:1**;
+- minimum 4.63: GitHub's own header text.
+
+Home cards still theme 6/6 rows on all three markup variants.
+
+### 7. Tests
+
+- **Unit:** 30/30.
+- **Offline E2E:** 56/56. New:
+  - Auto ladder decides once, with pop-out on by default;
+  - Galaxy hero (pop-out never over content, click-through, autonomous motion);
+  - depth ordering including buckets.
+
+  Adjusted:
+  - the sidebar may carry a light anchoring surface of at most 35 % (it no longer has to be fully transparent);
+  - the panel-opacity control is tested where the guard leaves room (60 % overlay);
+  - 3 baselines refreshed for the border and glow.
+- **Live:** see the PR description.
+
+### 8. Remaining limitations
+
+- Performance on GPU hardware is unmeasured. In software rendering, Full quality is 15–21 fps; Auto selects Lite or Minimal.
+- The Sci-Fi README live failure on `cd7165d` could not be reproduced locally. The tone fix and the new logging are in place, and the next live run decides.
+- This is 2.5D layered art: no live 3D geometry.
+- Signed-in GitHub is unverified.
+
 ## 0e. 3D Overdrive: living, layered worlds with pop-out objects — latest
 
 **Goal.** GitHub should sit inside a living 3D environment, not in front of a wallpaper. This build makes three changes to get there:

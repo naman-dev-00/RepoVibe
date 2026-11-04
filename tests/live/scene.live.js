@@ -102,7 +102,7 @@ for (const [, id, slug, motion, label] of FLAGSHIPS) L.liveTest(`LIVE 9 (${label
           return { article: alpha(getComputedStyle(a).backgroundColor), backed: ps.filter(e => alpha(getComputedStyle(e).backgroundColor) >= 0.5 || alpha(getComputedStyle(e.parentElement.closest('li, p') || e).backgroundColor) >= 0.5).length, blocks: ps.length, open: document.documentElement.classList.contains('repv-open') };
         });
         const vr = await visualContrast(context, page, 300);
-        c.check(rd.open && rd.article === 0 && rd.blocks > 0 && rd.backed === rd.blocks && vr.below3.length === 0 && vr.below45 === 0, `${label} · README`, `open README (container alpha ${rd.article}); ${rd.backed}/${rd.blocks} text blocks individually backed; text min ${vr.min.toFixed(2)}, <4.5:1 ${vr.below45}, <3:1 ${vr.below3.length}`);
+        c.check(rd.open && rd.article === 0 && rd.blocks > 0 && rd.backed === rd.blocks && vr.below3.length === 0 && vr.below45 === 0, `${label} · README`, `open README (container alpha ${rd.article}); ${rd.backed}/${rd.blocks} text blocks individually backed; text min ${vr.min.toFixed(2)}, <4.5:1 ${vr.below45}, <3:1 ${vr.below3.length}${vr.low.length ? `; lowest: ${vr.low.slice(0, 4).map(x => `"${x.text.slice(0, 40)}" ${x.ratio.toFixed(2)} @${x.at}`).join('; ')}` : ''}`);
         await L.logShot(context, page, `scene-${label}-readme-1366`);
       } else c.info(`${label} · README`, 'README article not found on this page');
       // Diagnostic configuration (opacity 100 %, brightness 100 %, blur 0, overlay 0) on the Code page.

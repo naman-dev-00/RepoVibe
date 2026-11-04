@@ -9,7 +9,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { chromium } = require('playwright');
 
-const EXT = path.resolve(__dirname, '../..');
+const EXT = process.env.REPOVIBE_EXT ? path.resolve(process.env.REPOVIBE_EXT) : path.resolve(__dirname, '../..'); // REPOVIBE_EXT: load another build (before/after evidence)
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.html'), 'utf8');
 const HOME_FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture-home.html'), 'utf8');
 const LAYOUT_FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture-layout.html'), 'utf8');

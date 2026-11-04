@@ -6,60 +6,60 @@
       "parallaxPx": {
         "far": 3,
         "pfar": 6.6,
-        "mist": 8.1,
+        "mist": 8.2,
         "mid": 12.2,
         "pmid": 17.8,
         "near": 25.4,
         "rays": 14,
-        "front": 41.9,
-        "pnear": 53.3
+        "front": 41.8,
+        "pnear": 53.2
       },
-      "autonomous": 8,
+      "autonomous": 6,
       "perf": {
         "ambientPointer": {
-          "fps": 13.8,
-          "taskMsPerS": 76.1,
-          "scriptMsPerS": 4.8,
-          "styleMsPerS": 15.2,
+          "fps": 17.8,
+          "taskMsPerS": 67.4,
+          "scriptMsPerS": 4.7,
+          "styleMsPerS": 16.1,
           "layoutMsPerS": 0,
-          "heapMB": 3.5,
-          "nodes": 5507
+          "heapMB": 3.3,
+          "nodes": 5493
         },
         "cinematicPointer": {
-          "fps": 18.3,
-          "taskMsPerS": 103.6,
-          "scriptMsPerS": 6.3,
-          "styleMsPerS": 22.8,
+          "fps": 22.3,
+          "taskMsPerS": 78.9,
+          "scriptMsPerS": 6.1,
+          "styleMsPerS": 22.4,
           "layoutMsPerS": 0,
-          "heapMB": 2.9,
-          "nodes": 5132
+          "heapMB": 3.6,
+          "nodes": 5991
         },
         "liteAmbientPointer": {
-          "fps": 24.5,
-          "taskMsPerS": 107.3,
-          "scriptMsPerS": 8.7,
-          "styleMsPerS": 23.2,
+          "fps": 30.5,
+          "taskMsPerS": 95.6,
+          "scriptMsPerS": 8.1,
+          "styleMsPerS": 22.9,
           "layoutMsPerS": 0,
-          "heapMB": 3,
-          "nodes": 5225
+          "heapMB": 3.1,
+          "nodes": 5199
         },
         "flatAmbient": {
-          "fps": 59.8,
-          "taskMsPerS": 73.8,
-          "scriptMsPerS": 3.2,
-          "styleMsPerS": 12.4,
+          "fps": 60.3,
+          "taskMsPerS": 58.7,
+          "scriptMsPerS": 2.8,
+          "styleMsPerS": 11.1,
           "layoutMsPerS": 0,
-          "heapMB": 2.9,
-          "nodes": 5032
+          "heapMB": 2.8,
+          "nodes": 5041
         },
         "static": {
           "fps": 60.3,
-          "taskMsPerS": 40.8,
-          "scriptMsPerS": 3.3,
+          "taskMsPerS": 49.7,
+          "scriptMsPerS": 3,
           "styleMsPerS": 1.7,
           "layoutMsPerS": 0,
-          "heapMB": 3.3,
-          "nodes": 5128
+          "heapMB": 2.8,
+          "nodes": 5034
         }
       }
     },
@@ -67,58 +67,58 @@
       "parallaxPx": {
         "far": 3,
         "pfar": 6.6,
-        "mist": 8.1,
+        "mist": 8.2,
         "mid": 12.2,
         "pmid": 17.8,
         "rays": 14,
         "pnear": 53.3
       },
-      "autonomous": 15,
+      "autonomous": 12,
       "perf": {
         "ambientPointer": {
-          "fps": 18.3,
-          "taskMsPerS": 95.7,
-          "scriptMsPerS": 6.5,
-          "styleMsPerS": 22.2,
+          "fps": 19.8,
+          "taskMsPerS": 70.4,
+          "scriptMsPerS": 5.1,
+          "styleMsPerS": 20.4,
           "layoutMsPerS": 0,
-          "heapMB": 3.9,
-          "nodes": 5708
+          "heapMB": 3.8,
+          "nodes": 5674
         },
         "cinematicPointer": {
-          "fps": 22.8,
-          "taskMsPerS": 124.9,
-          "scriptMsPerS": 8.4,
-          "styleMsPerS": 30.5,
+          "fps": 24.8,
+          "taskMsPerS": 98,
+          "scriptMsPerS": 6.3,
+          "styleMsPerS": 28.5,
           "layoutMsPerS": 0,
           "heapMB": 2.9,
-          "nodes": 5269
+          "nodes": 5304
         },
         "liteAmbientPointer": {
-          "fps": 33.5,
-          "taskMsPerS": 140.9,
-          "scriptMsPerS": 12.5,
-          "styleMsPerS": 32.9,
+          "fps": 34.5,
+          "taskMsPerS": 102.6,
+          "scriptMsPerS": 8.5,
+          "styleMsPerS": 25.4,
           "layoutMsPerS": 0,
-          "heapMB": 3.1,
-          "nodes": 5585
+          "heapMB": 2.9,
+          "nodes": 5256
         },
         "flatAmbient": {
-          "fps": 60.3,
-          "taskMsPerS": 64.5,
-          "scriptMsPerS": 3.4,
-          "styleMsPerS": 13.2,
+          "fps": 60,
+          "taskMsPerS": 54.1,
+          "scriptMsPerS": 3.3,
+          "styleMsPerS": 10.8,
           "layoutMsPerS": 0,
-          "heapMB": 3.1,
-          "nodes": 5341
+          "heapMB": 3.4,
+          "nodes": 5371
         },
         "static": {
-          "fps": 60.3,
-          "taskMsPerS": 59.5,
-          "scriptMsPerS": 3.7,
-          "styleMsPerS": 1.9,
+          "fps": 60,
+          "taskMsPerS": 40.4,
+          "scriptMsPerS": 3,
+          "styleMsPerS": 2,
           "layoutMsPerS": 0,
-          "heapMB": 2.8,
-          "nodes": 5175
+          "heapMB": 2.9,
+          "nodes": 5178
         }
       }
     },
@@ -126,60 +126,60 @@
       "parallaxPx": {
         "far": 3,
         "pfar": 6.6,
-        "mist": 8.1,
+        "mist": 8.2,
         "mid": 12.2,
         "pmid": 17.8,
         "near": 25.4,
         "rays": 14,
-        "front": 41.9,
-        "pnear": 53.3
+        "front": 41.8,
+        "pnear": 53.2
       },
-      "autonomous": 5,
+      "autonomous": 3,
       "perf": {
         "ambientPointer": {
-          "fps": 15,
-          "taskMsPerS": 79,
-          "scriptMsPerS": 5.2,
-          "styleMsPerS": 15.2,
+          "fps": 18.3,
+          "taskMsPerS": 59,
+          "scriptMsPerS": 5,
+          "styleMsPerS": 13.4,
           "layoutMsPerS": 0,
-          "heapMB": 3.3,
-          "nodes": 5636
+          "heapMB": 3.9,
+          "nodes": 5387
         },
         "cinematicPointer": {
-          "fps": 17.3,
-          "taskMsPerS": 94.8,
-          "scriptMsPerS": 5.7,
-          "styleMsPerS": 18.6,
-          "layoutMsPerS": 0,
-          "heapMB": 3,
-          "nodes": 5286
-        },
-        "liteAmbientPointer": {
-          "fps": 24.8,
-          "taskMsPerS": 105.1,
-          "scriptMsPerS": 8.3,
-          "styleMsPerS": 20.9,
+          "fps": 24,
+          "taskMsPerS": 76.8,
+          "scriptMsPerS": 6.3,
+          "styleMsPerS": 19.1,
           "layoutMsPerS": 0,
           "heapMB": 2.9,
-          "nodes": 5339
+          "nodes": 5201
         },
-        "flatAmbient": {
-          "fps": 58.8,
-          "taskMsPerS": 66.6,
-          "scriptMsPerS": 3.1,
-          "styleMsPerS": 11.4,
-          "layoutMsPerS": 0,
-          "heapMB": 2.8,
-          "nodes": 5154
-        },
-        "static": {
-          "fps": 60,
-          "taskMsPerS": 39.4,
-          "scriptMsPerS": 3.1,
-          "styleMsPerS": 1.7,
+        "liteAmbientPointer": {
+          "fps": 30.8,
+          "taskMsPerS": 87.1,
+          "scriptMsPerS": 8,
+          "styleMsPerS": 17.7,
           "layoutMsPerS": 0,
           "heapMB": 3.2,
-          "nodes": 5250
+          "nodes": 5223
+        },
+        "flatAmbient": {
+          "fps": 60.5,
+          "taskMsPerS": 59.8,
+          "scriptMsPerS": 2.7,
+          "styleMsPerS": 10.7,
+          "layoutMsPerS": 0,
+          "heapMB": 2.8,
+          "nodes": 5157
+        },
+        "static": {
+          "fps": 60.3,
+          "taskMsPerS": 40,
+          "scriptMsPerS": 3.2,
+          "styleMsPerS": 1.6,
+          "layoutMsPerS": 0,
+          "heapMB": 3.2,
+          "nodes": 5253
         }
       }
     },
@@ -187,7 +187,7 @@
       "parallaxPx": {
         "far": 3,
         "pfar": 6.6,
-        "mist": 8.1,
+        "mist": 8.2,
         "mid": 12.2,
         "pmid": 17.8,
         "near": 25.4,
@@ -195,52 +195,52 @@
         "front": 41.9,
         "pnear": 53.3
       },
-      "autonomous": 5,
+      "autonomous": 3,
       "perf": {
         "ambientPointer": {
-          "fps": 14.5,
-          "taskMsPerS": 66.2,
-          "scriptMsPerS": 5,
-          "styleMsPerS": 15.6,
+          "fps": 17.3,
+          "taskMsPerS": 66.8,
+          "scriptMsPerS": 4.6,
+          "styleMsPerS": 14.6,
           "layoutMsPerS": 0,
-          "heapMB": 3.3,
-          "nodes": 5440
+          "heapMB": 3.8,
+          "nodes": 5197
         },
         "cinematicPointer": {
-          "fps": 17,
-          "taskMsPerS": 76,
-          "scriptMsPerS": 6,
-          "styleMsPerS": 18.9,
+          "fps": 21.5,
+          "taskMsPerS": 87.1,
+          "scriptMsPerS": 7.2,
+          "styleMsPerS": 20.9,
           "layoutMsPerS": 0,
           "heapMB": 3,
-          "nodes": 5110
+          "nodes": 5025
         },
         "liteAmbientPointer": {
-          "fps": 24.5,
-          "taskMsPerS": 85.5,
-          "scriptMsPerS": 7.7,
-          "styleMsPerS": 22.8,
+          "fps": 29,
+          "taskMsPerS": 86.6,
+          "scriptMsPerS": 7.8,
+          "styleMsPerS": 18.1,
           "layoutMsPerS": 0,
-          "heapMB": 2.8,
-          "nodes": 5056
+          "heapMB": 3.2,
+          "nodes": 5048
         },
         "flatAmbient": {
-          "fps": 60.3,
-          "taskMsPerS": 59,
-          "scriptMsPerS": 3.3,
-          "styleMsPerS": 11.5,
+          "fps": 60,
+          "taskMsPerS": 55.3,
+          "scriptMsPerS": 3.1,
+          "styleMsPerS": 10.9,
           "layoutMsPerS": 0,
-          "heapMB": 3.4,
-          "nodes": 5186
+          "heapMB": 3,
+          "nodes": 4994
         },
         "static": {
           "fps": 60.3,
-          "taskMsPerS": 41.8,
-          "scriptMsPerS": 3.3,
-          "styleMsPerS": 1.7,
+          "taskMsPerS": 42.2,
+          "scriptMsPerS": 4,
+          "styleMsPerS": 1.9,
           "layoutMsPerS": 0,
-          "heapMB": 3.7,
-          "nodes": 5282
+          "heapMB": 3.4,
+          "nodes": 5090
         }
       }
     }

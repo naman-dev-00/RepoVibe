@@ -88,17 +88,29 @@
     const blur = glass && v.glass > 0 ? `backdrop-filter:blur(${v.glass}px) saturate(1.1); -webkit-backdrop-filter:blur(${v.glass}px) saturate(1.1);` : 'backdrop-filter:none; -webkit-backdrop-filter:none;';
     // Panels read as clean surfaces floating over the scene: hairline edge + soft shadow instead of heavy frost.
     const frosted = glass && v.glass >= 8;
+    // Themed border & glow: an edge colour and a soft emitted glow per world (flagships get their own pair, other themes
+    // derive both from the accent), strength by the theme's character. Borders read ~1.5 px (1 px border + 0.5 px ring).
+    const WORLD_EDGE = { 'enchanted-forest': ['#5fe0b9', '#9dffd8', 0.34], 'cosmic-galaxy': ['#a98bff', '#6f9bff', 0.38], 'neon-city-3d': ['#ff4fd8', '#3ff0ff', 0.5], 'scifi-ai': ['#7fe6ff', '#e8fbff', 0.4] };
+    const wslug = (/^builtin:([a-z0-9-]+)$/.exec(v.wallpaperRef || '') || [])[1];
+    const [edgeC, glowC, glowS] = WORLD_EDGE[wslug] || [v.accent, v.accent, { neon: 0.45, glass: 0.3, soft: 0.24, minimal: 0.14, pixel: 0.2 }[v.vibe] ?? 0.24];
+    const edgeLine = rgba(edgeC, light ? 0.55 : 0.62), edgeRing = rgba(edgeC, light ? 0.18 : 0.22);
+    const glowNear = rgba(glowC, glowS * (light ? 0.5 : 0.75)), glowFar = rgba(edgeC, glowS * (light ? 0.25 : 0.4));
+    const panelGlow = `0 0 0 0.5px ${edgeRing}, 0 0 10px -2px ${glowNear}, 0 0 26px -6px ${glowFar}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.35 : 0.07)}, 0 10px 26px ${rgba('#000000', light ? 0.1 : 0.3)}`;
     const edge = frosted
       // Frosted Glass (opt-in): a milky sheen and bright rim make the glass itself visible, not just a darker panel.
       ? `background-image:linear-gradient(160deg, ${rgba('#ffffff', light ? 0.32 : 0.14)}, ${rgba('#ffffff', light ? 0.12 : 0.04)} 60%) !important; box-shadow:inset 0 1px 0 ${rgba('#ffffff', 0.22)}, 0 0 0 1px ${rgba('#ffffff', light ? 0.5 : 0.16)}, 0 10px 30px ${rgba('#000000', light ? 0.14 : 0.3)};`
-      : `box-shadow:0 0 0 1px ${rgba(light ? '#000000' : '#ffffff', light ? 0.08 : 0.07)}, 0 8px 24px ${rgba('#000000', light ? 0.12 : 0.28)};`;
+      : `box-shadow:${panelGlow};`;
     // A tight, light halo on loose text (its real backing is the small guard-computed pill), not a wide dimming glow.
     const halo = `0 0 1px ${rgba(v.bg, 0.9)}, 0 0 3px ${rgba(v.bg, 0.7)}`;
     const compact = v.layout === 'compact';
     const back = rgba(v.bg, looseA); // same guard-computed alpha as other loose text: AA over the brightest scene pixel
     const lift = `0 2px 10px ${rgba('#000000', light ? 0.08 : 0.2)}`;
     const openCss = `
-html.repv-open :is(${OPEN}) { background-color:transparent !important; background-image:none !important; box-shadow:none !important; border-color:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+html.repv-open :where(${OPEN}) { background-color:transparent !important; background-image:none !important; box-shadow:none !important; border-color:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+/* anchored, not floating: sidebar sections get a very light surface + themed frame + glow (text keeps its own backing),
+   the README a themed frame + glow around an open interior */
+html.repv-open :is([class*="sidebarSection"], .BorderGrid-row):not(:where([class*="sidebarSection"], .BorderGrid-row) *):not(:empty) { background-color:${rgba(v.surface, light ? 0.32 : 0.26)} !important; border:1px solid ${rgba(edgeC, light ? 0.4 : 0.42)} !important; border-radius:var(--repv-radius); box-shadow:0 0 0 0.5px ${edgeRing}, 0 0 12px -3px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.05)} !important; padding-left:12px !important; padding-right:12px !important; margin-bottom:10px !important; }
+html.repv-open :is(#readme, .markdown-body:not(.comment-body, .js-comment-body)):not(:where(#readme) *):not(:where([data-repv-panel]) .markdown-body) { border:1px solid ${edgeLine} !important; border-radius:var(--repv-radius); box-shadow:0 0 0 1px ${edgeRing}, 0 0 16px -3px ${glowNear}, 0 0 34px -8px ${glowFar}, inset 0 0 26px -12px ${glowFar} !important; }
 html.repv-open :is(${PROSE}) :is(${PROSE_BLOCKS}):not(:is(li, blockquote, td, th, p, dd, summary, table) *):not(:has(img, picture, video, svg:not(.octicon))) {
  background-color:${back} !important; box-shadow:0 0 0 6px ${back}, ${lift}; border-radius:6px; width:fit-content; max-width:100%; box-sizing:border-box; }
 html.repv-open :is(${PROSE}) :is([align="center"], [align="center"] > *, [style*="text-align: center"]):is(${PROSE_BLOCKS}) { margin-left:auto; margin-right:auto; }
@@ -173,7 +185,13 @@ html.repv-active:is(.repv-motion-cinematic${v.wallpaperBlur > 0 ? ', *' : ''}) b
  background:${[...veils.map(l => l.replace(' fixed', '')), `var(--repv-wallpaper, none) ${POSITION[v.wallpaperPosition]} / ${v.wallpaperSize} no-repeat`, v.bg].join(', ')};
  filter:${v.wallpaperBlur > 0 ? `blur(${v.wallpaperBlur}px)` : 'none'}; }` : `html.repv-active :is(.AppHeader, .Header, #repository-container-header, .Box, .markdown-body) { background-color:${v.surface} !important; }`}
 html.repv-active :is(.AppHeader, .Header, #repository-container-header, .UnderlineNav, .js-header-wrapper, header.GlobalNav) { color:${v.text} !important; border-color:${v.border} !important; }
-html.repv-active :is(.Box, .markdown-body, .blob-wrapper, .file, [data-repv-panel]) { border-color:${v.border} !important; }
+html.repv-active :is(.Box, .markdown-body, .blob-wrapper, .file, [data-repv-panel]) { border-color:${glass ? edgeLine : v.border} !important; }
+${glass ? `/* themed border & glow on controls, inputs and floating UI */
+html.repv-active :is(.btn, .Button, [class*="ButtonBase"]):not(:where(${FLOATING}) *) { border-color:${rgba(edgeC, light ? 0.45 : 0.5)} !important; box-shadow:0 0 8px -3px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.06)}; }
+html.repv-active :is(.btn, .Button, [class*="ButtonBase"]):not(:where(${FLOATING}) *):hover { border-color:${edgeLine} !important; box-shadow:0 0 12px -2px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.35 : 0.08)}; }
+html.repv-active :is(input[type="text"], input[type="search"], textarea, .form-control, .FormControl-input, [class*="TextInputWrapper"], .search-input) { border-color:${rgba(edgeC, light ? 0.45 : 0.5)} !important; box-shadow:0 0 10px -4px ${glowNear} !important; }
+html.repv-active :is(input[type="text"], input[type="search"], textarea, .form-control, .FormControl-input):focus, html.repv-active [class*="TextInputWrapper"]:focus-within { box-shadow:0 0 0 1px ${edgeLine}, 0 0 14px -2px ${glowNear} !important; }
+html.repv-active :is(${FLOATING}) { border-color:${edgeLine} !important; box-shadow:0 0 0 0.5px ${edgeRing}, 0 0 18px -4px ${glowNear}, 0 16px 40px ${rgba('#000000', light ? 0.18 : 0.45)} !important; }` : ''}
 html.repv-active :is(${FLOATING}) { background-color:${v.surface} !important; backdrop-filter:none !important; text-shadow:none; }
 html.repv-active :is(.btn, .Button, button:not([class]), input[type="text"], input[type="search"], textarea) {
  border-radius:calc(var(--repv-radius) * .65) !important; }
@@ -422,7 +440,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
   function tuning() { const t = config.depthTuning || {}; return { parallax: (t.parallax ?? 100) / 100, motion: (t.motion ?? 100) / 100, particles: (t.particles ?? 100) / 100, foreground: (t.foreground ?? 100) / 100 }; }
   function buildSprite(slug, s, cinematic) {
     const wrap = document.createElement('div');
-    wrap.className = 'repv-s'; wrap.dataset.k = String(s.k); wrap.dataset.sprite = s.n;
+    wrap.className = 'repv-s'; if (s.plane === 'pop') wrap.dataset.k = String(s.k); wrap.dataset.sprite = s.n; wrap.dataset.depth = String(s.k);
     const img = document.createElement('img');
     img.src = spriteUrl(slug, s.src || s.n); img.alt = '';
     if (s.flip) img.style.scale = '-1 1'; img.decoding = 'async'; img.draggable = false;
@@ -512,7 +530,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
   }
   let popTimer = 0;
   function queuePlacePop() { clearTimeout(popTimer); popTimer = setTimeout(() => requestAnimationFrame(placePop), 150); }
-  let depthState = { key: '', listening: false, probed: '', autoLite: false, fps: null };
+  let depthState = { key: '', listening: false, probing: false, decided: false, autoLite: false, fps: null, decisions: 0 };
   const ptr = { tx: 0, ty: 0, x: 0, y: 0, raf: 0 };
   function stepPointer() {
     ptr.raf = 0;
@@ -523,7 +541,11 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     // every depth layer and every sprite (scene and pop-out) moves by its own depth factor k.
     const amp = (el.dataset.mode === 'cinematic' ? 30 : 13) * tuning().parallax;
     if (!depthState.movers || !depthState.movers[0]?.isConnected) depthState.movers = [...document.querySelectorAll(`#${DEPTH_ID} [data-k], #${POP_ID} [data-k]`)];
-    for (const l of depthState.movers) { const k = +l.dataset.k, vy = l.dataset.pop ? 0.25 : 0.55; l.style.transform = `translate3d(${(-ptr.x * k * amp).toFixed(2)}px, ${(-ptr.y * k * amp * vy).toFixed(2)}px, 0)`; }
+    for (const l of depthState.movers) {
+      const k = +l.dataset.k, vy = l.dataset.pop ? 0.25 : 0.55;
+      const t = `translate3d(${(-ptr.x * k * amp).toFixed(1)}px, ${(-ptr.y * k * amp * vy).toFixed(1)}px, 0)`;
+      if (l._repvT !== t) { l._repvT = t; l.style.transform = t; } // no style write when the value has not changed
+    }
     el.dataset.px = (-ptr.x).toFixed(4); el.dataset.py = (-ptr.y).toFixed(4);
     if (Math.abs(ptr.tx - ptr.x) + Math.abs(ptr.ty - ptr.y) > 0.002) ptr.raf = requestAnimationFrame(stepPointer);
   }
@@ -559,7 +581,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
   function removeDepth() {
     document.getElementById(DEPTH_ID)?.remove(); document.getElementById(POP_ID)?.remove();
     window.removeEventListener('resize', queuePlacePop); clearTimeout(popTimer); depthState.movers = null;
-    document.documentElement?.classList.remove('repv-depth', 'repv-depth-cinematic', 'repv-depth-static', 'repv-depth-paused', 'repv-depth-lite');
+    document.documentElement?.classList.remove('repv-depth', 'repv-depth-cinematic', 'repv-depth-static', 'repv-depth-paused', 'repv-depth-lite', 'repv-depth-minimal');
     listenPointer(false); depthState.key = '';
   }
   function renderDepth(theme, url) {
@@ -576,7 +598,16 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
       const P = DEPTH_PARTICLES[d.slug] || {};
       const order = ['far', 'pfar', 'mist', 'mid', 'pmid', 'near', 'rays', 'front', 'pnear'];
       const SP = SPRITES[d.slug] || [];
-      const addSprites = near => { for (const s of SP.filter(x => x.plane === 'scene' && (near ? x.k >= 1 : x.k < 1))) el.appendChild(buildSprite(d.slug, s, d.mode === 'cinematic')); };
+      // scene sprites share a few depth buckets (one parallax mover each) instead of one mover per object
+      const bucketK = k => k < 0.52 ? 0.46 : k < 0.75 ? 0.64 : k < 1 ? 0.86 : k < 1.6 ? 1.28 : 1.8;
+      const addSprites = near => {
+        const buckets = new Map();
+        for (const s of SP.filter(x => x.plane === 'scene' && (near ? x.k >= 1 : x.k < 1))) {
+          const bk = bucketK(s.k);
+          if (!buckets.has(bk)) { const b = document.createElement('div'); b.className = 'repv-b'; b.dataset.k = String(bk); buckets.set(bk, b); el.appendChild(b); }
+          buckets.get(bk).appendChild(buildSprite(d.slug, s, d.mode === 'cinematic'));
+        }
+      };
       for (const name of order) {
         if (name === 'rays') addSprites(false);  // mid-depth sprites sit below the light shafts
         if (name === 'pnear') addSprites(true);  // close sprites sit just behind the nearest particles
@@ -619,21 +650,30 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
   // frame rate for 2 s once the scene has settled and switches to Lite below 40 fps for the rest of this page's life.
   function applyDepthQuality() {
     const lite = config.depthQuality === 'lite' || (config.depthQuality === 'auto' && depthState.autoLite);
+    const minimal = config.depthQuality === 'auto' && depthState.autoMinimal;
     document.documentElement?.classList.toggle('repv-depth-lite', lite && !!document.getElementById(DEPTH_ID));
+    document.documentElement?.classList.toggle('repv-depth-minimal', minimal && !!document.getElementById(DEPTH_ID));
   }
+  // Auto decides ONCE per page: measured in a moving mode (never Static), in a visible tab, after the scene settled.
+  // Lite is sticky for the rest of the page's life (no oscillation: a Lite scene would otherwise measure faster and
+  // switch back). An aborted measurement (tab hidden, scene rebuilt) simply retries later; it never flips a decision.
   function probeDepthQuality(key) {
-    if (config.depthQuality !== 'auto' || depthState.probed === key) return;
-    depthState.probed = key;
+    if (config.depthQuality !== 'auto' || depthState.decided || depthState.probing) return;
+    if (document.getElementById(DEPTH_ID)?.dataset.mode === 'static') return;
+    depthState.probing = true;
     setTimeout(() => {
-      if (depthState.key !== key || document.visibilityState !== 'visible') { depthState.probed = ''; return; }
+      if (depthState.key !== key || document.visibilityState !== 'visible') { depthState.probing = false; return; }
       let n = 0; const t0 = performance.now();
       const tick = () => {
-        if (depthState.key !== key) return;
+        if (depthState.key !== key) { depthState.probing = false; return; }
         n++; const dt = performance.now() - t0;
         if (dt < 2000) { requestAnimationFrame(tick); return; }
+        depthState.probing = false;
+        if (document.visibilityState !== 'visible') return; // rAF throttled: not a real measurement
         depthState.fps = Math.round(n / (dt / 1000));
-        if (document.visibilityState !== 'visible') { depthState.probed = ''; return; } // rAF throttled: not a real measurement
+        depthState.decided = true; depthState.decisions++;
         depthState.autoLite = depthState.fps < 40;
+        depthState.autoMinimal = depthState.fps < 25; // one-way ladder, decided once: Full ≥ 40 fps, Lite 25–40, Minimal < 25
         applyDepthQuality();
       };
       requestAnimationFrame(tick);
@@ -642,7 +682,8 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
   const DEPTH_CSS = `
 html.repv-depth #${'repovibe-depth'} { position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden; contain:strict; --amp:13px; }
 html.repv-depth-cinematic #repovibe-depth { --amp:30px; }
-#repovibe-depth > .repv-l { position:absolute; inset:-6%; will-change:transform; transform:translate3d(0, 0, 0); }
+#repovibe-depth > .repv-l { position:absolute; inset:calc(-1 * (var(--k) * 54px + 10px)); will-change:transform; transform:translate3d(0, 0, 0); } /* overscan sized to this layer's travel (parallax + camera drift), not a blanket 6 % */
+#repovibe-depth > .repv-b { position:absolute; inset:0; will-change:transform; }
 #repovibe-depth > .repv-l > i { position:absolute; inset:0; background-position:center; background-size:cover; background-repeat:no-repeat; }
 #repovibe-depth > .repv-l[data-tile] > i { background-position:0 0; background-repeat:repeat; }
 #repovibe-depth > .repv-veil { position:absolute; inset:0; }
@@ -652,8 +693,10 @@ html.repv-depth-lite #repovibe-depth > :is([data-l="pfar"], [data-l="mist"], [da
    software compositing. The mid particle plane stays (still), main objects keep drifting, distant belt rocks rest,
    pop-out objects lose their filter shadow. */
 html.repv-depth-lite #repovibe-depth > .repv-l > i { animation:none !important; }
-html.repv-depth-lite #repovibe-depth > .repv-s[data-k^="0.4"] > img, html.repv-depth-lite #repovibe-depth > .repv-s[data-k^="0.5"] > img { animation:none !important; }
+html.repv-depth-lite #repovibe-depth .repv-b[data-k="0.46"] > .repv-s > img { animation:none !important; }
 html.repv-depth-lite #repovibe-popout > .repv-s::before { display:none; }
+/* Minimal (Auto only, < 25 fps): no particle planes and no light shafts; layers, moving objects and pop-out stay */
+html.repv-depth-minimal #repovibe-depth > :is([data-l="pmid"], [data-l="rays"]) { visibility:hidden; }
 #repovibe-depth > [data-l="front"] > i { transform-origin:50% 0; }
 html.repv-depth.repv-active::after, html.repv-depth body::after { content:none !important; animation:none !important; }
 html.repv-depth body::before { animation:none !important; will-change:auto !important; } /* covered by the depth scene: no hidden work */
@@ -673,14 +716,14 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
 @keyframes repv-breathe { from { opacity:.45; } to { opacity:1; } }
 @keyframes repv-bokeh { from { transform:translate3d(-20px, 10px, 0); } to { transform:translate3d(24px, -18px, 0); } }
 /* Sprites (scene plane) and the pop-out layer */
-#repovibe-depth > .repv-s { position:absolute; transform:translate3d(0, 0, 0); will-change:transform; translate:-50% -50%; }
+#repovibe-depth .repv-b > .repv-s { position:absolute; translate:-50% -50%; }
 .repv-s > img { display:block; width:100%; height:auto; user-select:none; }
-#repovibe-popout { position:absolute; top:0; left:0; width:100%; height:0; overflow:visible; z-index:2; pointer-events:none; }
+#repovibe-popout { position:absolute; top:0; left:0; width:100%; height:0; overflow-x:clip; overflow-y:visible; z-index:2; pointer-events:none; } /* clipped horizontally: objects cropped by the screen edge never change the page's scroll overflow (which forced a relayout + repaint of the whole document on every parallax frame) */
 #repovibe-popout > .repv-s { will-change:transform; }
 #repovibe-popout > .repv-s > img { height:100%; width:auto; position:relative; }
 /* contact shadow under each pop-out object: a cheap gradient on the (non-animated) wrapper, not a per-frame filter */
 #repovibe-popout > .repv-s::before { content:""; position:absolute; left:8%; right:8%; top:30%; bottom:-14%; border-radius:50%; background:radial-gradient(closest-side, rgba(0, 0, 0, .5), rgba(0, 0, 0, .22) 60%, transparent); transform:translateY(12%); }
-#repovibe-popout > .repv-s[hidden], #repovibe-depth > .repv-s[hidden] { display:none; }
+#repovibe-popout > .repv-s[hidden], #repovibe-depth .repv-s[hidden] { display:none; }
 #repovibe-depth > [data-l="front"] { opacity:var(--fg, 1); }
 #repovibe-depth > :is([data-l="pfar"], [data-l="pmid"], [data-l="pnear"], [data-l="mist"]) { opacity:var(--particles, 1); }
 @media (prefers-reduced-motion:no-preference) {
@@ -694,7 +737,7 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="spinY"] { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate, repv-spin-y 9s ease-in-out infinite alternate; }
  html.repv-depth-cinematic :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="spin"] { animation-duration:var(--dur, 30s), 22s; }
 }
-#repovibe-depth > .repv-s:has(> img[data-fall]) { top:0 !important; }
+#repovibe-depth .repv-s:has(> img[data-fall]) { top:0 !important; }
 @keyframes repv-cross-rev { from { transform:translate3d(60vw, -3vh, 0); } to { transform:translate3d(-80vw, 5vh, 0); } }
 @keyframes repv-fall { 0% { transform:translate3d(0, -12vh, 0) rotate(0deg); opacity:0; } 6% { opacity:1; } 50% { transform:translate3d(calc(var(--dx) * .5), 55vh, 0) rotate(calc(var(--rot) * .5)); } 94% { opacity:1; } 100% { transform:translate3d(var(--dx), 118vh, 0) rotate(var(--rot)); opacity:0; } }
 @keyframes repv-flick { 0%, 100% { opacity:1; } 31% { opacity:.55; } 33% { opacity:1; } 62% { opacity:.8; } 64% { opacity:1; } 66% { opacity:.4; } 67% { opacity:1; } }
@@ -896,7 +939,7 @@ html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth
  background-color:var(--repv-card-solid) !important;
  background-image:radial-gradient(120% 140% at 100% 0%, rgba(255,255,255,.14), transparent 55%), linear-gradient(90deg, var(--repv-card-glass) 0, var(--repv-card-glass) calc(100% - 110px), rgba(0,0,0,.04) calc(100% - 30px)), var(--repv-card-img) !important;
  background-size:auto, auto, cover !important; background-position:center, center, center right !important; background-repeat:no-repeat !important;
- box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 2px 6px rgba(0,0,0,.22); }
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 2px 6px rgba(0,0,0,.22), 0 0 0 .5px var(--repv-card-accent), 0 0 12px -5px var(--repv-card-accent); }
 [data-repv-card][data-repv-card-inline] { display:block !important; }
 /* GitHub's own row wrappers must not paint over the card art (React rows often carry an opaque background). */
 [data-repv-card] :is(div, span, li, ul, p, strong, small, header, footer, section) { background-color:transparent !important; background-image:none !important; }
@@ -1113,7 +1156,7 @@ html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth
       panelsWithBackdropBlur: blurs.length, panelsDetected: document.querySelectorAll('[data-repv-panel]').length,
       wallpaperOnRoot: /url\(/.test(cs.backgroundImage),
       homeCards: cardDiag,
-      depth: (() => { const el = document.getElementById(DEPTH_ID); return el ? { scene: el.dataset.scene, mode: el.dataset.mode, layers: [...el.children].map(c => c.dataset.l).filter(Boolean), quality: config.depthQuality, lite: document.documentElement.classList.contains('repv-depth-lite'), measuredFps: depthState.fps } : null; })()
+      depth: (() => { const el = document.getElementById(DEPTH_ID); return el ? { scene: el.dataset.scene, mode: el.dataset.mode, layers: [...el.children].map(c => c.dataset.l).filter(Boolean), quality: config.depthQuality, lite: document.documentElement.classList.contains('repv-depth-lite'), minimal: document.documentElement.classList.contains('repv-depth-minimal'), measuredFps: depthState.fps, autoDecisions: depthState.decisions } : null; })()
     };
   }
 

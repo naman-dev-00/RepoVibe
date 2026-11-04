@@ -45,6 +45,36 @@ const STYLES = ['3d', 'illustrated', 'photo'];
     const depthDir = path.join(ROOT, 'wallpapers', 'depth', w.slug);
     const depth = ['far', 'mid', 'near', 'front', 'rays'].filter(l => fs.existsSync(path.join(depthDir, `${l}.webp`)));
     if (depth.length && !depth.includes('far')) problems.push(`${w.slug}: depth layers need at least 'far'`);
+    // Depth worlds: readability tones must cover what the depth engine actually shows (layers composited, light shafts at
+    // their runtime 0.8 opacity), which can be brighter than the flat image. Use the brighter / darker of both (99/1 %).
+    if (depth.length) {
+      const srcs = depth.filter(l => l !== 'rays').map(l => `data:image/webp;base64,${fs.readFileSync(path.join(depthDir, `${l}.webp`)).toString('base64')}`);
+      const rays = depth.includes('rays') ? `data:image/webp;base64,${fs.readFileSync(path.join(depthDir, 'rays.webp')).toString('base64')}` : null;
+      const comp = await page.evaluate(async ([srcs, rays]) => {
+        const c = new OffscreenCanvas(480, 270); const g = c.getContext('2d');
+        const draw = async (src, a) => { const i = new Image(); i.src = src; await i.decode(); g.globalAlpha = a; g.drawImage(i, 0, 0, 480, 270); };
+        for (const s of srcs) await draw(s, 1); if (rays) await draw(rays, 0.8);
+        const d = g.getImageData(0, 0, 480, 270).data; const ch = [[], [], []];
+        for (let k = 0; k < d.length; k += 4) { ch[0].push(d[k]); ch[1].push(d[k + 1]); ch[2].push(d[k + 2]); }
+        const pct = (a, q) => { a.sort((x, y) => x - y); return a[Math.floor(a.length * q)]; };
+        return [ch.map(a => pct(a.slice(), 0.99)), ch.map(a => pct(a.slice(), 0.01))];
+      }, [srcs, rays]);
+      // moving objects (sprites) can sit behind any panel: their bright opaque pixels count too
+      const spriteFiles = fs.readdirSync(depthDir).filter(f => /^s-[A-Za-z0-9]+\.webp$/.test(f)).map(f => `data:image/webp;base64,${fs.readFileSync(path.join(depthDir, f)).toString('base64')}`);
+      if (spriteFiles.length) {
+        const sp = await page.evaluate(async srcs => {
+          const ch = [[], [], []];
+          for (const src of srcs) { const i = new Image(); i.src = src; await i.decode(); const c = new OffscreenCanvas(160, Math.max(1, Math.round(160 * i.naturalHeight / i.naturalWidth))); const g = c.getContext('2d'); g.drawImage(i, 0, 0, c.width, c.height);
+            const d = g.getImageData(0, 0, c.width, c.height).data; for (let k = 0; k < d.length; k += 4) if (d[k + 3] > 200) { ch[0].push(d[k]); ch[1].push(d[k + 1]); ch[2].push(d[k + 2]); } }
+          const pct = (a, q) => { a.sort((x, y) => x - y); return a[Math.floor(a.length * q)] || 0; };
+          return ch.map(a => pct(a, 0.99));
+        }, spriteFiles);
+        comp[0] = comp[0].map((v, i) => Math.max(v, sp[i]));
+      }
+      const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), hex = v => `#${v.map(x => x.toString(16).padStart(2, '0')).join('')}`;
+      const [hi, lo] = [rgb(info.tone[0]), rgb(info.tone[1])];
+      info.tone = [hex(hi.map((v, i) => Math.max(v, comp[0][i]))), hex(lo.map((v, i) => Math.min(v, comp[1][i])))];
+    }
     const sprites = fs.existsSync(depthDir) ? fs.readdirSync(depthDir).filter(f => /^s-[A-Za-z0-9]+\.webp$/.test(f)).map(f => f.slice(2, -5)).sort() : [];
     out.push({ slug: w.slug, name: w.name, category: w.category, style: w.style, tone: info.tone, toneSoft: info.toneSoft, ...(depth.length ? { depth } : {}), ...(sprites.length ? { sprites } : {}) });
   }

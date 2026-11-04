@@ -8,8 +8,8 @@
       "category": "Futuristic",
       "style": "3d",
       "tone": [
-        "#a4d5db",
-        "#374a5b"
+        "#e7f8f9",
+        "#364758"
       ],
       "toneSoft": [
         "#9fced5",
@@ -35,7 +35,7 @@
       "category": "Space",
       "style": "3d",
       "tone": [
-        "#cec6dd",
+        "#d9d3e3",
         "#090811"
       ],
       "toneSoft": [
@@ -64,8 +64,8 @@
       "category": "Fantasy",
       "style": "3d",
       "tone": [
-        "#81b2b4",
-        "#182c31"
+        "#f6f5f7",
+        "#14252a"
       ],
       "toneSoft": [
         "#72a3a9",
@@ -107,8 +107,8 @@
       "category": "Futuristic",
       "style": "3d",
       "tone": [
-        "#cabcd9",
-        "#251830"
+        "#fcf6f8",
+        "#21142b"
       ],
       "toneSoft": [
         "#bbacce",

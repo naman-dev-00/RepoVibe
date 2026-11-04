@@ -89,8 +89,11 @@ test('wallpaper controls change the visible scene: opacity, overlay, brightness,
       assert.ok(d > 0.05, `${name} visibly changes the page (${(d * 100).toFixed(1)}% of pixels)`);
       if (check) assert.ok(check(await lum(r.png)), `${name} moves brightness in the expected direction`);
     }
-    const solidPanels = await shotWith({ glassOpacity: 100 });
-    assert.equal(solidPanels.m.panel, '1'); assert.ok(await diffRatio(context, base.png, solidPanels.png) > 0.05, 'panel opacity changes the page');
+    // On the full-brightness diagnostic scene the readability guard (which also counts the brightest moving objects)
+    // already raises a low choice to nearly solid; test the control where the guard leaves it room (60 % overlay).
+    const lowPanels = await shotWith({ wallpaperOverlay: 60, glassOpacity: 55 }), solidPanels = await shotWith({ wallpaperOverlay: 60, glassOpacity: 100 });
+    const pd = await diffRatio(context, lowPanels.png, solidPanels.png);
+    assert.equal(solidPanels.m.panel, '1'); assert.ok(Number(lowPanels.m.panel) < 0.9, `guarded opacity ${lowPanels.m.panel}`); assert.ok(pd > 0.002, `panel opacity changes the page (${(pd * 100).toFixed(2)}% of pixels over a 60 %-overlay scene)`);
     const blurred = await shotWith({ glass: 24 });
     assert.match(blurred.m.box, /blur\(24px\)/, 'glass blur applies to panels');
     assert.deepEqual(errors, []);
