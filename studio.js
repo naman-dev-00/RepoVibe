@@ -428,6 +428,7 @@
     $('readingBacking').value = config.readingBacking;
     $('sceneHeight').disabled = !config.sceneWindow;
     $('depthEffectsToggle').checked = config.depthEffects;
+    $('idleButterflyToggle').checked = config.idleButterfly;
     $('depthQuality').value = config.depthQuality;
     $('depthQuality').disabled = !config.depthEffects;
     for (const input of document.querySelectorAll('[data-tune]')) { const v = config.depthTuning?.[input.dataset.tune] ?? 100; input.value = v; input.disabled = !config.depthEffects; $(`${input.id}Val`).textContent = `${v}%`; }
@@ -460,6 +461,10 @@
       try { config = await C.updateConfig(latest => { latest.depthTuning = { ...latest.depthTuning, [key]: v }; }); say(`${input.closest('label').querySelector('span').firstChild.textContent.trim()}: ${v}%.`); } catch (e) { say(e.message, true); }
     });
   }
+  $('idleButterflyToggle').addEventListener('change', async event => {
+    const on = event.target.checked;
+    try { config = await C.updateConfig(latest => { latest.idleButterfly = on; }); say(on ? 'Idle butterfly on.' : 'Idle butterfly off.'); } catch (e) { say(e.message, true); }
+  });
   $('depthQuality').addEventListener('change', async event => {
     const q = event.target.value;
     try { config = await C.updateConfig(latest => { latest.depthQuality = q; }); say(`Depth quality: ${q}.`); } catch (e) { say(e.message, true); }

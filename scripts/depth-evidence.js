@@ -1,6 +1,6 @@
 'use strict';
 /* Developer evidence for the 2.5D depth engine: per-world screenshots (popup closed, real page replay when a local
-   snapshot exists, otherwise the offline React-layout fixture), pointer-left/right parallax comparisons, short WebM
+   snapshot exists, otherwise the offline React-layout fixture), short WebM
    recordings (pointer sweep in Ambient, then Cinematic), per-layer displacement and CDP performance metrics.
    node scripts/depth-evidence.js [outDir]   (writes docs/screenshots/depth, docs/recordings, docs/depth-metrics.json) */
 const fs = require('node:fs');
@@ -14,8 +14,6 @@ const VIDS = path.join(ROOT, 'docs/recordings');
 const WORLDS = [['preset-8', 'enchanted-forest'], ['preset-19', 'cosmic-galaxy'], ['preset-1', 'cyberpunk-neon'], ['preset-15', 'futuristic-scifi']];
 const SNAP = R.available().includes('actions-checkout-code') ? 'actions-checkout-code' : null;
 const setMode = (context, src) => extPage(context).then(async p => { await p.waitForFunction(() => !!globalThis.RepoVibeCore); await p.evaluate(s => RepoVibeCore.updateConfig(new Function('c', s)), src); await p.close(); });
-const layerX = page => page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#repovibe-depth > .repv-l')].map(l => [l.dataset.l, new DOMMatrixReadOnly(getComputedStyle(l).transform).m41])));
-const settle = (page, t) => page.waitForFunction(v => Math.abs(parseFloat(document.getElementById('repovibe-depth')?.dataset.px || '0') - v) < 0.02, t, { polling: 50, timeout: 10000 }).catch(() => {});
 
 async function open(context, w, h) {
   if (SNAP) await R.serve(context, R.load(SNAP));
@@ -41,7 +39,7 @@ async function perf(page, client, ms, move) {
   const out = { source: SNAP ? `real github.com page replay (${SNAP}, logged out, captured locally; not committed)` : 'offline React-layout fixture', viewport: '1366x768', worlds: {} };
   for (const [id, label] of WORLDS) {
     const rec = {};
-    // 1. Screenshots + parallax + performance at 1366x768
+    // 1. Screenshots + autonomous motion + performance at 1366x768 (no mouse parallax: the scene does not follow the pointer)
     {
       const { context, close } = await launch({ colorScheme: 'dark' });
       try {
@@ -50,22 +48,10 @@ async function perf(page, client, ms, move) {
         await page.waitForSelector('#repovibe-depth .repv-l[data-l="far"]', { state: 'attached' });
         await page.waitForTimeout(1500);
         const client = await context.newCDPSession(page);
-        await page.mouse.move(683, 384); await settle(page, 0);
+        await page.mouse.move(683, 384); await page.waitForTimeout(300);
         await page.screenshot({ path: path.join(SHOTS, `${label}-ambient.jpg`), type: 'jpeg', quality: 85 });
-        const crop = { x: 0, y: 160, width: 1366, height: 300 };
-        await page.mouse.move(4, 384); await settle(page, 0.994); const left = await layerX(page);
-        await page.evaluate(() => document.getAnimations().forEach(a => a.pause()));
-        const shotL = await page.screenshot({ clip: crop });
-        await page.mouse.move(1362, 384, { steps: 4 }); await settle(page, -0.994); const right = await layerX(page);
-        const shotR = await page.screenshot({ clip: crop });
-        await page.evaluate(() => document.getAnimations().forEach(a => a.play()));
-        rec.parallaxPx = Object.fromEntries(Object.keys(left).map(k => [k, +Math.abs(right[k] - left[k]).toFixed(1)]));
-        // side-by-side (top: pointer left, bottom: pointer right) to show near layers shifting more than far ones
-        const helper = await extPage(context); await helper.setViewportSize({ width: 1366, height: 620 });
-        await helper.setContent(`<body style="margin:0;background:#000;font:600 13px sans-serif;color:#fff">${[['pointer at left edge', shotL], ['pointer at right edge', shotR]].map(([t, b]) => `<div style="position:relative;height:300px;margin-bottom:${t.includes('left') ? 20 : 0}px"><img style="display:block" src="data:image/png;base64,${b.toString('base64')}"><span style="position:absolute;left:8px;top:8px;background:#000b;padding:3px 8px;border-radius:5px">${label} · ${t}</span></div>`).join('')}</body>`);
-        await helper.waitForTimeout(300); await helper.screenshot({ path: path.join(SHOTS, `${label}-parallax.jpg`), type: 'jpeg', quality: 85 }); await helper.close();
-        // autonomous motion: pointer held still, three moments ~2 s apart (scene band crop)
-        await page.mouse.move(683, 384); await settle(page, 0);
+                // autonomous motion: pointer held still, three moments ~2 s apart (scene band crop)
+        await page.mouse.move(683, 384); await page.waitForTimeout(300);
         const frames = [];
         for (let i = 0; i < 3; i++) { frames.push(await page.screenshot({ clip: { x: 0, y: 160, width: 1366, height: 300 } })); await page.waitForTimeout(2000); }
         rec.autonomous = await page.evaluate(() => [...document.querySelectorAll('.repv-s:not([hidden]) > img')].length);
@@ -74,10 +60,8 @@ async function perf(page, client, ms, move) {
         await strip.waitForTimeout(300); await strip.screenshot({ path: path.join(SHOTS, `${label}-autonomous.jpg`), type: 'jpeg', quality: 82 }); await strip.close();
         rec.perf = { ambientPointer: await perf(page, client, 4000, true) };
         await setMode(context, "c.motionMode = 'cinematic';"); await page.waitForTimeout(1200);
-        await page.mouse.move(683, 384); await settle(page, 0); await page.waitForTimeout(3000);
+        await page.mouse.move(683, 384); await page.waitForTimeout(300); await page.waitForTimeout(3000);
         await page.screenshot({ path: path.join(SHOTS, `${label}-cinematic.jpg`), type: 'jpeg', quality: 85 });
-        // full-page parallax states (pointer far left / far right) in Cinematic
-        for (const [side, x, t] of [['left', 4, 0.994], ['right', 1362, -0.994]]) { await page.mouse.move(x, 384, { steps: 3 }); await settle(page, t); await page.evaluate(() => document.getAnimations().forEach(a => a.pause())); await page.screenshot({ path: path.join(SHOTS, `${label}-cinematic-pointer-${side}.jpg`), type: 'jpeg', quality: 80 }); await page.evaluate(() => document.getAnimations().forEach(a => a.play())); }
         rec.perf.cinematicPointer = await perf(page, client, 4000, true);
         await setMode(context, "c.motionMode = 'ambient'; c.depthQuality = 'lite';"); await page.waitForTimeout(1200);
         rec.perf.liteAmbientPointer = await perf(page, client, 4000, true);

@@ -93,9 +93,9 @@
     const WORLD_EDGE = { 'enchanted-forest': ['#5fe0b9', '#9dffd8', 0.34], 'cosmic-galaxy': ['#a98bff', '#6f9bff', 0.38], 'neon-city-3d': ['#ff4fd8', '#3ff0ff', 0.5], 'scifi-ai': ['#7fe6ff', '#e8fbff', 0.4] };
     const wslug = (/^builtin:([a-z0-9-]+)$/.exec(v.wallpaperRef || '') || [])[1];
     const [edgeC, glowC, glowS] = WORLD_EDGE[wslug] || [v.accent, v.accent, { neon: 0.45, glass: 0.3, soft: 0.24, minimal: 0.14, pixel: 0.2 }[v.vibe] ?? 0.24];
-    const edgeLine = rgba(edgeC, light ? 0.55 : 0.62), edgeRing = rgba(edgeC, light ? 0.18 : 0.22);
+    const edgeLine = rgba(edgeC, light ? 0.6 : 0.7), edgeRing = rgba(edgeC, light ? 0.32 : 0.4); // border 1 px + ring 1 px: a ~2 px themed edge (box-shadow ring: no layout change)
     const glowNear = rgba(glowC, glowS * (light ? 0.5 : 0.75)), glowFar = rgba(edgeC, glowS * (light ? 0.25 : 0.4));
-    const panelGlow = `0 0 0 0.5px ${edgeRing}, 0 0 10px -2px ${glowNear}, 0 0 26px -6px ${glowFar}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.35 : 0.07)}, 0 10px 26px ${rgba('#000000', light ? 0.1 : 0.3)}`;
+    const panelGlow = `0 0 0 1px ${edgeRing}, 0 0 10px -2px ${glowNear}, 0 0 26px -6px ${glowFar}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.35 : 0.07)}, 0 10px 26px ${rgba('#000000', light ? 0.1 : 0.3)}`;
     const edge = frosted
       // Frosted Glass (opt-in): a milky sheen and bright rim make the glass itself visible, not just a darker panel.
       ? `background-image:linear-gradient(160deg, ${rgba('#ffffff', light ? 0.32 : 0.14)}, ${rgba('#ffffff', light ? 0.12 : 0.04)} 60%) !important; box-shadow:inset 0 1px 0 ${rgba('#ffffff', 0.22)}, 0 0 0 1px ${rgba('#ffffff', light ? 0.5 : 0.16)}, 0 10px 30px ${rgba('#000000', light ? 0.14 : 0.3)};`
@@ -109,7 +109,7 @@
 html.repv-open :where(${OPEN}) { background-color:transparent !important; background-image:none !important; box-shadow:none !important; border-color:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
 /* anchored, not floating: sidebar sections get a very light surface + themed frame + glow (text keeps its own backing),
    the README a themed frame + glow around an open interior */
-html.repv-open :is([class*="sidebarSection"], .BorderGrid-row):not(:where([class*="sidebarSection"], .BorderGrid-row) *):not(:empty) { background-color:${rgba(v.surface, light ? 0.32 : 0.26)} !important; border:1px solid ${rgba(edgeC, light ? 0.4 : 0.42)} !important; border-radius:var(--repv-radius); box-shadow:0 0 0 0.5px ${edgeRing}, 0 0 12px -3px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.05)} !important; padding-left:12px !important; padding-right:12px !important; margin-bottom:10px !important; }
+html.repv-open :is([class*="sidebarSection"], .BorderGrid-row):not(:where([class*="sidebarSection"], .BorderGrid-row) *):not(:empty) { background-color:${rgba(v.surface, light ? 0.32 : 0.26)} !important; border:1px solid ${edgeLine} !important; border-radius:var(--repv-radius); box-shadow:0 0 0 1px ${edgeRing}, 0 0 12px -3px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.05)} !important; padding-left:12px !important; padding-right:12px !important; margin-bottom:10px !important; }
 html.repv-open :is(#readme, .markdown-body:not(.comment-body, .js-comment-body)):not(:where(#readme) *):not(:where([data-repv-panel]) .markdown-body) { border:1px solid ${edgeLine} !important; border-radius:var(--repv-radius); box-shadow:0 0 0 1px ${edgeRing}, 0 0 16px -3px ${glowNear}, 0 0 34px -8px ${glowFar}, inset 0 0 26px -12px ${glowFar} !important; }
 html.repv-open :is(${PROSE}) :is(${PROSE_BLOCKS}):not(:is(li, blockquote, td, th, p, dd, summary, table) *):not(:has(img, picture, video, svg:not(.octicon))) {
  background-color:${back} !important; box-shadow:0 0 0 6px ${back}, ${lift}; border-radius:6px; width:fit-content; max-width:100%; box-sizing:border-box; }
@@ -188,11 +188,11 @@ html.repv-active:is(.repv-motion-cinematic${v.wallpaperBlur > 0 ? ', *' : ''}) b
 html.repv-active :is(.AppHeader, .Header, #repository-container-header, .UnderlineNav, .js-header-wrapper, header.GlobalNav) { color:${v.text} !important; border-color:${v.border} !important; }
 html.repv-active :is(.Box, .markdown-body, .blob-wrapper, .file, [data-repv-panel]) { border-color:${glass ? edgeLine : v.border} !important; }
 ${glass ? `/* themed border & glow on controls, inputs and floating UI */
-html.repv-active :is(.btn, .Button, [class*="ButtonBase"]):not(:where(${FLOATING}) *) { border-color:${rgba(edgeC, light ? 0.45 : 0.5)} !important; box-shadow:0 0 8px -3px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.06)}; }
-html.repv-active :is(.btn, .Button, [class*="ButtonBase"]):not(:where(${FLOATING}) *):hover { border-color:${edgeLine} !important; box-shadow:0 0 12px -2px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.35 : 0.08)}; }
-html.repv-active :is(input[type="text"], input[type="search"], textarea, .form-control, .FormControl-input, [class*="TextInputWrapper"], .search-input) { border-color:${rgba(edgeC, light ? 0.45 : 0.5)} !important; box-shadow:0 0 10px -4px ${glowNear} !important; }
+html.repv-active :is(.btn, .Button, [class*="ButtonBase"]):not(:where(${FLOATING}) *) { border-color:${rgba(edgeC, light ? 0.45 : 0.5)} !important; box-shadow:0 0 0 1px ${edgeRing}, 0 0 8px -3px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.06)}; }
+html.repv-active :is(.btn, .Button, [class*="ButtonBase"]):not(:where(${FLOATING}) *):hover { border-color:${edgeLine} !important; box-shadow:0 0 0 1px ${edgeLine}, 0 0 12px -2px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.35 : 0.08)}; }
+html.repv-active :is(input[type="text"], input[type="search"], textarea, .form-control, .FormControl-input, [class*="TextInputWrapper"], .search-input) { border-color:${rgba(edgeC, light ? 0.45 : 0.5)} !important; box-shadow:0 0 0 1px ${edgeRing}, 0 0 10px -4px ${glowNear} !important; }
 html.repv-active :is(input[type="text"], input[type="search"], textarea, .form-control, .FormControl-input):focus, html.repv-active [class*="TextInputWrapper"]:focus-within { box-shadow:0 0 0 1px ${edgeLine}, 0 0 14px -2px ${glowNear} !important; }
-html.repv-active :is(${FLOATING}) { border-color:${edgeLine} !important; box-shadow:0 0 0 0.5px ${edgeRing}, 0 0 18px -4px ${glowNear}, 0 16px 40px ${rgba('#000000', light ? 0.18 : 0.45)} !important; }` : ''}
+html.repv-active :is(${FLOATING}) { border-color:${edgeLine} !important; box-shadow:0 0 0 1px ${edgeRing}, 0 0 18px -4px ${glowNear}, 0 16px 40px ${rgba('#000000', light ? 0.18 : 0.45)} !important; }` : ''}
 html.repv-active :is(${FLOATING}) { background-color:${v.surface} !important; backdrop-filter:none !important; text-shadow:none; }
 html.repv-active :is(.btn, .Button, button:not([class]), input[type="text"], input[type="search"], textarea) {
  border-radius:calc(var(--repv-radius) * .65) !important; }
@@ -492,7 +492,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     let colLeft = innerWidth / 2, colRight = innerWidth / 2;
     for (let x = 0; x < innerWidth / 2; x += 8) if (probeY.some(y => blockedAt(x, y))) { colLeft = x; break; }
     for (let x = innerWidth - 1; x > innerWidth / 2; x -= 8) if (probeY.some(y => blockedAt(x, y))) { colRight = x; break; }
-    const amp = (document.documentElement.classList.contains('repv-depth-cinematic') ? 30 : 13) * t.parallax;
+    const amp = 0; // no pointer parallax: an object's reach is its own drift only
     for (const w of pop.querySelectorAll('.repv-s')) {
       const s = (SPRITES[pop.dataset.scene] || []).find(x => x.n === w.dataset.sprite);
       const img = w.firstChild; const ratio = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1;
@@ -536,44 +536,81 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
   }
   let popTimer = 0;
   function queuePlacePop() { clearTimeout(popTimer); popTimer = setTimeout(() => requestAnimationFrame(placePop), 150); }
+  /* ---- Idle butterfly: after 15 s without any input, a small themed butterfly flies in and settles just beside the
+     cursor; any pointer movement, click, key, wheel or scroll sends it fluttering away. Inline SVG, pointer-events:none,
+     aria-hidden; motion via the Web Animations API (compositor transforms). Off in Static / reduced motion. */
+  const BF_ID = 'repovibe-butterfly', BF_IDLE_MS = 15000;
+  const BF_COLORS = { 'enchanted-forest': ['#9dffe0', '#22c3b0', '#e8fff8'], 'cosmic-galaxy': ['#d2b8ff', '#6f6bff', '#f3ecff'], 'neon-city-3d': ['#ff5ad9', '#38eaff', '#ffe3fb'], 'scifi-ai': ['#bff6ff', '#3fb4ff', '#ffffff'] };
+  const bf = { on: false, x: -1, y: -1, last: 0, timer: 0, el: null, anim: null, colors: null };
+  function bfSvg([a, b, c]) {
+    const wing = (side) => `<g class="bf-w bf-${side}"><path d="M0,0 C${side === 'l' ? '-6,-16 -22,-19 -21,-6 C-20,1 -9,2 0,1' : '6,-16 22,-19 21,-6 C20,1 9,2 0,1'}" fill="url(#repv-bfg)" stroke="${c}" stroke-opacity=".55" stroke-width=".6"/>
+      <path d="M0,1 C${side === 'l' ? '-5,3 -16,6 -14,13 C-11,17 -4,11 0,3' : '5,3 16,6 14,13 C11,17 4,11 0,3'}" fill="url(#repv-bfg2)" stroke="${c}" stroke-opacity=".5" stroke-width=".6"/>
+      <circle cx="${side === 'l' ? -13 : 13}" cy="-8" r="1.7" fill="${c}" fill-opacity=".85"/><circle cx="${side === 'l' ? -8 : 8}" cy="9" r="1.1" fill="${c}" fill-opacity=".7"/></g>`;
+    return `<svg viewBox="-24 -22 48 40" width="34" height="28" aria-hidden="true"><defs>
+      <radialGradient id="repv-bfg" cx="0" cy="0" r="22" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${c}"/><stop offset=".35" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></radialGradient>
+      <radialGradient id="repv-bfg2" cx="0" cy="0" r="16" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></radialGradient></defs>
+      ${wing('l')}${wing('r')}<ellipse cx="0" cy="2" rx="1.3" ry="7" fill="#1b1a22"/><circle cx="0" cy="-5.5" r="1.6" fill="#1b1a22"/>
+      <path d="M-.5,-6.5 C-2,-11 -4,-13 -6,-14 M.5,-6.5 C2,-11 4,-13 6,-14" stroke="#1b1a22" stroke-width=".7" fill="none"/></svg>`;
+  }
+  function bfAllowed() {
+    return bf.on && document.visibilityState === 'visible' && !reducedQuery?.matches && config.motionMode !== 'static' && config.idleButterfly !== false && bf.x >= 0;
+  }
+  function bfSpawn() {
+    const el = document.createElement('div');
+    el.id = BF_ID; el.setAttribute('aria-hidden', 'true'); el.innerHTML = bfSvg(bf.colors);
+    (document.documentElement).appendChild(el); bf.el = el;
+    // rest just above-right of the pointer tip (never covering it), arrive from the nearest side along a wavering path
+    const tx = Math.min(innerWidth - 24, bf.x + 16), ty = Math.max(14, bf.y - 22);
+    const fromLeft = bf.x > innerWidth / 2 ? false : true;
+    const sx = fromLeft ? -50 : innerWidth + 50, sy = Math.max(30, ty - 160 - Math.random() * 120);
+    const pts = [0, 0.25, 0.5, 0.75, 1].map(t => [sx + (tx - sx) * t + Math.sin(t * Math.PI * 3) * 26 * (1 - t), sy + (ty - sy) * t + Math.cos(t * Math.PI * 4) * 22 * (1 - t)]);
+    el.dataset.state = 'arriving';
+    bf.anim = el.animate(pts.map(([x, y], i) => ({ transform: `translate3d(${x}px, ${y}px, 0) rotate(${i < 4 ? (fromLeft ? 14 : -14) * Math.sin(i * 1.7) : 0}deg)`, opacity: i === 0 ? 0 : 1 })), { duration: 3400, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' });
+    bf.anim.onfinish = () => { if (bf.el === el && el.dataset.state === 'arriving') el.dataset.state = 'resting'; };
+  }
+  function bfFlyAway() {
+    const el = bf.el; if (!el || el.dataset.state === 'leaving') return;
+    el.dataset.state = 'leaving'; bf.el = null;
+    const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
+    bf.anim?.cancel();
+    const dx = (Math.random() < 0.5 ? -1 : 1) * (140 + Math.random() * 160), dy = -(260 + Math.random() * 160);
+    const a = el.animate([
+      { transform: `translate3d(${m.m41}px, ${m.m42}px, 0)`, opacity: 1 },
+      { transform: `translate3d(${m.m41 + dx * 0.3}px, ${m.m42 + dy * 0.25 + 18}px, 0) rotate(${dx > 0 ? 10 : -10}deg)`, opacity: 1, offset: 0.3 },
+      { transform: `translate3d(${m.m41 + dx}px, ${m.m42 + dy}px, 0) rotate(${dx > 0 ? 22 : -22}deg)`, opacity: 0 }
+    ], { duration: 1500, easing: 'ease-in', fill: 'forwards' });
+    a.onfinish = () => el.remove();
+    setTimeout(() => el.remove(), 2200); // safety net
+  }
+  function bfActivity(e) {
+    if (e && e.type === 'pointermove') { bf.x = e.clientX; bf.y = e.clientY; }
+    bf.last = performance.now();
+    if (bf.el) bfFlyAway();
+  }
+  function bfTick() { if (!bf.el && bfAllowed() && performance.now() - bf.last >= BF_IDLE_MS) bfSpawn(); if (bf.el && !bfAllowed()) bfFlyAway(); }
+  function setButterfly(on, theme) {
+    if (on) { const slug = (/^builtin:([a-z0-9-]+)$/.exec(C.normalizeTheme(theme).wallpaperRef || '') || [])[1]; const ac = C.normalizeTheme(theme).accent; bf.colors = BF_COLORS[slug] || [ac, ac, '#ffffff']; }
+    if (on === bf.on) return;
+    bf.on = on;
+    const m = on ? 'addEventListener' : 'removeEventListener';
+    for (const t of ['pointermove', 'pointerdown', 'keydown', 'wheel', 'scroll']) window[m](t, bfActivity, { passive: true, capture: true });
+    if (on) { bf.last = performance.now(); bf.timer = setInterval(bfTick, 1000); }
+    else { clearInterval(bf.timer); bf.timer = 0; if (bf.el) bfFlyAway(); document.getElementById(BF_ID)?.remove(); bf.el = null; }
+  }
   let depthState = { key: '', listening: false, probing: false, decided: false, autoLite: false, fps: null, decisions: 0 };
-  const ptr = { tx: 0, ty: 0, x: 0, y: 0, raf: 0 };
-  function stepPointer() {
-    ptr.raf = 0;
-    const el = document.getElementById(DEPTH_ID); if (!el) return;
-    if (el.dataset.mode === 'static') return;
-    ptr.x += (ptr.tx - ptr.x) * 0.1; ptr.y += (ptr.ty - ptr.y) * 0.1;
-    // Direct per-element transforms (compositor-only; no inherited custom property invalidating the subtree each frame):
-    // every depth layer and every sprite (scene and pop-out) moves by its own depth factor k.
-    const amp = (el.dataset.mode === 'cinematic' ? 30 : 13) * tuning().parallax;
-    if (!depthState.movers || !depthState.movers[0]?.isConnected) depthState.movers = [...document.querySelectorAll(`#${DEPTH_ID} [data-k], #${POP_ID} [data-k]`)];
-    for (const l of depthState.movers) {
-      const k = +l.dataset.k, vy = l.dataset.pop ? 0.25 : 0.55;
-      const t = `translate3d(${(-ptr.x * k * amp).toFixed(1)}px, ${(-ptr.y * k * amp * vy).toFixed(1)}px, 0)`;
-      if (l._repvT !== t) { l._repvT = t; l.style.transform = t; } // no style write when the value has not changed
-    }
-    el.dataset.px = (-ptr.x).toFixed(4); el.dataset.py = (-ptr.y).toFixed(4);
-    if (Math.abs(ptr.tx - ptr.x) + Math.abs(ptr.ty - ptr.y) > 0.002) ptr.raf = requestAnimationFrame(stepPointer);
-  }
-  function onPointer(e) {
-    ptr.tx = Math.max(-1, Math.min(1, (e.clientX / innerWidth - 0.5) * 2)); ptr.ty = Math.max(-1, Math.min(1, (e.clientY / innerHeight - 0.5) * 2));
-    if (!ptr.raf) ptr.raf = requestAnimationFrame(stepPointer);
-  }
-  function onPointerAway() { ptr.tx = 0; ptr.ty = 0; if (!ptr.raf) ptr.raf = requestAnimationFrame(stepPointer); }
+  /* No pointer parallax (removed by request): the scene never reacts to the mouse. Depth comes from the layered art,
+     the moving objects at different depths and their own autonomous motion. */
   // Hidden tab: pause every depth animation outright (Chrome throttles too, this makes it explicit) and stop the rAF.
   function onVisibility() {
     const hidden = document.visibilityState === 'hidden' && depthState.listening;
     document.documentElement?.classList.toggle('repv-depth-paused', hidden);
-    if (hidden && ptr.raf) { cancelAnimationFrame(ptr.raf); ptr.raf = 0; }
   }
   function listenPointer(on) {
     if (on === depthState.listening) return;
     depthState.listening = on;
     const m = on ? 'addEventListener' : 'removeEventListener';
-    window[m]('pointermove', onPointer, { passive: true }); document.documentElement[m]('pointerleave', onPointerAway); window[m]('blur', onPointerAway);
     document[m]('visibilitychange', onVisibility);
     onVisibility();
-    if (!on && ptr.raf) { cancelAnimationFrame(ptr.raf); ptr.raf = 0; }
   }
   function depthFor(theme, url) {
     if (!theme || !url || !config.depthEffects) return null;
@@ -648,7 +685,6 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     root.classList.add('repv-depth');
     root.classList.toggle('repv-depth-cinematic', d.mode === 'cinematic');
     listenPointer(d.mode !== 'static');
-    if (!ptr.raf) ptr.raf = requestAnimationFrame(stepPointer); // apply the current pointer to freshly built layers
     applyDepthQuality();
     probeDepthQuality(key);
   }
@@ -688,7 +724,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
   const DEPTH_CSS = `
 html.repv-depth #${'repovibe-depth'} { position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden; contain:strict; --amp:13px; }
 html.repv-depth-cinematic #repovibe-depth { --amp:30px; }
-#repovibe-depth > .repv-l { position:absolute; inset:calc(-1 * (var(--k) * 54px + 10px)); will-change:transform; transform:translate3d(0, 0, 0); } /* overscan sized to this layer's travel (parallax + camera drift), not a blanket 6 % */
+#repovibe-depth > .repv-l { position:absolute; inset:calc(-1 * (var(--k) * 24px + 8px)); will-change:transform; transform:translate3d(0, 0, 0); } /* overscan sized to this layer's own travel (Cinematic camera drift), not a blanket 6 % */
 #repovibe-depth > .repv-b { position:absolute; inset:0; will-change:transform; }
 #repovibe-depth > .repv-l > i { position:absolute; inset:0; background-position:center; background-size:cover; background-repeat:no-repeat; }
 #repovibe-depth > .repv-l[data-tile] > i { background-position:0 0; background-repeat:repeat; }
@@ -757,6 +793,14 @@ html.repv-depth-static #repovibe-depth > .repv-l { inset:0; }
 html.repv-depth-static :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth-still :is(#repovibe-depth, #repovibe-popout) * { animation:none !important; }
 html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth-paused #repovibe-depth { animation-play-state:paused !important; }
 @media (prefers-reduced-motion:reduce) { :is(#repovibe-depth, #repovibe-popout) * { animation:none !important; } }
+/* idle butterfly */
+#repovibe-butterfly { position:fixed; left:0; top:0; margin:-14px 0 0 -17px; z-index:60; pointer-events:none; will-change:transform; filter:drop-shadow(0 0 6px rgba(255, 255, 255, .35)) drop-shadow(0 3px 4px rgba(0, 0, 0, .4)); }
+#repovibe-butterfly .bf-w { transform-box:view-box; transform-origin:50% 55%; animation:repv-flap .17s ease-in-out infinite alternate; }
+#repovibe-butterfly[data-state="resting"] .bf-w { animation:repv-rest 3.2s ease-in-out infinite; }
+#repovibe-butterfly[data-state="resting"] svg { animation:repv-bob 4s ease-in-out infinite alternate; }
+@keyframes repv-flap { from { transform:scaleX(1); } to { transform:scaleX(.22); } }
+@keyframes repv-rest { 0%, 62%, 100% { transform:scaleX(1); } 70% { transform:scaleX(.35); } 78% { transform:scaleX(1); } 86% { transform:scaleX(.5); } }
+@keyframes repv-bob { from { transform:translateY(0) rotate(-3deg); } to { transform:translateY(-2px) rotate(3deg); } }
 `;
 
   /* ---- Wallpaper resolution: bundled assets, IndexedDB assets (via service worker), legacy inline data. */
@@ -945,7 +989,7 @@ html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth
  background-color:var(--repv-card-solid) !important;
  background-image:radial-gradient(120% 140% at 100% 0%, rgba(255,255,255,.14), transparent 55%), linear-gradient(90deg, var(--repv-card-glass) 0, var(--repv-card-glass) calc(100% - 110px), rgba(0,0,0,.04) calc(100% - 30px)), var(--repv-card-img) !important;
  background-size:auto, auto, cover !important; background-position:center, center, center right !important; background-repeat:no-repeat !important;
- box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 2px 6px rgba(0,0,0,.22), 0 0 0 .5px var(--repv-card-accent), 0 0 12px -5px var(--repv-card-accent); }
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.10), 0 2px 6px rgba(0,0,0,.22), 0 0 0 1px color-mix(in srgb, var(--repv-card-accent) 55%, transparent), 0 0 12px -5px var(--repv-card-accent); }
 [data-repv-card][data-repv-card-inline] { display:block !important; }
 /* GitHub's own row wrappers must not paint over the card art (React rows often carry an opaque background). */
 [data-repv-card] :is(div, span, li, ul, p, strong, small, header, footer, section) { background-color:transparent !important; background-image:none !important; }
@@ -1011,7 +1055,7 @@ html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth
     let style = document.getElementById(STYLE_ID);
     if (!theme) {
       root.classList.remove('repv-active', 'repv-scene-window', 'repv-scene-compact', 'repv-scene-tall', 'repv-open', ...MOTION_CLASSES);
-      removeDepth();
+      removeDepth(); setButterfly(false);
       registerInstance(false);
       lastMotion = '';
       clearPanels();
@@ -1041,6 +1085,7 @@ html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth
     if (root.classList.contains('repv-open') !== wantOpen) root.classList.toggle('repv-open', wantOpen);
     for (const h of ['compact', 'tall']) if (root.classList.contains(`repv-scene-${h}`) !== (wantWindow && config.sceneHeight === h)) root.classList.toggle(`repv-scene-${h}`, wantWindow && config.sceneHeight === h);
     renderDepth(theme, resolution.repository ? url : null); // one depth scene, repository pages only (never on Home)
+    setButterfly(Boolean(url), theme);
     applyColorMode(root, lastMode);
     if (url) queuePanelScan(); else clearPanels();
     renderCards();
@@ -1072,7 +1117,7 @@ html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth
     document.getElementById(WALLPAPER_STYLE_ID)?.remove();
     clearCards();
     clearPanels();
-    removeDepth();
+    removeDepth(); setButterfly(false);
     registerInstance(false);
     reducedQuery?.removeEventListener?.('change', onReducedMotionChange);
     if (document.documentElement) { document.documentElement.classList.remove('repv-active', 'repv-scene-window', 'repv-scene-compact', 'repv-scene-tall', 'repv-open', ...MOTION_CLASSES); applyColorMode(document.documentElement, null); }

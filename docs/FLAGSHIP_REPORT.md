@@ -2,6 +2,62 @@
 
 Branch `feature/phase1b-immersive-themes` (PR #2, stacked on PR #1). Not merged.
 
+## 0g. Broader themed borders, no mouse parallax, idle butterfly — latest
+
+**1. Broader themed borders.** The earlier 0.5 px outer ring is now a **1 px themed ring** (about 40 % of the edge colour) next to the 1 px border. Edges read about 2 px.
+- **Covered:** panels, sidebar sections, the README frame, menus and dialogs, buttons (ring on hover too), inputs and search boxes, and Home cards (1 px accent ring).
+- **Brighter edge colour:** 70 % in dark themes, 60 % in light.
+- **Layout-neutral:** rings are box-shadow spreads, so no element changes size and nothing reflows.
+- **Unchanged:** the per-world glow (Forest mint, Galaxy violet/blue, Cyberpunk magenta/cyan, Sci-Fi cyan-white).
+- **Evidence:** before (`cd7165d`) / after for sidebar, README and buttons in each world: `docs/screenshots/borders/<world>.jpg`.
+
+**2. Mouse movement removed.** The engine no longer listens to `pointermove` for the scene. Layers, objects and pop-out objects never follow the cursor.
+- **Kept:** all autonomous motion: drifting and crossing asteroids, falling leaves, fireflies and particles, mist, rain, neon flicker, holograms, light shafts, and the Cinematic camera drift.
+- **Overscan:** cut to what the camera drift needs.
+- **Pop-out sizing:** placement no longer reserves parallax reach, so pop-out objects can be larger.
+- **Studio:** the *Parallax intensity* slider is gone.
+- **Tests:** E2E asserts that a full left-to-right pointer sweep moves no layer or object (< 0.5 px) in all four worlds and in Cinematic, while objects keep moving on their own.
+
+**3. Idle butterfly.**
+- **When it appears:** after **15 s** without pointer movement, click, key, wheel or scroll, a small butterfly (about 34 px, inline SVG) flies in from the nearer side on a wavering path. It settles just **above-right of the cursor tip**, never covering it, and flaps slowly with a gentle bob.
+- **Leaving:** any movement or input sends it fluttering up and away (1.5 s fade), after which it is removed.
+- **Theme colours:**
+  - Forest: mint and teal (glowing morpho);
+  - Galaxy: violet and blue;
+  - Cyberpunk: magenta and cyan;
+  - Sci-Fi: ice-blue and white;
+  - other themes: accent colour.
+- **Safety:** `pointer-events:none` and `aria-hidden`. Motion uses the Web Animations API (compositor transforms). Only one idle timer runs (1 s interval); input listeners are passive and only record time and position.
+- **When it is off:** in Static, with reduced motion, in hidden tabs, without an active scene, and when disabled (Studio → Appearance → *Idle butterfly*, on by default). Disabling RepoVibe removes it and its listeners.
+- **Evidence:**
+  - frame strips per world (arriving, resting by the still cursor, flying away, gone): `docs/screenshots/butterfly/<world>.jpg`;
+  - recording: `docs/recordings/butterfly-enchanted-forest.webm`.
+- **Tests:** E2E checks:
+  - no butterfly before 15 s;
+  - after 15 s it appears and rests within 60 px of the cursor without covering the tip;
+  - `pointer-events:none` and `aria-hidden`, and the element under it receives clicks;
+  - it is removed after movement;
+  - none appears in Static.
+- **Measurement runs:** contrast-measurement and live configs switch it off, because a transient object near a still cursor is not page text.
+
+**Verification:**
+- **Unit:** 30/30.
+- **Offline E2E:** 58/58, including the new butterfly and no-parallax tests.
+- **Text contrast**, real-page replays (3 pages × 4 worlds × Static and Ambient × 1366 and 1920 px): **48/48 runs, 0 elements below 4.5:1**, minimum 4.63 (GitHub's own header).
+- **Performance**, software rendering (SwiftShader), 1366 px, 5 s of pointer motion (`docs/perf-profile.json`).
+
+  Main-thread time fell with the parallax loop gone, for example Galaxy Ambient 154 → 106 ms/s:
+
+  | World | Static fps | Ambient Full fps | Lite fps | Cinematic fps |
+  |---|---|---|---|---|
+  | Galaxy | 57.6 | 19.5 | 36.1 | 18.3 |
+  | Forest | 56.2 | 15.3 | 28.5 | 14.0 |
+  | Cyberpunk | 52.0 | 14.4 | 54.2 | 16.3 |
+  | Sci-Fi | 56.4 | 14.8 | 30.0 | 13.7 |
+
+  As before, full-viewport blending on the CPU is the ceiling here, and GPU performance is **UNVERIFIED**.
+
+
 ## 0f. Final verification, performance review and themed border & glow — latest
 
 ### 1. CI and live results for `cd7165d`
@@ -230,8 +286,8 @@ Captured on a real github.com page replay (`actions/checkout`, logged out, captu
 | File | What it shows |
 |---|---|
 | `<world>-ambient.jpg`, `-cinematic.jpg`, `-static.jpg` | The three motion modes. |
-| `<world>-cinematic-pointer-left.jpg` / `-right.jpg` | Full-page parallax states. |
-| `<world>-parallax.jpg` | Scene-band crop, pointer at the left edge vs the right edge. |
+| ~~`<world>-cinematic-pointer-left.jpg` / `-right.jpg`~~ | Full-page parallax states (removed with mouse parallax in §0g). |
+| ~~`<world>-parallax.jpg`~~ | Pointer left vs right (removed with mouse parallax in §0g). |
 | `<world>-autonomous.jpg` | Three frames 2 s apart with the pointer held still: objects move on their own. |
 
 **Recordings:** `docs/recordings/<world>-depth.webm`, about 12 s each: a pointer sweep in Ambient, then Cinematic.
@@ -471,7 +527,7 @@ Sci-Fi was reworked from a bright, plain white corridor into a dark hall with cy
   - `docs/screenshots/depth/<world>-ambient.jpg`
   - `docs/screenshots/depth/<world>-cinematic.jpg`
   - `docs/screenshots/depth/<world>-static.jpg`
-- **Parallax proof:** `docs/screenshots/depth/<world>-parallax.jpg` shows the scene band with the pointer at the left edge versus the right edge. The foreground and near trees, rocks, signs and ribs shift visibly; the distant layers barely move.
+- **Parallax proof (superseded: mouse parallax removed in §0g, images deleted):** `docs/screenshots/depth/<world>-parallax.jpg` shows the scene band with the pointer at the left edge versus the right edge. The foreground and near trees, rocks, signs and ribs shift visibly; the distant layers barely move.
 - **Recordings:** `docs/recordings/<world>-depth.webm`, about 12 s each at 960×540: a pointer sweep in Ambient, then Cinematic.
 - **Measured layer displacement**, full left→right sweep at 1366 px (`docs/depth-metrics.json`), identical across worlds by design:
 

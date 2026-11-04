@@ -16,18 +16,15 @@ const layerX = page => page.evaluate(() => Object.fromEntries([...document.query
   .map(l => [l.dataset.l || (l.classList.contains('repv-b') ? `sprite:bucket:${l.dataset.k}` : `pop:${l.dataset.sprite}:${l.dataset.k}`), new DOMMatrixReadOnly(getComputedStyle(l).transform).m41])));
 async function sweep(page) {
   const { width, height } = page.viewportSize();
-  // wait for the smoothed pointer (--px = -pointer x in [-1, 1]) to settle at each end
-  const settle = target => page.waitForFunction(t => Math.abs(parseFloat(document.getElementById('repovibe-depth').dataset.px || '0') - t) < 0.02, target, { polling: 50 });
-  await page.mouse.move(5, height / 2);
-  await settle(1 - 10 / width);
+  // pointer from far left to far right: the scene must NOT react (mouse parallax was removed by request)
+  await page.mouse.move(5, height / 2); await page.waitForTimeout(600);
   const left = await layerX(page);
-  await page.mouse.move(width - 5, height / 2, { steps: 4 });
-  await settle(-(1 - 10 / width));
+  await page.mouse.move(width - 5, height / 2, { steps: 4 }); await page.waitForTimeout(600);
   const right = await layerX(page);
   return Object.fromEntries(Object.keys(left).map(k => [k, Math.abs(right[k] - left[k])]));
 }
 
-test('depth engine: layered scene, parallax ordered by depth, never intercepts input, modes, Home, restore', async () => {
+test('depth engine: layered scene, no mouse parallax, never intercepts input, modes, Home, restore', async () => {
   const { context, errors, close } = await launch();
   try {
     context.setDefaultTimeout(30000);
@@ -53,8 +50,7 @@ test('depth engine: layered scene, parallax ordered by depth, never intercepts i
     assert.ok(loaded.every(Boolean), `layer images load at full resolution: ${loaded}`);
     // parallax: nearer layers move further than distant ones (not a single translated image)
     const d = await sweep(page);
-    assert.ok(d.far > 0.5, `far moves a little (${d.far})`);
-    assert.ok(d.mid > d.far * 2 && d.near > d.mid * 1.5 && d.front > d.near && d.pnear > d.front, `depth ordering ${JSON.stringify(d)}`);
+    assert.ok(Object.values(d).every(v => v < 0.5), `no layer or object follows the mouse ${JSON.stringify(d)}`);
     // never intercepts input; no horizontal overflow from the oversized layers
     const hit = await page.evaluate(() => { const a = document.querySelector('#toOther'); const r = a.getBoundingClientRect(); return document.elementFromPoint(r.left + 5, r.top + r.height / 2) === a; });
     assert.ok(hit, 'link is the hit target above the scene');
@@ -68,7 +64,7 @@ test('depth engine: layered scene, parallax ordered by depth, never intercepts i
     const names = await page.evaluate(() => [...new Set(document.getAnimations().map(a => a.animationName))]);
     assert.ok(names.includes('repv-cam') && names.includes('repv-sway'), names.join());
     const dc = await sweep(page);
-    assert.ok(dc.front > d.front * 1.8, `cinematic parallax is stronger (${dc.front} vs ${d.front})`);
+    assert.ok(Object.values(dc).every(v => v < 0.5), `Cinematic: still no mouse parallax ${JSON.stringify(dc)}`);
     // Quality: Lite hides the extra particle planes; Full keeps them; diagnostics report it
     await updateConfig(context, "c.depthQuality = 'lite';");
     await page.waitForFunction(() => document.documentElement.classList.contains('repv-depth-lite'));
@@ -136,10 +132,11 @@ test('depth engine: each flagship world builds its own layered scene', async () 
         popPE: document.getElementById('repovibe-popout') ? getComputedStyle(document.getElementById('repovibe-popout')).pointerEvents : null }));
       assert.ok(sp.scene >= 2 && sp.pop >= 2 && sp.popPE === 'none', `${slug}: sprites ${JSON.stringify(sp)}`);
       const d = await sweep(page);
-      const of = pre => Object.entries(d).filter(([k]) => k.startsWith(pre)).map(([k, v]) => [+k.split(':')[2], v]);
-      const near = Math.max(d.near || 0, ...of('sprite:').filter(([k]) => k >= 1).map(([, v]) => v));
-      const pop = Math.max(...of('pop:').map(([, v]) => v));
-      assert.ok(d.mid > d.far * 2 && near > d.mid * 1.5 && pop > near, `${slug}: depth ordering far ${d.far} < mid ${d.mid} < near ${near} < pop-out ${pop}`);
+      assert.ok(Object.values(d).every(v => v < 0.5), `${slug}: nothing follows the mouse ${JSON.stringify(d)}`);
+      // ...but the objects keep moving on their own
+      const pos = () => page.evaluate(() => [...document.querySelectorAll('#repovibe-depth .repv-s > img')].map(i => getComputedStyle(i).transform + getComputedStyle(i).rotate + getComputedStyle(i).opacity));
+      const p0 = await pos(); await page.waitForTimeout(1500); const p1 = await pos();
+      assert.ok(p0.filter((v, i) => v !== p1[i]).length >= 2, `${slug}: objects move autonomously`);
     }
     assert.deepEqual(errors, []);
   } finally { await close(); }
@@ -204,6 +201,34 @@ test('true defaults: pop-out layer on, Auto quality decides once and never oscil
     for (const mode of ['cinematic', 'ambient', 'static', 'cinematic', 'ambient']) { await updateConfig(context, `c.motionMode = '${mode}';`); await page.waitForTimeout(4200); }
     const flips = await page.evaluate(() => window.__liteFlips);
     assert.ok(flips.length <= 1 && !flips.includes(false), `Auto switched at most once and never back to Full: ${JSON.stringify(flips)}`);
+    assert.deepEqual(errors, []);
+  } finally { await close(); }
+});
+
+test('idle butterfly: appears after 15 s of stillness beside the cursor, never takes clicks, flies away on movement; not in Static', async () => {
+  const { context, errors, close } = await launch();
+  try {
+    context.setDefaultTimeout(30000);
+    await setConfig(context, { version: 2, enabled: true, autoAssign: false, seededMappings: true, defaultThemeId: 'preset-8' }); // defaults: Ambient, butterfly on
+    const page = await context.newPage(); await page.setViewportSize({ width: 1366, height: 800 });
+    await page.goto('https://github.com/acme/project/layout');
+    await page.waitForFunction(() => document.documentElement.classList.contains('repv-active'));
+    await page.mouse.move(600, 380); await page.mouse.move(620, 400);
+    await page.waitForTimeout(10000);
+    assert.equal(await page.evaluate(() => !!document.getElementById('repovibe-butterfly')), false, 'no butterfly before 15 s');
+    await page.waitForSelector('#repovibe-butterfly', { state: 'attached', timeout: 9000 });
+    await page.waitForFunction(() => document.getElementById('repovibe-butterfly')?.dataset.state === 'resting', null, { timeout: 8000 });
+    const b = await page.evaluate(() => { const e = document.getElementById('repovibe-butterfly'); const r = e.getBoundingClientRect(); const s = getComputedStyle(e);
+      return { cx: r.x + r.width / 2, cy: r.y + r.height / 2, covers: r.left <= 620 && r.right >= 620 && r.top <= 400 && r.bottom >= 400, pe: s.pointerEvents, aria: e.getAttribute('aria-hidden'), hit: document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('#repovibe-butterfly') ? 'butterfly' : 'page' }; });
+    assert.ok(Math.hypot(b.cx - 620, b.cy - 400) < 60, `rests beside the cursor (${Math.round(b.cx)},${Math.round(b.cy)})`);
+    assert.equal(b.covers, false, 'does not cover the cursor tip');
+    assert.deepEqual([b.pe, b.aria, b.hit], ['none', 'true', 'page'], 'never takes clicks, hidden from assistive tech');
+    await page.mouse.move(700, 420);
+    await page.waitForFunction(() => !document.getElementById('repovibe-butterfly'), null, { timeout: 4000 });
+    // Static: no butterfly even after a long rest
+    await updateConfig(context, "c.motionMode = 'static';");
+    await page.mouse.move(640, 420); await page.waitForTimeout(16500);
+    assert.equal(await page.evaluate(() => !!document.getElementById('repovibe-butterfly')), false, 'Static: no butterfly');
     assert.deepEqual(errors, []);
   } finally { await close(); }
 });
