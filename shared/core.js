@@ -50,6 +50,7 @@
   const FLAGSHIP_MOTION = { 'preset-1': 'rain', 'preset-8': 'fireflies', 'preset-19': 'stars', 'preset-15': 'holo' };
   const MOTION_MODES = ['static', 'ambient', 'cinematic'];
   const SCENE_HEIGHTS = ['compact', 'standard', 'tall'];
+  const DEPTH_QUALITIES = ['auto', 'full', 'lite'];
   /* Appearance presets for the built-in themes (config.appearance). Each sets the six visual controls explicitly; they
      never change one another afterwards. Crisp Immersive is the default: sharp scene (no wallpaper blur, no panel
      backdrop blur, native brightness, minimal overlay) and clean, nearly solid reading panels. Balanced adds a subtle
@@ -108,7 +109,7 @@
   const CONFIG_VERSION = 2;
   const DEFAULT = {
     version: CONFIG_VERSION, enabled: true, defaultThemeId: 'native',
-    autoAssign: true, autoAssignments: {}, motionMode: 'ambient', seededMappings: false, appearance: 'crisp', sceneWindow: true, sceneHeight: 'standard', depthEffects: true,
+    autoAssign: true, autoAssignments: {}, motionMode: 'ambient', seededMappings: false, appearance: 'crisp', sceneWindow: true, sceneHeight: 'standard', depthEffects: true, depthQuality: 'auto',
     repoAssignments: {}, ownerAssignments: {}, customThemes: {}
   };
   const colorKeys = ['bg', 'surface', 'surface2', 'text', 'muted', 'accent', 'border', 'gradientTo', 'gradientThird', 'codeBg'];
@@ -178,6 +179,7 @@
     config.sceneWindow = raw.sceneWindow !== false;
     config.sceneHeight = SCENE_HEIGHTS.includes(raw.sceneHeight) ? raw.sceneHeight : 'standard';
     config.depthEffects = raw.depthEffects !== false;
+    config.depthQuality = DEPTH_QUALITIES.includes(raw.depthQuality) ? raw.depthQuality : 'auto';
     config.seededMappings = raw.seededMappings === true;
     for (const type of ['repoAssignments', 'ownerAssignments', 'autoAssignments']) {
       if (!raw[type] || typeof raw[type] !== 'object') continue;
@@ -370,7 +372,7 @@
   }
   root.RepoVibeCore = Object.freeze({
     STORAGE_KEY, PRESETS, DEFAULT, MAX_CUSTOM_THEMES, CONFIG_VERSION, WALLPAPERS, POSITIONS, SIZES,
-    APPEARANCES, VISUAL_FIELDS, SCENE_HEIGHTS, appearanceValues, restoreVisualDefaults,
+    APPEARANCES, VISUAL_FIELDS, SCENE_HEIGHTS, DEPTH_QUALITIES, appearanceValues, restoreVisualDefaults,
     MOTIONS, MOTION_MODES, FLAGSHIP_MOTION, DEFAULT_REPO_MAPPINGS, seedDefaultMappings, motionFor,
     safeWallpaperRef, fnv1a, pickAutoTheme, requiredGlass, wallpaperTone, panelOpacity, normalizeConfig, normalizeTheme, safeWallpaper,
     repositoryFromUrl, themeById, themeResolution, loadConfig, saveConfig, updateConfig, themeUsage, assignTheme, isPreset,

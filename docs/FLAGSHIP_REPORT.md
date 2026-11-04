@@ -2,6 +2,200 @@
 
 Branch `feature/phase1b-immersive-themes` (PR #2, stacked on PR #1). Not merged.
 
+## 0b. Immersive depth engine (2.5D) and the missing Home repository cards — latest
+
+This section supersedes the older notes below wherever they conflict. In particular, Futuristic Sci-Fi is no longer a white hall, and the live layers are now part of a layered depth scene.
+
+### 1. Root cause: why Home → Top repositories showed no themed cards
+
+The old adapter made three structural assumptions:
+1. The list is `#dashboard-repos-container` / `.js-repos-container`, or sits under an `h2`/`h3` reading "Top repositories".
+2. Every row is an `<li>`.
+3. The art painted on that `<li>` is visible.
+
+The signed-in dashboard is a React app, and its sidebar breaks all three:
+- the heading text sits in a `<span>`/`<div>`, not a heading element;
+- rows are `div[role=listitem]`, or the `<a>` itself;
+- an inner row wrapper paints GitHub's opaque surface over anything on the row.
+
+I reproduced this with two new fixture variants (`/?variant=react`, `/?variant=anchor`). The old code themed **0/6** rows on both. On the classic markup it themed rows, but the art could be hidden by inner wrappers.
+
+### 2. Adapter changes (`content.js`)
+
+- **List detection, in order:**
+  1. legacy ids;
+  2. `aria-label` / `data-testid` mentioning top repositories;
+  3. any short element whose own text is exactly "Top repositories".
+
+  The container walk-up stops before it grows wider than a sidebar (≤ max(560 px, 55 % of the viewport)), so the main feed is never matched.
+- **Rows:** for each link to exactly `/owner/repo`, the row is the largest ancestor inside the list that contains no other repository. This works for `<li>`, `div[role=listitem]` and anchor rows. Inner wrapper backgrounds are neutralised only inside themed rows.
+- **Card styling:**
+  - rounded card;
+  - per-repository wallpaper thumbnail (static, no depth engine on Home);
+  - theme accent border and glow;
+  - readable name on guarded glass;
+  - optional hover lift with a subtle `perspective(520px) rotateX(4deg)` tilt, disabled under reduced motion.
+- **Behaviour:** links and the click area are untouched.
+- **Updates and restore:**
+  - theme changes re-render the cards immediately;
+  - SPA navigation, "Show more" and dynamic rows are handled by the existing throttled observer, home path only;
+  - disabling removes every attribute and the stylesheet.
+- **Diagnostics:** `GET_REPO` returns `homeCards`, which Studio → Settings → Diagnostics shows: detection method, number of repository links, rows themed, and a reason per unthemed row. Example reasons: `repository choice is "Original GitHub"`; `automatic themes are off and the global theme is Original GitHub`.
+
+### 3. The four scenes
+
+All four are original raymarched GLSL scenes, rendered offline (`scripts/wallpapers/render3d.js --layers`) into five 2560×1440 WebP layers each. Objects are assigned to a slab **per object instance by camera distance**, so no object is cut in half. A flat composite is kept for Static mode, uploads and fallbacks.
+
+| World | far | mid | near | front (pop-out) | rays | particle planes (runtime) |
+|---|---|---|---|---|---|---|
+| Enchanted Forest | sky, distant trees, stream, glade | trees 11–27 m: trunks with root flare, branches, canopy clumps, glowing mushrooms (clipped to terrain) | trees < 11 m | leaf clusters + twigs framing the scene window | moonlight shafts | fireflies at 3 depths, mist |
+| Cosmic Galaxy | stars, nebula, moon, spiral galaxy | ringed gas giant + halo + rings (alpha) | asteroid field | three close rocks at the window edges | starlight shafts | stars at 2 depths, bokeh dust |
+| Cyberpunk Neon | skyline beyond 110 m, wet road with reflections of every slab | blocks 40–110 m | blocks < 40 m | two glowing neon sign boards + cables | neon haze beams | rain at 2 depths, near bokeh |
+| Futuristic Sci-Fi | dark hall, mirrored floor, walls with light slots, holographic core at the end | ribs 18–42 m | ribs < 18 m | two holographic UI panels | ceiling light beams | data particles at 2 depths, near bokeh |
+
+Sci-Fi was reworked from a bright, plain white corridor into a dark hall with cyan-lit ribs, a strong hologram and reflections. Its preset palette is now dark, with light text, to match.
+
+### 4. How the depth system works (technical, honest)
+
+**This is layered 2.5D, not real-time 3D geometry.** The scenes are 3D when rendered offline. In the browser they are 9 flat planes moved at different rates. Nothing is re-rendered from a new camera position, so there is no true perspective change or disocclusion beyond what the slab edges give.
+
+- **Container:**
+  - one `<div id="repovibe-depth" aria-hidden="true">`, a sibling of `<body>`;
+  - styled `position:fixed; inset:0; z-index:-1; pointer-events:none; contain:strict`;
+  - layers in order: far · pfar · mist · mid · pmid · near · rays · front · pnear, then the readability veil;
+  - each layer is 112 % of the viewport, so edges never show.
+- **Parallax:**
+  - a passive `pointermove` listener feeds a smoothed rAF loop (factor 0.1/frame; the loop stops once settled);
+  - it writes `translate3d` directly on each layer;
+  - layer factor k (far 0.12 → pnear 2.1) × amplitude (Ambient 13 px, Cinematic 30 px);
+  - only `transform`/`opacity` ever change.
+- **Cinematic** adds:
+  - a slow camera drift (`repv-cam`, 26 s, translate + scale weighted by k);
+  - swaying foreground (`repv-sway`);
+  - breathing light shafts.
+- **Pop-out without interference:**
+  - foreground objects are art inside the fixed scene layer, below all page content (z-index −1);
+  - they are placed at the edges of the scene window, so they never cover text, buttons, links, editors, menus or modals, and never receive pointer events. Tests check `elementFromPoint`.
+  - "Overlapping the window's border" means the leaves, signs, rocks and panels extend past the scene window into the page margins. They are still behind every panel.
+- **Fallbacks:** the sharp flat scene is used for:
+  - Static mode;
+  - `prefers-reduced-motion` (CSS `display:none` and JS);
+  - "3D depth" off;
+  - uploads, blur > 0, non-cover/center positioning;
+  - non-repository pages. **Home never runs the engine**; its cards use static thumbnails.
+- **Lifecycle:**
+  - hidden tabs get `repv-depth-paused` (all animations paused) and the rAF loop is cancelled;
+  - disabling, or switching to a theme without depth, removes the container, classes and listeners;
+  - the covered flat parallax layer stops animating.
+- **Settings:**
+  - popup: *3D depth* toggle;
+  - Studio → Appearance: *3D depth effects*, *Depth quality* (Auto / Full / Lite) and *Scene window height* (Compact / Standard / Tall), plus the existing scene-window on/off;
+  - *Restore visual defaults* resets the height;
+  - **Auto** measures the frame rate for 2 s after the scene settles and switches to **Lite** below 40 fps;
+  - **Lite** hides the three extra particle/mist planes and per-layer animations.
+
+### 5–7. Evidence (committed)
+
+- **Each world**, captured on the real github.com `actions/checkout` page replay (logged out, captured locally, not committed), at 1366×768 with the popup closed:
+  - `docs/screenshots/depth/<world>-ambient.jpg`
+  - `docs/screenshots/depth/<world>-cinematic.jpg`
+  - `docs/screenshots/depth/<world>-static.jpg`
+- **Parallax proof:** `docs/screenshots/depth/<world>-parallax.jpg` shows the scene band with the pointer at the left edge versus the right edge. The foreground and near trees, rocks, signs and ribs shift visibly; the distant layers barely move.
+- **Recordings:** `docs/recordings/<world>-depth.webm`, about 12 s each at 960×540: a pointer sweep in Ambient, then Cinematic.
+- **Measured layer displacement**, full left→right sweep at 1366 px (`docs/depth-metrics.json`), identical across worlds by design:
+
+  | Layer | far | pfar | mist | mid | pmid | rays | near | front | pnear |
+  |---|---|---|---|---|---|---|---|---|---|
+  | Ambient (px) | 3.0 | 6.6 | 8.1 | 12.2 | 17.8 | 14.0 | 25.4 | 41.9 | 53.3 |
+
+  Cinematic measured ≈ 2.3× more (front 93 px).
+- **Home before/after:** `docs/screenshots/flagship/home-before-after-variants.png` compares the old adapter on the React sidebar (0/6 rows) with the new adapter on the React, anchor and classic markup (6/6 each, art visible on all 6). Also `home-top-repositories-react.png` and `-anchor.png`.
+
+### 8. CPU/GPU findings (headless Chromium, software compositing, no GPU in this container)
+
+Measured with CDP `Performance.getMetrics` and a rAF counter during 4 s of continuous pointer motion at 1366×768 (`docs/depth-metrics.json`):
+
+| Mode | fps | main-thread task ms/s | style ms/s | JS heap |
+|---|---|---|---|---|
+| Static (flat) | 60 | 22–26 | ≈1 | 2.6–2.8 MB |
+| Depth off, Ambient (flat + live layer) | 60 | 30–46 | ≈5 | 2.6–3.3 MB |
+| Depth Ambient, Full | 29–30 | 53–55 | ≈9.5 | 3.4–3.9 MB |
+| Depth Ambient, Lite | 32–36 | 48–56 | ≈8.5 | 3.6–3.9 MB |
+| Depth Cinematic, Full | 21–24 | 49–54 | ≈11 | 3.1–3.4 MB |
+
+**Interpretation:**
+- Main-thread work stays small: about 5 % of a core, layout 0, script < 2 ms/s.
+- The frame rate here is limited by **software compositing**, since this container has no GPU. Each frame blends 9 viewport-sized alpha planes on the CPU.
+- On a GPU-composited desktop browser these are plain textured quads and should be far cheaper. That is **UNVERIFIED**: I had no GPU hardware to measure on.
+- Two optimisations came out of this profiling:
+  - dropping `mix-blend-mode` on the rays layer;
+  - writing per-layer transforms instead of a cascading custom property.
+
+  Together they took Ambient from 24–25 fps to 29–30 fps here.
+- The Auto quality setting exists for slow machines.
+
+### 9. Test results
+
+| Suite | Result |
+|---|---|
+| Unit (`npm test`) | 29/29 (new: depth/scene-height/quality config normalisation and restore; flagship depth layers declared and present on disk) |
+| Offline E2E (`npm run test:e2e`) | see the latest run in the PR description; the new `tests/e2e/depth.e2e.js` covers:<ul><li>layers present and loaded at full resolution;</li><li>parallax ordered far < mid < near < front < pnear;</li><li>stronger in Cinematic;</li><li>`pointer-events:none`, `z-index:-1`, link hit-testing, no horizontal scroll;</li><li>transform/opacity-only animation;</li><li>Lite/Full;</li><li>Static, depth off and reduced motion fall back to the flat scene;</li><li>scene-window heights;</li><li>no depth scene on Home;</li><li>restore on disable;</li><li>all four worlds.</li></ul>Home variants: React and anchor sidebars (6/6 rows, art visible, sync, Show more, exact DOM restore, click-through). |
+| Contrast with the engine active (real-page replay; code, issues and PR list × 4 worlds × Ambient and Cinematic, `MOTION=… scripts/measure-snapshots.js`) | 24/24 runs: **0 text elements below 4.5:1**, minimum 4.63 |
+| Package | 98 files, 30 wallpapers, 20 depth layers, permissions unchanged (`storage`, `https://github.com/*`), ZIP ≈ 7.7 MB |
+| Live github.com | see the PR description (the run is triggered by this push) |
+
+Changed test semantics, stated openly:
+- **Scene-visibility metric.** `sceneMetrics` now also reports correlation over the *exposed* scene blocks. The crisp and scene tests assert exposed correlation ≥ 0.8 (measured 1.00 for all four) and keep a full-frame floor of 0.3. The full-frame correlation mixes in the panel layout. With the darker re-rendered forest (0.44) and sci-fi hall (0.35), that dominates over the scene itself, which is still pixel-identical where exposed.
+- **Flagship test.** It now expects the depth scene in Ambient. The flat live-layer test runs with depth off, since that is the path Static, depth-off, uploads and blur use.
+- **Sci-Fi palette.** The tests that expected Sci-Fi to be the light world now expect a dark world.
+- **Baselines.** Four were regenerated after inspection:
+  - popup: new 3D-depth row;
+  - gallery: new Sci-Fi thumbnail;
+  - `repo-galaxy-saved`: re-rendered galaxy.
+
+### 10. Accessibility
+
+- The scene is `aria-hidden`, never focusable, and never intercepts input.
+- Reduced motion removes the engine entirely (CSS and JS).
+- Text measured AA (≥ 4.5:1) everywhere on the real-page replays with depth active.
+- On Home the lowest card-name contrast is 4.65:1, on the React variant; it is 6.5:1 on classic and anchor.
+- Forced-colors and `prefers-contrast: more` remove card art, as before.
+- The depth container has no text, so screen readers are unaffected.
+
+### 11. Limitations
+
+- This is 2.5D layered artwork, not live 3D: there is no true camera translation, and parallax happens in the plane.
+- Real-GPU performance is unmeasured (see §8).
+- **Real signed-in GitHub Home is UNVERIFIED.** The suite never signs in. The adapter is structural and covers the three markup families seen so far, but a future GitHub markup can still defeat it; Diagnostics then explains why.
+
+  **Minimal user-side check:** reload the extension, open github.com signed in, then open Studio → Settings → Diagnostics → *Check*. The line `Home · Top repositories found via … N/N rows themed` should appear. Alternatively, in DevTools run:
+
+  ```js
+  document.querySelectorAll('[data-repv-card]').length
+  ```
+
+  It should equal the number of rows.
+- Recordings and screenshots come from a logged-out real-page replay and the offline fixtures, not a signed-in session.
+- Depth layers add about 3.7 MB to the extension.
+
+### 12. Acceptance matrix (final criteria A–F)
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| A. Home shows per-repository miniature wallpapers | **PASS** on the authenticated-page fixtures (classic, React, anchor: 6/6, art visible) · **UNVERIFIED** on real signed-in GitHub | flagship E2E (3 variants), before/after image |
+| B. A click opens the matching environment | **PASS** (fixture: click-through, page theme equals card theme) | flagship E2E |
+| C. Convincing sense of depth | **PASS** as layered 2.5D: 9 planes, measured parallax 3 → 53 px, occluding foreground, haze and shafts. Not real-time 3D. | depth E2E, parallax images, recordings |
+| D. Demonstrable cinematic motion | **PASS**: Cinematic camera drift, sway and breathing shafts, ≈2.3× parallax | depth E2E, recordings |
+| E. No functional interference | **PASS**: `pointer-events:none`, hit tests, no horizontal scroll, AA text with depth on, Home untouched by the engine | depth E2E, contrast runs |
+| F. Responsive, readable, stable | Readable/stable: **PASS**. Performance: **PARTIAL**, ~30 fps in software-only headless Chromium; GPU desktop UNVERIFIED; Auto/Lite available. | §8 |
+| Static / Ambient / Cinematic differ visibly; reduced motion; hidden-tab pause; release on disable | **PASS** (offline). Hidden-tab pause is implemented but not covered by an automated test. | depth E2E |
+| No new permissions, data-only themes, original assets | **PASS** | verify:package, `wallpapers/LICENSE.md` |
+
+### 13. PR and commit
+
+PR #2: https://github.com/naman-dev-00/RepoVibe/pull/2. The latest SHA and the live-run result are in the PR description, since a commit cannot quote its own hash.
+
+
 ## 0a. Visual redesign: Crisp Immersive (v0.3.0), replacing the blurred, frosted default
 
 **Report.** On a real logged-in account the previous fix still looked like recoloured GitHub, because transparency, blur and dimming effects obscured the scenes.
@@ -259,7 +453,7 @@ Harness fixes made along the way:
 | Cyberpunk Neon | 3D neon rain canyon: towers, signs, wet reflections, fog | rain (two depths) + neon flicker + fog drift | **Complete** |
 | Enchanted Forest | 3D moonlit forest: bent trunks, glowing plants, stream, teal haze, fireflies, foreground leaves | fireflies (two depths) + mist | **Complete**. Procedural CG; the trunks and stream are simpler than hand-painted concept art. |
 | Cosmic Galaxy | 3D ringed gas giant, moon, lit asteroids, volumetric nebula, spiral galaxy, stars | twinkling stars (two depths) + nebula drift | **Complete** |
-| Futuristic Sci-Fi | 3D white arched hall, cyan light strips, glossy floor, holographic core | holographic grid + scan band | **Complete but restrained**. Clean and minimal as asked; the holographic rings are faint, so the scene reads as bright and airy rather than dramatic. |
+| Futuristic Sci-Fi | *(superseded by §0b: now a dark cyan-lit hall with depth layers)* 3D white arched hall, cyan light strips, glossy floor, holographic core | holographic grid + scan band | **Complete but restrained**. Clean and minimal as asked; the holographic rings are faint, so the scene reads as bright and airy rather than dramatic. |
 
 None of the four is a flat gradient. All are original work (`wallpapers/LICENSE.md`); no third-party or copyrighted art. "Moving branches" or leaves are **not** implemented. The forest's motion is fireflies and mist only.
 

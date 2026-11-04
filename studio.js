@@ -427,6 +427,8 @@
     $('sceneHeight').value = config.sceneHeight;
     $('sceneHeight').disabled = !config.sceneWindow;
     $('depthEffectsToggle').checked = config.depthEffects;
+    $('depthQuality').value = config.depthQuality;
+    $('depthQuality').disabled = !config.depthEffects;
   }
   for (const button of document.querySelectorAll('[data-appearance]')) button.addEventListener('click', async () => {
     const name = button.dataset.appearance;
@@ -445,9 +447,13 @@
     const h = event.target.value;
     try { config = await C.updateConfig(latest => { latest.sceneHeight = h; }); say(`Scene window height: ${h}.`); } catch (e) { say(e.message, true); }
   });
+  $('depthQuality').addEventListener('change', async event => {
+    const q = event.target.value;
+    try { config = await C.updateConfig(latest => { latest.depthQuality = q; }); say(`Depth quality: ${q}.`); } catch (e) { say(e.message, true); }
+  });
   $('depthEffectsToggle').addEventListener('change', async event => {
     const on = event.target.checked;
-    try { config = await C.updateConfig(latest => { latest.depthEffects = on; }); say(on ? '3D depth effects on.' : '3D depth effects off: flat sharp scene.'); } catch (e) { say(e.message, true); }
+    try { config = await C.updateConfig(latest => { latest.depthEffects = on; }); paintAppearance(); say(on ? '3D depth effects on.' : '3D depth effects off: flat sharp scene.'); } catch (e) { say(e.message, true); }
   });
   $('restoreVisual').addEventListener('click', async () => {
     let changed = 0;
@@ -474,6 +480,7 @@
           d.duplicate ? `WARNING: ${d.instances.length} RepoVibe copies active (${d.instances.join(', ')}) — remove older ones in chrome://extensions` : 'single installation',
           d.active ? `stylesheet ${d.stylesheet} bytes, scene on page background: ${d.wallpaperOnRoot ? 'yes' : 'no'}` : 'theme not active on this page',
           `appearance ${C.APPEARANCES[d.appearance]?.label || d.appearance}, scene window ${d.sceneWindow ? 'on' : 'off'}`,
+          d.depth ? `3D depth: ${d.depth.scene}, ${d.depth.mode}, ${d.depth.layers.length} layers, quality ${d.depth.quality}${d.depth.lite ? ' (Lite active)' : ''}${d.depth.measuredFps ? `, measured ${d.depth.measuredFps} fps` : ''}` : '3D depth: not running on this page (Static, reduced motion, depth off, Home, or a non-flagship scene)',
           d.homeCards && d.homeCards.home ? (d.homeCards.method && d.homeCards.method !== 'none' && d.homeCards.rows
             ? `Home · Top repositories found via ${d.homeCards.method}: ${d.homeCards.links} repository links, ${d.homeCards.rows.filter(r => r.theme).length}/${d.homeCards.rows.length} rows themed${d.homeCards.rows.filter(r => !r.theme).map(r => `; ${r.repo} not themed: ${r.reason}`).join('')}`
             : `Home · Top repositories not themed: ${d.homeCards.reason || 'unknown'}`) : '',

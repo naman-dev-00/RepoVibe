@@ -296,13 +296,16 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     'scifi-ai': { pfar: [glowTile(73, 640, 480, 26, ['#7fdcff', '#c8f2ff'], 1, 2.4), '640px 480px'], pmid: [glowTile(79, 900, 640, 12, ['#5fd0ff', '#ffffff'], 2, 4), '900px 640px'],
       pnear: [bokehTile(83, 1400, 900, 5, ['#9fe6ff', '#ffffff']), '1400px 900px'], mist: 'radial-gradient(60% 24% at 50% 80%, rgba(160,225,255,.20), transparent 70%)' }
   };
-  let depthState = { key: '', listening: false };
+  let depthState = { key: '', listening: false, probed: '', autoLite: false, fps: null };
   const ptr = { tx: 0, ty: 0, x: 0, y: 0, raf: 0 };
   function stepPointer() {
     ptr.raf = 0;
     const el = document.getElementById(DEPTH_ID); if (!el) return;
     ptr.x += (ptr.tx - ptr.x) * 0.1; ptr.y += (ptr.ty - ptr.y) * 0.1;
-    el.style.setProperty('--px', (-ptr.x).toFixed(4)); el.style.setProperty('--py', (-ptr.y).toFixed(4));
+    // Direct per-layer transforms (compositor-only; no inherited custom property invalidating the subtree each frame)
+    const amp = el.dataset.mode === 'cinematic' ? 30 : 13;
+    for (const l of el.children) { const k = LAYER_K[l.dataset.l]; if (k) l.style.transform = `translate3d(${(-ptr.x * k * amp).toFixed(2)}px, ${(-ptr.y * k * amp * 0.55).toFixed(2)}px, 0)`; }
+    el.dataset.px = (-ptr.x).toFixed(4); el.dataset.py = (-ptr.y).toFixed(4);
     if (Math.abs(ptr.tx - ptr.x) + Math.abs(ptr.ty - ptr.y) > 0.002) ptr.raf = requestAnimationFrame(stepPointer);
   }
   function onPointer(e) {
@@ -337,7 +340,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
   }
   function removeDepth() {
     document.getElementById(DEPTH_ID)?.remove();
-    document.documentElement?.classList.remove('repv-depth', 'repv-depth-cinematic', 'repv-depth-paused');
+    document.documentElement?.classList.remove('repv-depth', 'repv-depth-cinematic', 'repv-depth-paused', 'repv-depth-lite');
     listenPointer(false); depthState.key = '';
   }
   function renderDepth(theme, url) {
@@ -371,16 +374,44 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     root.classList.add('repv-depth');
     root.classList.toggle('repv-depth-cinematic', d.mode === 'cinematic');
     listenPointer(true);
+    if (!ptr.raf) ptr.raf = requestAnimationFrame(stepPointer); // apply the current pointer to freshly built layers
+    applyDepthQuality();
+    probeDepthQuality(key);
+  }
+  // Quality: Full, Lite (drops the three extra particle/mist planes and per-layer animations) or Auto, which measures the
+  // frame rate for 2 s once the scene has settled and switches to Lite below 40 fps for the rest of this page's life.
+  function applyDepthQuality() {
+    const lite = config.depthQuality === 'lite' || (config.depthQuality === 'auto' && depthState.autoLite);
+    document.documentElement?.classList.toggle('repv-depth-lite', lite && !!document.getElementById(DEPTH_ID));
+  }
+  function probeDepthQuality(key) {
+    if (config.depthQuality !== 'auto' || depthState.probed === key) return;
+    depthState.probed = key;
+    setTimeout(() => {
+      if (depthState.key !== key || document.visibilityState !== 'visible') { depthState.probed = ''; return; }
+      let n = 0; const t0 = performance.now();
+      const tick = () => {
+        if (depthState.key !== key) return;
+        n++; const dt = performance.now() - t0;
+        if (dt < 2000) { requestAnimationFrame(tick); return; }
+        depthState.fps = Math.round(n / (dt / 1000));
+        if (document.visibilityState !== 'visible') { depthState.probed = ''; return; } // rAF throttled: not a real measurement
+        depthState.autoLite = depthState.fps < 40;
+        applyDepthQuality();
+      };
+      requestAnimationFrame(tick);
+    }, 1500);
   }
   const DEPTH_CSS = `
 html.repv-depth #${'repovibe-depth'} { position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden; contain:strict; --amp:13px; }
 html.repv-depth-cinematic #repovibe-depth { --amp:30px; }
-#repovibe-depth > .repv-l { position:absolute; inset:-6%; will-change:transform;
- transform:translate3d(calc(var(--px, 0) * var(--k) * var(--amp)), calc(var(--py, 0) * var(--k) * var(--amp) * .55), 0); }
+#repovibe-depth > .repv-l { position:absolute; inset:-6%; will-change:transform; transform:translate3d(0, 0, 0); }
 #repovibe-depth > .repv-l > i { position:absolute; inset:0; background-position:center; background-size:cover; background-repeat:no-repeat; }
 #repovibe-depth > .repv-l[data-tile] > i { background-position:0 0; background-repeat:repeat; }
 #repovibe-depth > .repv-veil { position:absolute; inset:0; }
-#repovibe-depth > [data-l="rays"] { mix-blend-mode:screen; opacity:.8; }
+#repovibe-depth > [data-l="rays"] { opacity:.8; } /* light-coloured alpha art: no blend mode (avoids an extra render surface) */
+html.repv-depth-lite #repovibe-depth > :is([data-l="pfar"], [data-l="mist"], [data-l="pnear"]) { visibility:hidden; }
+html.repv-depth-lite #repovibe-depth > .repv-l > i { animation:none !important; }
 #repovibe-depth > [data-l="front"] > i { transform-origin:50% 0; }
 html.repv-depth.repv-active::after, html.repv-depth body::after { content:none !important; animation:none !important; }
 html.repv-depth body::before { animation:none !important; will-change:auto !important; } /* covered by the depth scene: no hidden work */
@@ -804,7 +835,7 @@ html.repv-depth-paused #repovibe-depth *, html.repv-depth-paused #repovibe-depth
       panelsWithBackdropBlur: blurs.length, panelsDetected: document.querySelectorAll('[data-repv-panel]').length,
       wallpaperOnRoot: /url\(/.test(cs.backgroundImage),
       homeCards: cardDiag,
-      depth: (() => { const el = document.getElementById(DEPTH_ID); return el ? { scene: el.dataset.scene, mode: el.dataset.mode, layers: [...el.children].map(c => c.dataset.l).filter(Boolean) } : null; })()
+      depth: (() => { const el = document.getElementById(DEPTH_ID); return el ? { scene: el.dataset.scene, mode: el.dataset.mode, layers: [...el.children].map(c => c.dataset.l).filter(Boolean), quality: config.depthQuality, lite: document.documentElement.classList.contains('repv-depth-lite'), measuredFps: depthState.fps } : null; })()
     };
   }
 

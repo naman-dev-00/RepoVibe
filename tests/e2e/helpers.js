@@ -38,14 +38,14 @@ fs.mkdirSync(OUT_DIR, { recursive: true });
 
 // fixture=false lets requests reach the real network (used only by the live github.com suite).
 // userDataDir: reuse a profile across launches (browser-restart persistence tests); it is not deleted on close.
-async function launch({ extension = true, mode = 'dark', fixture = true, colorScheme = 'light', userDataDir } = {}) {
+async function launch({ extension = true, mode = 'dark', fixture = true, colorScheme = 'light', userDataDir, recordVideo } = {}) {
   const dir = userDataDir || fs.mkdtempSync(path.join(os.tmpdir(), 'repovibe-e2e-'));
   // Pin text rasterization so screenshots do not depend on the host's fontconfig antialiasing/subpixel
   // settings (these differed between the authoring machine and GitHub's runners).
   const RENDER_ARGS = ['--disable-lcd-text', '--font-render-hinting=none'];
   const args = [...RENDER_ARGS, ...(extension ? [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`] : ['--disable-extensions'])];
   const context = await chromium.launchPersistentContext(dir, {
-    channel: 'chromium', headless: true, viewport: VIEWPORT, deviceScaleFactor: 1, args, acceptDownloads: true, colorScheme,
+    channel: 'chromium', headless: true, viewport: VIEWPORT, deviceScaleFactor: 1, args, acceptDownloads: true, colorScheme, ...(recordVideo ? { recordVideo } : {}),
     env: { ...process.env, FONTCONFIG_FILE: path.join(__dirname, 'fonts', 'fonts.conf') }
   });
   const errors = [];

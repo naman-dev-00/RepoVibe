@@ -16,7 +16,7 @@ const layerX = page => page.evaluate(() => Object.fromEntries([...document.query
 async function sweep(page) {
   const { width, height } = page.viewportSize();
   // wait for the smoothed pointer (--px = -pointer x in [-1, 1]) to settle at each end
-  const settle = target => page.waitForFunction(t => Math.abs(parseFloat(document.getElementById('repovibe-depth').style.getPropertyValue('--px') || '0') - t) < 0.02, target, { polling: 50 });
+  const settle = target => page.waitForFunction(t => Math.abs(parseFloat(document.getElementById('repovibe-depth').dataset.px || '0') - t) < 0.02, target, { polling: 50 });
   await page.mouse.move(5, height / 2);
   await settle(1 - 10 / width);
   const left = await layerX(page);
@@ -30,7 +30,7 @@ test('depth engine: layered scene, parallax ordered by depth, never intercepts i
   const { context, errors, close } = await launch();
   try {
     context.setDefaultTimeout(30000);
-    await setConfig(context, { enabled: true, defaultThemeId: 'preset-8', motionMode: 'ambient', depthEffects: true });
+    await setConfig(context, { enabled: true, defaultThemeId: 'preset-8', motionMode: 'ambient', depthEffects: true, depthQuality: 'full' });
     const page = await context.newPage();
     await page.setViewportSize({ width: 1366, height: 800 });
     await page.goto('https://github.com/acme/project');
@@ -68,6 +68,12 @@ test('depth engine: layered scene, parallax ordered by depth, never intercepts i
     assert.ok(names.includes('repv-cam') && names.includes('repv-sway'), names.join());
     const dc = await sweep(page);
     assert.ok(dc.front > d.front * 1.8, `cinematic parallax is stronger (${dc.front} vs ${d.front})`);
+    // Quality: Lite hides the extra particle planes; Full keeps them; diagnostics report it
+    await updateConfig(context, "c.depthQuality = 'lite';");
+    await page.waitForFunction(() => document.documentElement.classList.contains('repv-depth-lite'));
+    assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('#repovibe-depth > [data-l="pnear"]')).visibility), 'hidden');
+    await updateConfig(context, "c.depthQuality = 'full';");
+    await page.waitForFunction(() => !document.documentElement.classList.contains('repv-depth-lite'));
     // Static, depth off and reduced motion each fall back to the sharp flat scene
     await updateConfig(context, "c.motionMode = 'static';");
     await page.waitForFunction(() => !document.getElementById('repovibe-depth') && !document.documentElement.classList.contains('repv-depth'));
