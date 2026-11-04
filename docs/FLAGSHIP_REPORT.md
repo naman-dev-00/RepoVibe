@@ -16,7 +16,10 @@ Branch `feature/phase1b-immersive-themes` (PR #2, stacked on PR #1). Not merged.
 1. **Readability tones now cover what the engine shows.** They are measured on the depth composite (layers, plus light shafts at their runtime opacity) and on the opaque pixels of the moving objects, at the 99th percentile. Before, they came only from the flat image, but objects such as Sci-Fi's near-white holo ring can sit behind any panel. Production panel opacity stays 0.86 (AA even over white). Lower user choices are now raised further.
 2. **LIVE 9 logs specifics.** The README check now logs the exact lowest elements, their ratios and their positions, so a remaining live failure is diagnosable from the job log.
 
-The next live run is reported in the PR description.
+**Result on `2cceb59`:**
+- **Live github.com** ([run](https://github.com/naman-dev-00/RepoVibe/actions/runs/41833688468)): **15/15 tests, 238 PASS, 0 FAIL, 0 BLOCKED**. README minimum per world: Sci-Fi 7.36 (was 3.85), Forest 4.96, Cyberpunk 7.44, Galaxy 9.62; all 35/35 blocks individually backed.
+- **CI** ([run](https://github.com/naman-dev-00/RepoVibe/actions/runs/41833688420)): green.
+- **Local E2E:** one intermittent baseline diff (Galaxy, 1.77 %); CI passed the same test. The pixel-baseline helper now waits until every depth layer and object image has decoded before capturing, and the test is stable over 3 runs.
 
 ### 2. Motion evidence inspected
 

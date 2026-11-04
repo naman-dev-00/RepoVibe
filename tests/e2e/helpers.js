@@ -168,6 +168,14 @@ async function withSnapshotFonts(page, fn) {
 
 async function matchSnapshot(context, page, name, tolerance = 0.01) {
   // Live-wallpaper layers animate forever; 'disabled' renders them at their initial frame so baselines are stable.
+  // Depth-scene images (layers are CSS backgrounds, objects are <img>) load asynchronously: wait until every one has
+  // decoded so a baseline never catches a half-loaded scene.
+  await page.evaluate(async () => {
+    const urls = [...document.querySelectorAll('#repovibe-depth .repv-l > i')].map(i => /url\("([^"]+)"\)/.exec(i.style.backgroundImage)?.[1]).filter(u => u && !u.startsWith('data:'));
+    const imgs = [...document.querySelectorAll('#repovibe-depth img, #repovibe-popout img')];
+    await Promise.all([...urls.map(u => { const i = new Image(); i.src = u; return i.decode().catch(() => {}); }), ...imgs.map(i => i.decode().catch(() => {}))]);
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  }).catch(() => {});
   const shot = await withSnapshotFonts(page, () => page.screenshot({ animations: 'disabled' }));
   fs.writeFileSync(path.join(OUT_DIR, `${name}.png`), shot);
   const baseline = path.join(SNAP_DIR, `${name}.png`);
