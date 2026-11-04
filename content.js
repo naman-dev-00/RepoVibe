@@ -173,6 +173,7 @@ html.repv-active.repv-scene-window.repv-scene-tall #repo-content-pjax-container,
 @media (max-width:767px) { html.repv-active.repv-scene-window #repo-content-pjax-container, html.repv-active.repv-scene-window turbo-frame#repo-content-turbo-frame:not(:has(#repo-content-pjax-container)) { padding-top:72px !important; } }
 html.repv-active :is(.HeaderMktg, header.header-logged-out) { background-color:rgba(1,4,9,${Math.max(0.85, a)}) !important; } /* logged-out header text is always white */
 html.repv-active :where(${PANELS}) :where(${PANELS}) { background-color:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; box-shadow:none !important; }
+html.repv-active [data-repv-sticky] { background-color:${rgba(v.surface, Math.max(0.94, a))} !important; } /* pinned rows keep a solid backing wherever they float */
 html.repv-active :is(main, .application-main, [class*="PageLayout-Pane"]) { text-shadow:${halo}; }
 html.repv-active :is(${PANELS}, ${FLOATING}, input, textarea, select, button, .btn, .Button, pre, code) { text-shadow:none; }
 html.repv-active :is(input[type="text"], input[type="search"], textarea, select, .form-control, .FormControl-input, [class*="TextInputWrapper"]) { background-color:${control} !important; }
@@ -220,6 +221,7 @@ ${glass ? openCss + MOTION_CSS + DEPTH_CSS : ''}
      sides, rounded corners and a reasonable size, not inside another panel or floating UI. Tagged data-repv-panel;
      the attribute is removed when RepoVibe is inactive or disabled. Throttled; scans only the main content. */
   const PANEL_ATTR = 'data-repv-panel';
+  const STICKY_ATTR = 'data-repv-sticky';
   let panelScanQueued = false;
   let panelChecked = new WeakSet(); // each element's computed style is read once (reset when the theme changes)
   function isBoxed(el) {
@@ -244,6 +246,10 @@ ${glass ? openCss + MOTION_CSS + DEPTH_CSS : ''}
       const el = candidates[i];
       if (panelChecked.has(el) || el.hasAttribute(PANEL_ATTR)) continue;
       panelChecked.add(el);
+      // Sticky rows (e.g. the file table's latest-commit header) stay pinned at the top of the viewport while the rest
+      // of their panel scrolls away, so they float over the scene: they get their own solid backing (checked even inside
+      // panels, where nested surfaces are otherwise transparent). Not inside floating UI (menus keep their own).
+      if (getComputedStyle(el).position === 'sticky' && !el.closest(FLOATING) && el.textContent.trim() && el.getBoundingClientRect().height < 200) { el.setAttribute(STICKY_ATTR, ''); continue; }
       if (el.closest(`[${PANEL_ATTR}], ${FLOATING}`) || el.closest(PANELS.replace(', [data-repv-panel]', ''))) continue;
       if (isBoxed(el)) el.setAttribute(PANEL_ATTR, '');
     }
@@ -284,7 +290,7 @@ ${glass ? openCss + MOTION_CSS + DEPTH_CSS : ''}
     panelScanQueued = true;
     setTimeout(() => requestAnimationFrame(scanPanels), 120);
   }
-  function clearPanels() { panelChecked = new WeakSet(); for (const el of document.querySelectorAll(`[${PANEL_ATTR}], [${TEXT_ATTR}]`)) { el.removeAttribute(PANEL_ATTR); el.removeAttribute(TEXT_ATTR); } }
+  function clearPanels() { panelChecked = new WeakSet(); for (const el of document.querySelectorAll(`[${PANEL_ATTR}], [${TEXT_ATTR}], [${STICKY_ATTR}]`)) { el.removeAttribute(PANEL_ATTR); el.removeAttribute(TEXT_ATTR); el.removeAttribute(STICKY_ATTR); } }
 
   /* ---- Live wallpapers: lightweight ambient motion drawn with two fixed, pointer-events:none pseudo-element layers
      (html::after, body::after) between the wallpaper and the page. Only transform/opacity are animated (compositor

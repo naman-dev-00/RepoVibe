@@ -69,3 +69,30 @@ test('text-only readability backing: compact per-block backings, empty space ope
     assert.deepEqual(errors, []);
   } finally { await close(); }
 });
+
+test('sticky rows that stay pinned while their panel scrolls away get a solid backing (live finding: file-table header over the scene)', async () => {
+  const { context, errors, close } = await launch();
+  try {
+    context.setDefaultTimeout(30000);
+    await setConfig(context, { enabled: true, defaultThemeId: 'preset-1', motionMode: 'static' });
+    const page = await context.newPage(); await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto('https://github.com/acme/project/layout');
+    await page.waitForFunction(() => document.documentElement.classList.contains('repv-active'));
+    await page.evaluate(() => {
+      const box = document.createElement('div'); box.className = 'Box'; box.id = 'tBox'; box.style.margin = '20px 40px';
+      box.innerHTML = '<div id="tSticky" style="position:sticky;top:0;z-index:1;padding:8px">latest commit · prep v7.0.1 release (#2531) · Jul 17</div>' + Array.from({ length: 60 }, (_, i) => `<div style="padding:8px">file-${i}.json</div>`).join('');
+      (document.querySelector('main, .application-main') || document.body).appendChild(box);
+    });
+    await page.waitForFunction(() => document.getElementById('tSticky').hasAttribute('data-repv-sticky'));
+    await page.evaluate(() => { const b = document.getElementById('tBox'); window.scrollTo(0, b.getBoundingClientRect().top + scrollY + 1200); });
+    await page.waitForTimeout(300);
+    const st = await page.evaluate(() => { const e = document.getElementById('tSticky'); return { top: Math.round(e.getBoundingClientRect().top), bg: getComputedStyle(e).backgroundColor }; });
+    assert.ok(st.top <= 2, `the row is pinned at the top (${st.top})`);
+    assert.ok(alpha(st.bg) >= 0.9, `pinned row has a solid backing (${st.bg})`);
+    const contrast = await visualContrast(context, page);
+    assert.equal(contrast.below45, 0, JSON.stringify(contrast.low.slice(0, 3)));
+    await updateConfig(context, 'c.enabled = false;');
+    await page.waitForFunction(() => !document.querySelector('[data-repv-sticky]'));
+    assert.deepEqual(errors, []);
+  } finally { await close(); }
+});

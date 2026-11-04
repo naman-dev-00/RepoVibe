@@ -19,6 +19,14 @@ Branch `feature/phase1b-immersive-themes` (PR #2, stacked on PR #1). Not merged.
 **Result on `2cceb59`:**
 - **Live github.com** ([run](https://github.com/naman-dev-00/RepoVibe/actions/runs/41833688468)): **15/15 tests, 238 PASS, 0 FAIL, 0 BLOCKED**. README minimum per world: Sci-Fi 7.36 (was 3.85), Forest 4.96, Cyberpunk 7.44, Galaxy 9.62; all 35/35 blocks individually backed.
 - **CI** ([run](https://github.com/naman-dev-00/RepoVibe/actions/runs/41833688420)): green.
+- **Live github.com on `be10bd4`** (tests and report only; same extension code): 13/15. The new LIVE 9 diagnostics named the elements:
+  - all at y = 24, at the top of the viewport, after scrolling to the README;
+  - Cyberpunk: "#2531" at 3.51;
+  - Sci-Fi: "package.json", "prep v7.0.1 release (", "Jul 17" at 3.13–3.78.
+
+  These are the file table's **sticky** latest-commit row, which stays pinned at the top while its panel scrolls away. As a nested surface it was transparent, so its text floated over the scene. That is a real, scroll-position-dependent defect, which is why `2cceb59` passed by chance.
+
+  **Fix:** the runtime scan tags sticky rows with text, even inside panels, as `data-repv-sticky`. They get a solid themed backing (≥ 94 %). Verified on the replay with the same scroll (row backed, minimum 7.25 / 8.83), and covered by a new E2E test (pinned row, solid backing, AA, restore).
 - **Local E2E:** one intermittent baseline diff (Galaxy, 1.77 %); CI passed the same test. The pixel-baseline helper now waits until every depth layer and object image has decoded before capturing, and the test is stable over 3 runs.
 
 ### 2. Motion evidence inspected
