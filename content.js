@@ -41,6 +41,15 @@
      5. Menus, dialogs and popovers stay opaque; code stays ≥ 90 % opaque. */
   const SHELLS = 'body, .application-main, main, #js-repo-pjax-container, turbo-frame, .container-xl, .container-lg, .container-md, [class*="PageLayout-PageLayoutWrapper"], [class*="PageLayout-PageLayoutContent"], .PageLayout, [class*="PageLayout-Content"], .Layout, .Layout-main';
   const PANELS = '.AppHeader, header.GlobalNav, .Header, .js-header-wrapper header, #repository-container-header, .Box, .markdown-body, .Layout-sidebar, aside[class*="sidebar"], [class*="sidebarSection"], .BorderGrid-row, .Flash, [class*="Flash-Flash"], .blob-wrapper, .file, [data-testid="code-viewer"], .timeline-comment, footer.footer, .footer, footer[role="contentinfo"], [role="contentinfo"], .paginate-container, nav[aria-label*="agination"], [data-repv-panel]';
+  /* Open reading (default "Text only" readability backing): prose containers lose their broad surface and every text block
+     gets its own compact backing instead, so empty space around/below text shows the scene. Dense UI (file tables,
+     issue/PR lists, code viewers, comment boxes, menus) keeps its panel. */
+  const SIDE = '.Layout-sidebar, aside[class*="sidebar"], [class*="sidebarSection"], .BorderGrid-row, .BorderGrid, footer.footer, .footer, footer[role="contentinfo"], [role="contentinfo"]';
+  const LIST = '[class*="listContainer"]:has(> ul > li[class*="listItem"], > [role="list"] > li[class*="listItem"])';
+  const OPEN = `.markdown-body:not(.comment-body, .js-comment-body), #readme, ${SIDE}`;
+  const PROSE = '.markdown-body:not(.comment-body, .js-comment-body)';
+  const PROSE_BLOCKS = 'h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote, details > summary, figcaption';
+  const SIDE_TEXT = 'h1, h2, h3, h4, p, li, dt, dd, summary, a, .Label, [class*="prc-Label"], .Counter, [class*="CounterLabel"], [class*="Truncate"], relative-time';
   // Floating UI must stay opaque and readable over any wallpaper.
   const FLOATING = '.Overlay, .Overlay-backdrop--center > *, .dropdown-menu, .SelectMenu-modal, .Popover-message, details-dialog, .Box--overlay, [role="menu"], [role="listbox"], [role="dialog"], [popover], .tooltipped::after';
 
@@ -86,6 +95,33 @@
     // A tight, light halo on loose text (its real backing is the small guard-computed pill), not a wide dimming glow.
     const halo = `0 0 1px ${rgba(v.bg, 0.9)}, 0 0 3px ${rgba(v.bg, 0.7)}`;
     const compact = v.layout === 'compact';
+    const back = rgba(v.bg, looseA); // same guard-computed alpha as other loose text: AA over the brightest scene pixel
+    const lift = `0 2px 10px ${rgba('#000000', light ? 0.08 : 0.2)}`;
+    const openCss = `
+html.repv-open :is(${OPEN}) { background-color:transparent !important; background-image:none !important; box-shadow:none !important; border-color:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+html.repv-open :is(${PROSE}) :is(${PROSE_BLOCKS}):not(:is(li, blockquote, td, th, p, dd, summary, table) *):not(:has(img, picture, video, svg:not(.octicon))) {
+ background-color:${back} !important; box-shadow:0 0 0 6px ${back}, ${lift}; border-radius:6px; width:fit-content; max-width:100%; box-sizing:border-box; }
+html.repv-open :is(${PROSE}) :is([align="center"], [align="center"] > *, [style*="text-align: center"]):is(${PROSE_BLOCKS}) { margin-left:auto; margin-right:auto; }
+html.repv-open :is(${PROSE}) li { margin-top:6px; } /* room for each item's own backing */
+html.repv-open :is(${PROSE}) table { background-color:${panel} !important; box-shadow:0 0 0 1px ${v.border}, ${lift}; border-radius:6px; }
+html.repv-open :is(${PROSE}) :is(table tr, table td, table th) { background-color:transparent !important; }
+html.repv-open :is(${PROSE}) :is(.highlight, .snippet-clipboard-content) { background-color:transparent !important; }
+html.repv-open :is(${PROSE}) pre { box-shadow:${lift}; }
+html.repv-open :is(${SIDE}) :is(${SIDE_TEXT}):not(:is(${SIDE_TEXT}, button, .btn) *):not(:is([class*="ButtonBase"], .btn, button)[data-variant]:not([data-variant="invisible"])) {
+ background-color:${back} !important; box-shadow:0 0 0 3px ${back}; border-radius:5px; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
+html.repv-open :is(${SIDE}) :is(h1, h2, h3, h4, p, li, dt, dd):not(:is(${SIDE_TEXT}) *) { width:fit-content; max-width:100%; }
+html.repv-open :is(${OPEN}) { text-shadow:${halo}; }
+/* Issue / pull request lists (React list view): the list is open; each row's title, labels, metadata line and trailing
+   counters get their own compact backing; the list toolbar keeps a panel. */
+html.repv-open :is(${LIST}) { background-color:transparent !important; box-shadow:none !important; backdrop-filter:none !important; }
+html.repv-open :is(${LIST}) > :not(ul, ol, [role="list"]) { background-color:${panel} !important; border-radius:var(--repv-radius) var(--repv-radius) 0 0; }
+html.repv-open :is(${LIST}) li[class*="listItem"] :is([data-listview-item-title-container] h3, [class*="trailingBadgesContainer"]:not(:empty), [class*="description"]),
+html.repv-open :is(${LIST}) li[class*="listItem"] > div:not([data-listview-item-title-container]):has(relative-time) > div > div:has(relative-time):not(:has([class*="description"])),
+html.repv-open :is(${LIST}) li[class*="listItem"] > div:last-child:not([data-listview-item-title-container]):not(:has(relative-time)) > :not(:empty):has(*, :not(:empty)) {
+ background-color:${back} !important; box-shadow:0 0 0 4px ${back}, ${lift}; border-radius:6px; width:fit-content; max-width:100%; }
+html.repv-open :is(${LIST}) li[class*="listItem"] > div:last-child > * { height:fit-content; align-self:center; }
+html.repv-open :is(${LIST}) li[class*="listItem"] { text-shadow:${halo}; }
+`;
     // Whitelist only constrained colors, numbers and enum values. The wallpaper URL itself lives in a
     // separate style element (see renderWallpaper) and is either a bundled extension URL or a validated data URL.
     // --bgColor-emphasis is GitHub's *neutral* emphasis (tooltips, counters) paired with white text: not overridden.
@@ -151,7 +187,7 @@ html.repv-active :is(.blob-code, .react-code-text, .react-code-line, .markdown-b
 ${v.layout === 'wide' ? `html.repv-active :is(.container-xl, .container-lg) { max-width:1800px !important; }` : ''}
 ${compact ? `html.repv-active :is(.Box-row, .react-directory-row) {padding-top:5px !important;padding-bottom:5px !important;}
 html.repv-active .Layout {gap:12px !important;}` : ''}
-${glass ? MOTION_CSS + DEPTH_CSS : ''}
+${glass ? openCss + MOTION_CSS + DEPTH_CSS : ''}
 @media (prefers-reduced-motion:no-preference) {
  html.repv-active :is(.Box, .btn, .Button) { transition:border-color .18s ease, box-shadow .18s ease; }
  ${v.vibe === 'neon' ? `html.repv-active :is(.Box:hover, .Button:hover) { box-shadow:0 0 14px ${v.accent}45; }` : ''}
@@ -685,7 +721,7 @@ html.repv-depth-paused #repovibe-depth *, html.repv-depth-paused #repovibe-depth
     if (!root) return;
     let style = document.getElementById(STYLE_ID);
     if (!theme) {
-      root.classList.remove('repv-active', 'repv-scene-window', 'repv-scene-compact', 'repv-scene-tall', ...MOTION_CLASSES);
+      root.classList.remove('repv-active', 'repv-scene-window', 'repv-scene-compact', 'repv-scene-tall', 'repv-open', ...MOTION_CLASSES);
       removeDepth();
       registerInstance(false);
       lastMotion = '';
@@ -712,6 +748,8 @@ html.repv-depth-paused #repovibe-depth *, html.repv-depth-paused #repovibe-depth
     const wantWindow = Boolean(url) && config.sceneWindow && Boolean(resolution.repository) && !activePreview?.noWindow;
     if (root.classList.contains('repv-scene-window') !== wantWindow) root.classList.toggle('repv-scene-window', wantWindow);
     if (wantWindow) lastMotion = `${lastMotion} repv-scene-window`.trim();
+    const wantOpen = Boolean(url) && config.readingBacking === 'text';
+    if (root.classList.contains('repv-open') !== wantOpen) root.classList.toggle('repv-open', wantOpen);
     for (const h of ['compact', 'tall']) if (root.classList.contains(`repv-scene-${h}`) !== (wantWindow && config.sceneHeight === h)) root.classList.toggle(`repv-scene-${h}`, wantWindow && config.sceneHeight === h);
     renderDepth(theme, resolution.repository ? url : null); // one depth scene, repository pages only (never on Home)
     applyColorMode(root, lastMode);
@@ -748,7 +786,7 @@ html.repv-depth-paused #repovibe-depth *, html.repv-depth-paused #repovibe-depth
     removeDepth();
     registerInstance(false);
     reducedQuery?.removeEventListener?.('change', onReducedMotionChange);
-    if (document.documentElement) { document.documentElement.classList.remove('repv-active', 'repv-scene-window', 'repv-scene-compact', 'repv-scene-tall', ...MOTION_CLASSES); applyColorMode(document.documentElement, null); }
+    if (document.documentElement) { document.documentElement.classList.remove('repv-active', 'repv-scene-window', 'repv-scene-compact', 'repv-scene-tall', 'repv-open', ...MOTION_CLASSES); applyColorMode(document.documentElement, null); }
   }
   function guard(fn) {
     return (...args) => { if (tornDown) return; if (!extensionAlive()) { teardown(); return; } fn(...args); };
@@ -829,7 +867,7 @@ html.repv-depth-paused #repovibe-depth *, html.repv-depth-paused #repovibe-depth
     return {
       version: chrome.runtime.getManifest().version, extensionId: chrome.runtime.id, instances, duplicate: instances.length > 1,
       active: root.classList.contains('repv-active'), stylesheet: (document.getElementById(STYLE_ID)?.textContent || '').length,
-      appearance: config.appearance, sceneWindow: root.classList.contains('repv-scene-window'),
+      appearance: config.appearance, sceneWindow: root.classList.contains('repv-scene-window'), readingBacking: root.classList.contains('repv-open') ? 'text' : 'panels',
       theme: t && { id: t.id, name: t.name, wallpaperBlur: t.wallpaperBlur, panelBlur: t.glass, overlay: t.wallpaperOverlay, brightness: t.wallpaperBrightness, opacity: t.wallpaperOpacity, panelOpacityChosen: t.glassOpacity },
       panelOpacityRendered: Number(cs.getPropertyValue('--repv-panel-opacity')) || null,
       panelsWithBackdropBlur: blurs.length, panelsDetected: document.querySelectorAll('[data-repv-panel]').length,

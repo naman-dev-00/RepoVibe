@@ -2,6 +2,77 @@
 
 Branch `feature/phase1b-immersive-themes` (PR #2, stacked on PR #1). Not merged.
 
+## 0c. Text-only readability backing — latest
+
+**Request.** The scene was visible, but README areas, sidebars and lists still sat behind broad panels. Backing should exist only where text exists, and empty space should stay open.
+
+**What I found.** On the real `actions/checkout` page replay, these were the broad surfaces:
+
+| Surface | Size | Opacity |
+|---|---|---|
+| README `article.markdown-body` | 840 × 8 725 px | 86 % |
+| Each About/sidebar section | 272 px wide | 86 % |
+| Issue / pull-request list container | 1 062–1 232 px wide | 86 % |
+| Footer | full width | 86 % |
+| Code-block wrappers | full README width | 30 % |
+
+They had no backdrop blur since Crisp Immersive (v0.3.0), but they were large, nearly solid surfaces.
+
+**Change.** A new setting, *Readability backing*, defaults to **Text only (open)**. It is in Studio → Appearance; *Full panels* restores the previous look. In the new default:
+
+- **README / markdown.** The container is transparent. Each heading, paragraph, list item, definition, blockquote and summary gets its own compact backing that hugs the text:
+  - `width: fit-content`;
+  - a 6 px spread shadow in the same colour instead of padding, so the layout is unchanged;
+  - rounded corners and a soft lift shadow.
+
+  Nested inline text is never double-backed. Centred blocks stay centred. Image-only paragraphs (badge rows, logos) get no backing. Tables keep a panel-strength surface. Code blocks keep their ≥ 90 % backing, and their full-width wrapper is cleared.
+- **Sidebar, About and footer.** The sections are transparent. Headings, paragraphs, links, labels and counters each get a small pill backing that is cloned per line.
+- **Issue and pull-request lists** (GitHub's React list view). The list is transparent. In each row, these get their own compact backing:
+  - the title;
+  - the labels;
+  - the metadata line (number, author, time; detected structurally by its `relative-time`, so it works for both list types);
+  - the trailing counters.
+
+  The list toolbar keeps a panel.
+- **Kept as panels** (dense UI): file tables, code viewers, comment boxes, headers, menus, dialogs and the flash banner.
+- **No blur.** No blur is added anywhere. The backing uses the same guard-computed alpha as other loose text: AA over the brightest pixel of the scene.
+
+**Measured before/after** on the same real-page replays, 1366 × 768, 4 worlds × 3 pages × 3 scroll positions (`scripts/open-reading-evidence.js`, `docs/open-reading-metrics.json`). "Scene exposed" is the share of the viewport with nothing painted over the scene:
+
+| View | Scene exposed, full panels | Scene exposed, text only | Text below 4.5:1 (text only) |
+|---|---|---|---|
+| Code page, top | 40 % | 44 % | 0 |
+| Code page, README | 36–40 % | **57–62 %** | 0 (min 5.5) |
+| Issues, top | 36 % | 53 % | 0 |
+| Issues, list | 6 % | **60–64 %** | 0 (min 5.8) |
+| Pull requests, top | 59 % | 60 % | 0 |
+| Pull requests, list | 8 % | **54 %** | 0 (min 6.0) |
+
+The minimum contrast on every page is 4.63–4.69:1. That is GitHub's own header text, which this change does not touch.
+
+**Before/after images:** `docs/screenshots/open-reading/<page>-<world>-1.jpg` shows the README or list view for every world and page; `actions-checkout-code-enchanted-forest-0.jpg` shows the top of the page.
+
+**Tests:**
+- New `tests/e2e/open-reading.e2e.js` checks:
+  - the README and sidebar containers have no broad backing;
+  - the heading, paragraph, list item, sidebar heading and link are each backed;
+  - a link inside a list item is not double-backed;
+  - a paragraph's backing hugs its text, and centred blocks stay centred;
+  - the space below and beside short text is fully open;
+  - code and tables keep strong backing;
+  - all text is ≥ 4.5:1;
+  - *Full panels* restores the broad surface live;
+  - disabling restores native layout.
+- LIVE 9's README check now requires an open README with every text block individually backed, and AA text.
+- Unit tests cover the setting's normalisation.
+
+**Unchanged:** Home Top repositories cards, the four flagship worlds and the depth engine; the full E2E suite covers them.
+
+**Limits:**
+- The list-row hooks rely on GitHub's current React list view (`listContainer`, `listItem`, `data-listview-item-title-container`, `relative-time`). Other list markup keeps its panel, which is safe but less open.
+- Light themes use light backings: the same mechanism, mirrored.
+- Real signed-in pages are unverified, as before.
+
 ## 0b. Immersive depth engine (2.5D) and the missing Home repository cards — latest
 
 This section supersedes the older notes below wherever they conflict. In particular, Futuristic Sci-Fi is no longer a white hall, and the live layers are now part of a layered depth scene.

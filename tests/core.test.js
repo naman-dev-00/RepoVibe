@@ -298,6 +298,7 @@ test('depth effects and scene-window height are normalized, defaulted and restor
   assert.equal(c.depthEffects, false); assert.equal(c.sceneHeight, 'tall');
   assert.equal(C.normalizeConfig({ sceneHeight: '<script>' }).sceneHeight, 'standard');
   assert.equal(C.normalizeConfig({ depthEffects: 'no' }).depthEffects, true);
+  assert.equal(d.readingBacking, 'text'); assert.equal(C.normalizeConfig({ readingBacking: 'panels' }).readingBacking, 'panels'); assert.equal(C.normalizeConfig({ readingBacking: 'x' }).readingBacking, 'text');
   assert.equal(d.depthQuality, 'auto'); assert.equal(C.normalizeConfig({ depthQuality: 'lite' }).depthQuality, 'lite'); assert.equal(C.normalizeConfig({ depthQuality: 'ultra' }).depthQuality, 'auto');
   C.restoreVisualDefaults(c); assert.equal(c.sceneHeight, 'standard');
 });

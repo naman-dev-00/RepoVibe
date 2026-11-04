@@ -94,10 +94,15 @@ for (const [, id, slug, motion, label] of FLAGSHIPS) L.liveTest(`LIVE 9 (${label
       const hasReadme = await page.evaluate(() => { const a = document.querySelector('article.markdown-body'); if (!a) return false; window.scrollTo(0, a.getBoundingClientRect().top + scrollY - 120); return true; });
       if (hasReadme) {
         await page.waitForTimeout(500);
-        // The README's reading surface is the nearest painted ancestor (the detected README box or the article itself).
-        const rd = await page.evaluate(() => { for (let e = document.querySelector('article.markdown-body'); e && e !== document.body; e = e.parentElement) { const bg = getComputedStyle(e).backgroundColor; if (!/rgba\(0, 0, 0, 0\)|transparent/.test(bg)) return bg; } return 'rgba(0, 0, 0, 0)'; });
+        // Text-only readability backing (default): the README container is open (no broad surface) and each text block
+        // carries its own compact backing; all text must stay AA.
+        const rd = await page.evaluate(() => {
+          const a = document.querySelector('article.markdown-body'), alpha = c => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return 0; const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return p.length > 3 ? p[3] : 1; };
+          const ps = [...a.querySelectorAll('p, li')].filter(e => e.textContent.trim() && !e.closest('li li, blockquote') && !e.querySelector('img'));
+          return { article: alpha(getComputedStyle(a).backgroundColor), backed: ps.filter(e => alpha(getComputedStyle(e).backgroundColor) >= 0.5 || alpha(getComputedStyle(e.parentElement.closest('li, p') || e).backgroundColor) >= 0.5).length, blocks: ps.length, open: document.documentElement.classList.contains('repv-open') };
+        });
         const vr = await visualContrast(context, page, 300);
-        c.check(/rgba?\(/.test(rd) && !/, 0\)$/.test(rd) && vr.below3.length === 0 && vr.below45 === 0, `${label} · README`, `README surface ${rd}; text min ${vr.min.toFixed(2)}, <4.5:1 ${vr.below45}, <3:1 ${vr.below3.length}`);
+        c.check(rd.open && rd.article === 0 && rd.blocks > 0 && rd.backed === rd.blocks && vr.below3.length === 0 && vr.below45 === 0, `${label} · README`, `open README (container alpha ${rd.article}); ${rd.backed}/${rd.blocks} text blocks individually backed; text min ${vr.min.toFixed(2)}, <4.5:1 ${vr.below45}, <3:1 ${vr.below3.length}`);
         await L.logShot(context, page, `scene-${label}-readme-1366`);
       } else c.info(`${label} · README`, 'README article not found on this page');
       // Diagnostic configuration (opacity 100 %, brightness 100 %, blur 0, overlay 0) on the Code page.

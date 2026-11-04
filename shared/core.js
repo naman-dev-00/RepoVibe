@@ -109,7 +109,7 @@
   const CONFIG_VERSION = 2;
   const DEFAULT = {
     version: CONFIG_VERSION, enabled: true, defaultThemeId: 'native',
-    autoAssign: true, autoAssignments: {}, motionMode: 'ambient', seededMappings: false, appearance: 'crisp', sceneWindow: true, sceneHeight: 'standard', depthEffects: true, depthQuality: 'auto',
+    autoAssign: true, autoAssignments: {}, motionMode: 'ambient', seededMappings: false, appearance: 'crisp', sceneWindow: true, sceneHeight: 'standard', depthEffects: true, depthQuality: 'auto', readingBacking: 'text',
     repoAssignments: {}, ownerAssignments: {}, customThemes: {}
   };
   const colorKeys = ['bg', 'surface', 'surface2', 'text', 'muted', 'accent', 'border', 'gradientTo', 'gradientThird', 'codeBg'];
@@ -179,6 +179,7 @@
     config.sceneWindow = raw.sceneWindow !== false;
     config.sceneHeight = SCENE_HEIGHTS.includes(raw.sceneHeight) ? raw.sceneHeight : 'standard';
     config.depthEffects = raw.depthEffects !== false;
+    config.readingBacking = raw.readingBacking === 'panels' ? 'panels' : 'text';
     config.depthQuality = DEPTH_QUALITIES.includes(raw.depthQuality) ? raw.depthQuality : 'auto';
     config.seededMappings = raw.seededMappings === true;
     for (const type of ['repoAssignments', 'ownerAssignments', 'autoAssignments']) {
@@ -222,6 +223,7 @@
   function restoreVisualDefaults(config) {
     config.appearance = 'crisp';
     config.sceneHeight = 'standard';
+    config.readingBacking = 'text';
     let changed = 0;
     for (const theme of Object.values(config.customThemes)) {
       const v = appearanceValues('crisp', theme);
