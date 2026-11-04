@@ -43,7 +43,7 @@
           <div class="editor-grid">
             <div class="settings-card"><h3>Theme identity</h3><label class="field-label" for="themeName">Theme name</label><input id="themeName" maxlength="60" placeholder="My custom theme" /><label class="field-label" for="themeDescription">Description</label><input id="themeDescription" maxlength="120" placeholder="A different kind of GitHub" /><label class="field-label" for="fontSelect">Interface font</label><select id="fontSelect"><option value="system">System default</option><option value="rounded">Rounded</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></div>
             <div class="settings-card"><h3>Color palette</h3><div class="color-grid" id="colorControls"></div></div>
-            <div class="settings-card"><h3>Surfaces</h3><label class="range-row"><span>Corner radius <output id="radiusVal"></output></span><input id="radius" type="range" min="0" max="28" /></label><label class="range-row"><span>Glass blur strength <output id="glassVal"></output></span><input id="glass" type="range" min="0" max="30" /></label><label class="range-row"><span>Glass panel opacity <output id="glassOpacityVal"></output></span><input id="glassOpacity" type="range" min="40" max="100" /></label><p class="helper" id="glassGuardNote" role="status"></p></div>
+            <div class="settings-card"><h3>Surfaces</h3><label class="range-row"><span>Corner radius <output id="radiusVal"></output></span><input id="radius" type="range" min="0" max="28" /></label><label class="range-row"><span>Panel backdrop blur <output id="glassVal"></output></span><input id="glass" type="range" min="0" max="30" /></label><label class="range-row"><span>Panel opacity <output id="glassOpacityVal"></output></span><input id="glassOpacity" type="range" min="40" max="100" /></label><p class="helper" id="glassGuardNote" role="status"></p></div>
             <div class="settings-card preview-card"><div class="label-mini">COLOR PREVIEW</div><div class="preview-art" id="palettePreview"><div class="preview-nav"><i></i><i></i><i></i><span></span></div><div class="preview-content"><div class="fake-title"></div><div class="fake-line"></div><div class="fake-line short"></div><div class="fake-button"></div></div></div><p>Changes preview live in the connected GitHub tab. Save when it looks right.</p></div>
           </div>
         </section>
@@ -53,25 +53,26 @@
             <div class="settings-card wide-card"><div class="library-heading"><h3>Wallpaper</h3><div><label class="outline-button upload-button" for="wallpaperInput">↑ Upload image</label><input hidden id="wallpaperInput" type="file" accept="image/png,image/jpeg,image/webp" /> <button id="removeWallpaper" class="outline-button" type="button">No wallpaper</button></div></div>
               <p class="helper">PNG, JPEG or WebP up to 25 MB. Large images are resized to at most 3840 px and stored as WebP.</p>
               <div class="wallpaper-grid" id="wallpaperGrid" role="listbox" aria-label="Wallpapers"></div></div>
-            <div class="settings-card"><h3>Scene visibility</h3>
-              <p class="helper">How much of the scene you see versus how calm the page is. Text always stays readable: panels only get as solid as this scene needs.</p>
-              <div class="scope-controls scene-modes" role="group" aria-label="Scene visibility">
-                <button type="button" class="outline-button" data-scene="immersive" title="Brightest scene, lightest glass">Immersive</button>
-                <button type="button" class="outline-button" data-scene="balanced" title="Default">Balanced</button>
-                <button type="button" class="outline-button" data-scene="readable" title="Dimmed scene, solid panels">Readable</button>
+            <div class="settings-card"><h3>Appearance</h3>
+              <p class="helper">Applies to all built-in themes and to the theme you are editing. Each preset sets the six controls below; afterwards every control is independent.</p>
+              <div class="scope-controls scene-modes" role="radiogroup" aria-label="Appearance">
+                <button type="button" class="outline-button" data-appearance="crisp" title="Sharp 3D scene, no blur, clean reading panels (default)">Crisp Immersive</button>
+                <button type="button" class="outline-button" data-appearance="balanced" title="Sharp scene, subtle overlay, more solid panels">Balanced</button>
+                <button type="button" class="outline-button" data-appearance="frosted" title="Translucent panels with backdrop blur (opt-in)">Frosted Glass</button>
               </div>
+              <label class="toggle-row"><span><b>Scene window</b><small>A clear band between GitHub's repository tabs and the content, showing the scene at full sharpness.</small></span><input id="sceneWindowToggle" type="checkbox" /></label>
               <p class="helper" id="sceneGuardNote" role="status"></p></div>
             <div class="settings-card"><h3>Image</h3>
               <label class="range-row"><span>Wallpaper opacity <output id="wallpaperOpacityVal"></output></span><input id="wallpaperOpacity" type="range" min="15" max="100" /></label>
-              <label class="range-row"><span>Brightness <output id="wallpaperBrightnessVal"></output></span><input id="wallpaperBrightness" type="range" min="40" max="140" /></label>
-              <label class="range-row"><span>Blur <output id="wallpaperBlurVal"></output></span><input id="wallpaperBlur" type="range" min="0" max="20" /></label>
+              <label class="range-row"><span>Wallpaper brightness <output id="wallpaperBrightnessVal"></output></span><input id="wallpaperBrightness" type="range" min="40" max="140" /></label>
+              <label class="range-row"><span>Wallpaper blur <output id="wallpaperBlurVal"></output></span><input id="wallpaperBlur" type="range" min="0" max="20" /></label>
               <label class="range-row"><span>Overlay darkness <output id="wallpaperOverlayVal"></output></span><input id="wallpaperOverlay" type="range" min="0" max="85" /></label></div>
             <div class="settings-card"><h3>Placement &amp; fallback</h3>
               <label class="field-label" for="wallpaperPosition">Position</label><select id="wallpaperPosition"><option value="center">Center</option><option value="top">Top</option><option value="bottom">Bottom</option><option value="left">Left</option><option value="right">Right</option></select>
               <label class="field-label" for="wallpaperSize">Scaling</label><select id="wallpaperSize"><option value="cover">Cover (fill the page)</option><option value="contain">Contain (whole image)</option></select>
               <label class="field-label" for="backgroundMode">Background mode</label><select id="backgroundMode"><option value="image">Wallpaper</option><option value="gradient">Gradient</option><option value="solid">Solid color</option></select>
               <label class="range-row"><span>Gradient angle <output id="gradientAngleVal"></output></span><input id="gradientAngle" type="range" min="0" max="360" /></label>
-              <p class="helper">Glass panel opacity and blur are under Appearance → Surfaces.</p></div>
+              <p class="helper">Panel opacity and panel backdrop blur are under Appearance → Surfaces.</p></div>
           </div>
         </section>
         <section id="view-code" class="view"><div class="intro"><h2>Built for builders.</h2><p>Keep source code readable while shaping the workspace around the way you work.</p></div><div class="editor-grid"><div class="settings-card"><h3>Code viewer</h3><label class="range-row"><span>Code font size <output id="codeFontSizeVal"></output></span><input id="codeFontSize" type="range" min="11" max="20" /></label><div class="code-preview" id="codePreview"><span>01</span> <em>const</em> vibe = <b>'your own'</b>;<div><span>02</span> <em>export default</em> vibe;</div></div></div><div class="settings-card"><h3>Workspace layout</h3><label class="field-label" for="layoutSelect">Content density</label><select id="layoutSelect"><option value="standard">Balanced (default)</option><option value="wide">Wide coding space</option><option value="compact">Compact lists</option></select><p class="helper">Layout adjustments are conservative so repository navigation and GitHub actions stay usable.</p></div></div></section>
@@ -81,6 +82,8 @@
             <label class="toggle-row"><span><b>Enable RepoVibe</b><small>Turn all GitHub visual changes on or off</small></span><input id="enableStudio" type="checkbox" /></label>
             <label class="toggle-row"><span><b>Automatic theme per repository</b><small>Repositories without your own choice get a stable theme picked from the repository name. Turn off to use one shared global theme.</small></span><input id="autoAssignToggle" type="checkbox" /></label>
             <label class="toggle-row"><span><b>Live wallpaper motion</b><small>Ambient rain, fireflies, twinkling stars or holographic grid on the flagship themes. Always off when your system asks for reduced motion.</small></span><select id="motionMode" aria-label="Live wallpaper motion"><option value="static">Static</option><option value="ambient">Ambient</option><option value="cinematic">Cinematic</option></select></label>
+            <div class="toggle-row"><span><b>Restore visual defaults</b><small>Crisp Immersive for built-in themes, and the six visual controls of your custom themes reset to Crisp values. Repository assignments, wallpapers, colours and names are kept.</small></span><button id="restoreVisual" class="outline-button" type="button">Restore</button></div>
+            <div class="toggle-row diagnostics"><span><b>Diagnostics</b><small id="diagnostics">Open a GitHub tab to see what is running there.</small></span><button id="refreshDiagnostics" class="outline-button" type="button">Check</button></div>
             <button id="resetScope" class="outline-button">Restore default for current scope</button><button id="exportTheme" class="outline-button">↓ Export current theme</button>
             <p class="helper">Precedence: your repository choice → owner choice → automatic theme → global theme. To remove RepoVibe entirely, use Chrome's extension management page. Your GitHub repository files are never changed.</p></div>
           <div class="settings-card setting-actions"><h3>Wallpaper storage</h3><p class="helper" id="storageUsage">Loading…</p><div id="storageList" class="library-list"></div><button id="cleanupStorage" class="outline-button" type="button">Remove unused wallpapers</button></div>

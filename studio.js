@@ -314,6 +314,7 @@
     $('layoutSelect').value = draft.layout;
     $('enableStudio').checked = config.enabled;
     $('autoAssignToggle').checked = config.autoAssign;
+    paintAppearance(); paintDiagnostics();
     $('motionMode').value = config.motionMode;
     updateSliderOutputs();
     paintColors();
@@ -418,18 +419,56 @@
     scope = event.target.value;
     prepareForScope();
   });
-  // Scene visibility presets: one click between an immersive and a calm, readable page (the guard still applies).
-  const SCENE_MODES = {
-    immersive: { wallpaperOpacity: 100, wallpaperBrightness: 100, wallpaperBlur: 0, wallpaperOverlay: 0, glassOpacity: 40, glass: 10 },
-    balanced: { wallpaperOpacity: 100, wallpaperBrightness: 92, wallpaperBlur: 0, wallpaperOverlay: 12, glassOpacity: 55, glass: 8 },
-    readable: { wallpaperOpacity: 100, wallpaperBrightness: 70, wallpaperBlur: 4, wallpaperOverlay: 40, glassOpacity: 85, glass: 14 }
-  };
-  for (const button of document.querySelectorAll('[data-scene]')) button.addEventListener('click', () => {
-    const mode = { ...SCENE_MODES[button.dataset.scene] };
-    if (C.isLightColor(draft.bg)) { mode.wallpaperBrightness = Math.max(mode.wallpaperBrightness, 100); mode.wallpaperOverlay = Math.round(mode.wallpaperOverlay * 0.7); }
-    setDraftMany(mode);
-    say(`Scene visibility: ${button.textContent}. Save to keep it.`);
+  // Appearance presets: saved globally for the built-in themes at once, and applied to the draft so a custom theme can
+  // take them too (Save keeps it). Each preset only sets the six visual controls; it never couples them afterwards.
+  function paintAppearance() {
+    for (const b of document.querySelectorAll('[data-appearance]')) { const on = b.dataset.appearance === config.appearance; b.classList.toggle('selected', on); b.setAttribute('aria-checked', String(on)); }
+    $('sceneWindowToggle').checked = config.sceneWindow;
+  }
+  for (const button of document.querySelectorAll('[data-appearance]')) button.addEventListener('click', async () => {
+    const name = button.dataset.appearance;
+    try {
+      config = await C.updateConfig(latest => { latest.appearance = name; });
+      setDraftMany(C.appearanceValues(name, draft));
+      paintAppearance();
+      say(`${C.APPEARANCES[name].label}: applied to built-in themes${String(draft.id).startsWith('custom-') ? '; save to keep it for this custom theme' : ''}.`);
+    } catch (e) { say(e.message, true); }
   });
+  $('sceneWindowToggle').addEventListener('change', async event => {
+    const on = event.target.checked;
+    try { config = await C.updateConfig(latest => { latest.sceneWindow = on; }); say(on ? 'Scene window on.' : 'Scene window off.'); } catch (e) { say(e.message, true); }
+  });
+  $('restoreVisual').addEventListener('click', async () => {
+    let changed = 0;
+    try {
+      config = await C.updateConfig(latest => { changed = C.restoreVisualDefaults(latest); latest.sceneWindow = true; });
+      if (!String(draft.id).startsWith('custom-')) setDraftMany(C.appearanceValues('crisp', draft));
+      paintAppearance();
+      say(`Visual defaults restored: Crisp Immersive${changed ? `; ${changed} custom theme${changed === 1 ? '' : 's'} reset` : ''}. Assignments and wallpapers kept.`);
+    } catch (e) { say(e.message, true); }
+  });
+  async function paintDiagnostics() {
+    const out = $('diagnostics');
+    try {
+      const tabs = await chrome.tabs.query({ url: 'https://github.com/*' });
+      const tab = tabs.find(t => t.active) || tabs[0];
+      if (!tab) { out.textContent = `Installed: v${chrome.runtime.getManifest().version}. No GitHub tab open.`; return; }
+      chrome.tabs.sendMessage(tab.id, { type: 'GET_REPO' }, response => {
+        void chrome.runtime.lastError;
+        const d = response && response.diagnostics;
+        if (!d) { out.textContent = `Installed: v${chrome.runtime.getManifest().version}. The GitHub tab is not running this version yet — reload it.`; return; }
+        const t = d.theme;
+        out.textContent = [
+          `Running on the page: v${d.version}${d.version !== chrome.runtime.getManifest().version ? ` (installed v${chrome.runtime.getManifest().version} — reload the tab)` : ''}`,
+          d.duplicate ? `WARNING: ${d.instances.length} RepoVibe copies active (${d.instances.join(', ')}) — remove older ones in chrome://extensions` : 'single installation',
+          d.active ? `stylesheet ${d.stylesheet} bytes, scene on page background: ${d.wallpaperOnRoot ? 'yes' : 'no'}` : 'theme not active on this page',
+          `appearance ${C.APPEARANCES[d.appearance]?.label || d.appearance}, scene window ${d.sceneWindow ? 'on' : 'off'}`,
+          t ? `${t.name}: wallpaper blur ${t.wallpaperBlur}px, panel backdrop blur ${t.panelBlur}px (${d.panelsWithBackdropBlur} blurred panels), overlay ${t.overlay}%, brightness ${t.brightness}%, panel opacity chosen ${t.panelOpacityChosen}% / rendered ${Math.round((d.panelOpacityRendered || 0) * 100)}%` : ''
+        ].filter(Boolean).join(' · ');
+      });
+    } catch (e) { out.textContent = `Diagnostics unavailable: ${e.message}`; }
+  }
+  $('refreshDiagnostics').addEventListener('click', paintDiagnostics);
   for (const id of Object.keys(sliderFields)) $(id).addEventListener('input', event => setDraft(id, Number(event.target.value)));
   for (const [id, key] of [['themeName', 'name'], ['themeDescription', 'description'], ['fontSelect', 'font'], ['backgroundMode', 'backgroundMode'], ['layoutSelect', 'layout'], ['wallpaperPosition', 'wallpaperPosition'], ['wallpaperSize', 'wallpaperSize']]) {
     $(id).addEventListener(id === 'themeName' || id === 'themeDescription' ? 'input' : 'change', event => {
@@ -510,6 +549,7 @@
     config = C.normalizeConfig(changes[C.STORAGE_KEY].newValue);
     $('enableStudio').checked = config.enabled;
     $('autoAssignToggle').checked = config.autoAssign;
+    paintAppearance();
     $('motionMode').value = config.motionMode;
     updateSaveState();
     if (currentView === 'library') paintLibrary();

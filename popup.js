@@ -53,6 +53,10 @@
     $('openStudio').firstChild.textContent = repo ? '✦ Customize this repository ' : '✦ Open theme studio ';
     $('quickThemes').replaceChildren(...quickThemes(resolved.id).map(makeThemeButton));
     for (const radio of document.querySelectorAll('input[name="motion"]')) radio.checked = radio.value === config.motionMode;
+    for (const radio of document.querySelectorAll('input[name="appearance"]')) radio.checked = radio.value === config.appearance;
+    $('sceneWindow').checked = config.sceneWindow;
+    $('appearanceNote').textContent = { crisp: 'Sharp scene, clean panels', balanced: 'Sharp scene, calmer reading', frosted: 'Frosted glass panels' }[config.appearance];
+    $('version').textContent = `v${chrome.runtime.getManifest().version}`;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const kind = resolved.theme?.motion && resolved.theme.motion !== 'none' ? resolved.theme.motion : '';
     $('motionNote').textContent = reduced ? 'Off: system prefers reduced motion' : !kind ? 'This theme has no live layer' : config.motionMode === 'static' ? 'Paused' : `${kind[0].toUpperCase()}${kind.slice(1)} · ${config.motionMode}`;
@@ -68,6 +72,16 @@
       render();
     } catch (e) { announce(`Could not load extension: ${e.message}`, true); }
   }
+  for (const radio of document.querySelectorAll('input[name="appearance"]')) radio.addEventListener('change', async event => {
+    const mode = event.target.value;
+    try { config = await C.updateConfig(latest => { latest.appearance = mode; }); render(); announce(`Appearance: ${C.APPEARANCES[mode].label}.`); }
+    catch (e) { announce(e.message, true); }
+  });
+  $('sceneWindow').addEventListener('change', async event => {
+    const on = event.target.checked;
+    try { config = await C.updateConfig(latest => { latest.sceneWindow = on; }); render(); announce(on ? 'Scene window on.' : 'Scene window off.'); }
+    catch (e) { announce(e.message, true); }
+  });
   for (const radio of document.querySelectorAll('input[name="motion"]')) radio.addEventListener('change', async event => {
     const mode = event.target.value;
     try { config = await C.updateConfig(latest => { latest.motionMode = mode; }); render(); announce(`Live wallpaper: ${mode}.`); }

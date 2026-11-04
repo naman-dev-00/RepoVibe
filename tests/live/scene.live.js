@@ -40,7 +40,9 @@ for (const [, id, slug, motion, label] of FLAGSHIPS) L.liveTest(`LIVE 9 (${label
     const native = {};
     await setConfig(context, { enabled: true, defaultThemeId: 'native', motionMode: 'static' });
     await page.setViewportSize({ width: 1366, height: 768 });
-    for (const [name, url] of pages) { await L.gotoLive(page, url); await L.settleAnimations(page); native[name] = await visualContrast(context, page, 300); }
+    const blurCount = () => page.evaluate(() => [...document.querySelectorAll('*')].filter(e => getComputedStyle(e).backdropFilter !== 'none').length);
+    const nativeBlur = {};
+    for (const [name, url] of pages) { await L.gotoLive(page, url); await L.settleAnimations(page); native[name] = await visualContrast(context, page, 300); nativeBlur[name] = await blurCount(); }
     {
       const preset = await presetOf(id);
       for (const [w, h] of [[1366, 768], [1920, 1080]]) {
@@ -59,6 +61,13 @@ for (const [, id, slug, motion, label] of FLAGSHIPS) L.liveTest(`LIVE 9 (${label
           const art = await page.screenshot();
           const changed = await diffRatio(context, solid, art);
           const m = await sceneMetrics(context, page);
+          // Crisp Immersive (default): RepoVibe adds no backdrop blur (GitHub's own logged-out header buttons blur natively),
+          // no blurred wallpaper copy, and the scene window is open on repository pages.
+          const crisp = await page.evaluate(() => ({ before: getComputedStyle(document.body, '::before').content, window: document.documentElement.classList.contains('repv-scene-window'),
+            pad: parseFloat(getComputedStyle(document.getElementById('repo-content-pjax-container') || document.body).paddingTop) || 0 }));
+          const blurNow = await blurCount();
+          c.check(blurNow <= nativeBlur[name] && crisp.before === 'none' && crisp.window && crisp.pad >= 100, `${label} · ${name} · ${w}×${h} · Crisp Immersive`,
+            `backdrop-blurred elements ${blurNow} (native GitHub ${nativeBlur[name]}), blurred wallpaper copy ${crisp.before === 'none' ? 'none' : 'PRESENT'}, scene window ${crisp.window ? `${Math.round(crisp.pad)}px` : 'OFF'}; exposed scene ${(m.exposedShare * 100).toFixed(0)}% of viewport, sharpness ${m.sharpness == null ? 'n/a' : m.sharpness.toFixed(2)}`);
           const vc = await visualContrast(context, page, 300);
           const nat = native[name];
           const okText = vc.below3.length === 0 && (vc.below45 === 0 || vc.below45 <= nat.below45);
@@ -67,6 +76,27 @@ for (const [, id, slug, motion, label] of FLAGSHIPS) L.liveTest(`LIVE 9 (${label
           if (name === 'code' || w === 1366) await L.logShot(context, page, `scene-${label}-${name}-${w}`);
         }
       }
+      // Sharpness control: the same Code page with a 6 px wallpaper blur must measure clearly less sharp.
+      await page.setViewportSize({ width: 1366, height: 768 });
+      await setConfig(context, { enabled: true, motionMode: 'static', defaultThemeId: id });
+      await L.gotoLive(page, `https://github.com/${A}`); await L.settleAnimations(page); await page.waitForTimeout(500);
+      const sharp = await sceneMetrics(context, page);
+      await setConfig(context, { enabled: true, motionMode: 'static', defaultThemeId: 'custom-blur', customThemes: { 'custom-blur': { ...preset, id: 'custom-blur', wallpaperBlur: 6 } } });
+      await L.gotoLive(page, `https://github.com/${A}`); await L.settleAnimations(page); await page.waitForTimeout(500);
+      const soft = await sceneMetrics(context, page);
+      c.check(sharp.sharpness != null && soft.sharpness != null && sharp.sharpness >= soft.sharpness * 1.5 && sharp.exposedShare >= 0.15, `${label} · sharpness`,
+        `exposed scene keeps native detail: Crisp ${sharp.sharpness?.toFixed(2)} vs 6 px-blurred control ${soft.sharpness?.toFixed(2)}; exposed ${(sharp.exposedShare * 100).toFixed(0)}% of viewport`);
+      // README view: the README body is a readable surface over the scene.
+      await setConfig(context, { enabled: true, motionMode: 'static', defaultThemeId: id });
+      await L.gotoLive(page, `https://github.com/${A}`); await L.settleAnimations(page);
+      const hasReadme = await page.evaluate(() => { const a = document.querySelector('article.markdown-body'); if (!a) return false; window.scrollTo(0, a.getBoundingClientRect().top + scrollY - 120); return true; });
+      if (hasReadme) {
+        await page.waitForTimeout(500);
+        const rd = await page.evaluate(() => getComputedStyle(document.querySelector('article.markdown-body')).backgroundColor);
+        const vr = await visualContrast(context, page, 300);
+        c.check(/rgba?\(/.test(rd) && !/, 0\)$/.test(rd) && vr.below3.length === 0 && vr.below45 === 0, `${label} · README`, `README surface ${rd}; text min ${vr.min.toFixed(2)}, <4.5:1 ${vr.below45}, <3:1 ${vr.below3.length}`);
+        await L.logShot(context, page, `scene-${label}-readme-1366`);
+      } else c.info(`${label} · README`, 'README article not found on this page');
       // Diagnostic configuration (opacity 100 %, brightness 100 %, blur 0, overlay 0) on the Code page.
       await page.setViewportSize({ width: 1366, height: 768 });
       await setConfig(context, { enabled: true, motionMode: 'static', defaultThemeId: 'custom-diag', customThemes: { 'custom-diag': { ...preset, id: 'custom-diag', wallpaperOpacity: 100, wallpaperBrightness: 100, wallpaperBlur: 0, wallpaperOverlay: 0 } } });
@@ -102,6 +132,31 @@ L.liveTest('LIVE 9 (restore): disabling RepoVibe after a scene theme leaves no c
     await L.gotoLive(page, `https://github.com/${A}`); await page.waitForTimeout(500);
     const left = await page.evaluate(() => ({ cls: [...document.documentElement.classList].filter(x => x.startsWith('repv')), styles: document.querySelectorAll('[id^="repovibe-"]').length, panels: document.querySelectorAll('[data-repv-panel]').length, bg: getComputedStyle(document.documentElement).backgroundImage }));
     c.check(!left.cls.length && !left.styles && !left.panels && !/url\(/.test(left.bg), 'Disable', `after disabling: classes [${left.cls}], styles ${left.styles}, panel markers ${left.panels}, root image ${/url\(/.test(left.bg) ? 'present' : 'none'}`);
+    c.done();
+  } finally { await close(); }
+});
+
+L.liveTest('LIVE 9 (appearance): Crisp Immersive, Balanced and Frosted Glass are visibly different on a real page; only Frosted blurs', async (t, ctx) => {
+  const { context, close } = await launch({ fixture: false, colorScheme: 'dark' });
+  const c = checker('Scene visibility · appearance');
+  try {
+    const page = await context.newPage(); ctx.pages.push(page);
+    await page.setViewportSize({ width: 1366, height: 768 });
+    const blurCount = () => page.evaluate(() => [...document.querySelectorAll('*')].filter(e => getComputedStyle(e).backdropFilter !== 'none').length);
+    await setConfig(context, { enabled: true, defaultThemeId: 'native' });
+    await L.gotoLive(page, `https://github.com/${A}`); const nativeBlur = await blurCount();
+    const shots = {}, blur = {};
+    for (const appearance of ['crisp', 'balanced', 'frosted']) {
+      await setConfig(context, { enabled: true, motionMode: 'static', defaultThemeId: 'preset-8', appearance });
+      await L.gotoLive(page, `https://github.com/${A}`); await L.settleAnimations(page); await page.waitForTimeout(600);
+      shots[appearance] = await page.screenshot(); blur[appearance] = await blurCount();
+      await L.logShot(context, page, `appearance-${appearance}-code-1366`);
+    }
+    c.check(blur.crisp <= nativeBlur && blur.balanced <= nativeBlur && blur.frosted > nativeBlur, 'Backdrop blur', `blurred elements: native ${nativeBlur}, Crisp ${blur.crisp}, Balanced ${blur.balanced}, Frosted ${blur.frosted}`);
+    for (const [a, b] of [['crisp', 'balanced'], ['crisp', 'frosted'], ['balanced', 'frosted']]) {
+      const d = await diffRatio(context, shots[a], shots[b]);
+      c.check(d > 0.03, `${a} vs ${b}`, `${(d * 100).toFixed(1)}% of pixels differ`);
+    }
     c.done();
   } finally { await close(); }
 });

@@ -64,7 +64,7 @@ test('wallpaper controls change the visible scene: opacity, overlay, brightness,
     const preset = await presetOf(context, 'preset-8');
     const page = await context.newPage(); await page.setViewportSize({ width: 1366, height: 1000 }); // not 16:9, so cover crops
     const shotWith = async patch => {
-      await setConfig(context, { enabled: true, motionMode: 'static', defaultThemeId: 'custom-c', customThemes: { 'custom-c': { ...preset, ...DIAGNOSTIC, glassOpacity: 55, glass: 8, ...patch, id: 'custom-c' } } });
+      await setConfig(context, { enabled: true, motionMode: 'static', defaultThemeId: 'custom-c', customThemes: { 'custom-c': { ...preset, ...DIAGNOSTIC, glassOpacity: 55, glass: 0, ...patch, id: 'custom-c' } } });
       await page.goto('https://github.com/acme/project/layout'); await page.waitForTimeout(500);
       return { png: await page.screenshot({ animations: 'disabled' }), m: await page.evaluate(() => ({ panel: getComputedStyle(document.documentElement).getPropertyValue('--repv-panel-opacity').trim(), box: getComputedStyle(document.querySelector('#fileTable')).backdropFilter })) };
     };

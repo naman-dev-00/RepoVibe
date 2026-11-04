@@ -40,7 +40,7 @@
      4. Loose text outside panels (repository title, About, toolbar labels) gets a theme-coloured halo.
      5. Menus, dialogs and popovers stay opaque; code stays ≥ 90 % opaque. */
   const SHELLS = 'body, .application-main, main, #js-repo-pjax-container, turbo-frame, .container-xl, .container-lg, .container-md, [class*="PageLayout-PageLayoutWrapper"], [class*="PageLayout-PageLayoutContent"], .PageLayout, [class*="PageLayout-Content"], .Layout, .Layout-main';
-  const PANELS = '.AppHeader, header.GlobalNav, .Header, .js-header-wrapper header, #repository-container-header, .Box, .markdown-body, .Layout-sidebar, aside[class*="sidebar"], [class*="sidebarSection"], .BorderGrid-row, .Flash, [class*="Flash-Flash"], .blob-wrapper, .file, [data-testid="code-viewer"], .timeline-comment, [data-repv-panel]';
+  const PANELS = '.AppHeader, header.GlobalNav, .Header, .js-header-wrapper header, #repository-container-header, .Box, .markdown-body, .Layout-sidebar, aside[class*="sidebar"], [class*="sidebarSection"], .BorderGrid-row, .Flash, [class*="Flash-Flash"], .blob-wrapper, .file, [data-testid="code-viewer"], .timeline-comment, footer.footer, .footer, footer[role="contentinfo"], [role="contentinfo"], .paginate-container, nav[aria-label*="agination"], [data-repv-panel]';
   // Floating UI must stay opaque and readable over any wallpaper.
   const FLOATING = '.Overlay, .Overlay-backdrop--center > *, .dropdown-menu, .SelectMenu-modal, .Popover-message, details-dialog, .Box--overlay, [role="menu"], [role="listbox"], [role="dialog"], [popover], .tooltipped::after';
 
@@ -75,8 +75,16 @@
     const rootBackground = glass
       ? [...veils, `var(--repv-wallpaper, none) ${POSITION[v.wallpaperPosition]} / ${v.wallpaperSize} no-repeat fixed`, v.bg].join(', ')
       : v.backgroundMode === 'solid' ? v.bg : `${gradient} fixed`;
-    const blur = glass && v.glass > 0 ? `backdrop-filter:blur(${v.glass}px) saturate(1.1); -webkit-backdrop-filter:blur(${v.glass}px) saturate(1.1);` : '';
-    const halo = `0 0 1px ${rgba(v.bg, 1)}, 0 0 3px ${rgba(v.bg, 0.95)}, 0 0 8px ${rgba(v.bg, 0.9)}, 0 0 16px ${rgba(v.bg, 0.75)}`;
+    // Panel backdrop blur only when the user picks it (Frosted Glass or the slider); Crisp Immersive has none.
+    const blur = glass && v.glass > 0 ? `backdrop-filter:blur(${v.glass}px) saturate(1.1); -webkit-backdrop-filter:blur(${v.glass}px) saturate(1.1);` : 'backdrop-filter:none; -webkit-backdrop-filter:none;';
+    // Panels read as clean surfaces floating over the scene: hairline edge + soft shadow instead of heavy frost.
+    const frosted = glass && v.glass >= 8;
+    const edge = frosted
+      // Frosted Glass (opt-in): a milky sheen and bright rim make the glass itself visible, not just a darker panel.
+      ? `background-image:linear-gradient(160deg, ${rgba('#ffffff', light ? 0.32 : 0.14)}, ${rgba('#ffffff', light ? 0.12 : 0.04)} 60%) !important; box-shadow:inset 0 1px 0 ${rgba('#ffffff', 0.22)}, 0 0 0 1px ${rgba('#ffffff', light ? 0.5 : 0.16)}, 0 10px 30px ${rgba('#000000', light ? 0.14 : 0.3)};`
+      : `box-shadow:0 0 0 1px ${rgba(light ? '#000000' : '#ffffff', light ? 0.08 : 0.07)}, 0 8px 24px ${rgba('#000000', light ? 0.12 : 0.28)};`;
+    // A tight, light halo on loose text (its real backing is the small guard-computed pill), not a wide dimming glow.
+    const halo = `0 0 1px ${rgba(v.bg, 0.9)}, 0 0 3px ${rgba(v.bg, 0.7)}`;
     const compact = v.layout === 'compact';
     // Whitelist only constrained colors, numbers and enum values. The wallpaper URL itself lives in a
     // separate style element (see renderWallpaper) and is either a bundled extension URL or a validated data URL.
@@ -99,15 +107,21 @@ html.repv-active { --bgColor-default:${glass ? 'transparent' : v.surface} !impor
  --color-border-default:${v.border} !important;
  ${glass ? (light ? '--fgColor-success:#0f5c27 !important; --fgColor-danger:#a0111f !important; --fgColor-attention:#6b4700 !important; --fgColor-done:#6a2fc2 !important;'
    : '--fgColor-success:#6ee787 !important; --fgColor-danger:#ff9492 !important; --fgColor-attention:#f2cc60 !important; --fgColor-done:#d2a8ff !important;') : ''}
+ ${glass ? `--fgColor-disabled:${rgba(v.muted, 0.82)} !important; --button-default-fgColor-disabled:${rgba(v.muted, 0.82)} !important;` : ''}
  --repv-bg:${v.bg}; --repv-panel:${v.surface}; --repv-panel2:${v.surface2};
  --repv-text:${v.text}; --repv-muted:${v.muted}; --repv-accent:${v.accent}; --repv-border:${v.border};
  --repv-radius:${v.radius}px; --repv-blur:${v.glass}px; --repv-panel-opacity:${a};
  background:${rootBackground} !important; color-scheme:${light ? 'light' : 'dark'}; }
 html.repv-active body { background:transparent !important; color:var(--repv-text) !important; font-family:${cssFont(v.font)} !important; }
-${glass ? `html.repv-active :is(${SHELLS}) { background-color:transparent !important; backdrop-filter:none !important; }
-html.repv-active :where(${PANELS}) { background-color:${panel} !important; ${blur} border-radius:var(--repv-radius); text-shadow:none; }
+${glass ? `html.repv-active :is(${SHELLS}):not(.markdown-body, .Box, [data-repv-panel]) { background-color:transparent !important; backdrop-filter:none !important; } /* an element that is both a shell and a panel (README article.container-lg) stays a panel */
+html.repv-active :where(${PANELS}) { background-color:${panel} !important; ${blur} ${edge} border-radius:var(--repv-radius); text-shadow:none; }
+html.repv-active :where(header.GlobalNav, .AppHeader, .Header, .js-header-wrapper header) { box-shadow:none; border-radius:0; }
+/* Scene window: a transparent band between GitHub's repository tabs and the repository content shows the scene at full,
+   native sharpness. Nothing is covered or moved out of reach: the content simply starts lower. Toggle: popup / Studio. */
+html.repv-active.repv-scene-window #repo-content-pjax-container, html.repv-active.repv-scene-window turbo-frame#repo-content-turbo-frame:not(:has(#repo-content-pjax-container)) { padding-top:clamp(140px, 27vh, 320px) !important; }
+@media (max-width:767px) { html.repv-active.repv-scene-window #repo-content-pjax-container, html.repv-active.repv-scene-window turbo-frame#repo-content-turbo-frame:not(:has(#repo-content-pjax-container)) { padding-top:72px !important; } }
 html.repv-active :is(.HeaderMktg, header.header-logged-out) { background-color:rgba(1,4,9,${Math.max(0.85, a)}) !important; } /* logged-out header text is always white */
-html.repv-active :where(${PANELS}) :where(${PANELS}) { background-color:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+html.repv-active :where(${PANELS}) :where(${PANELS}) { background-color:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; box-shadow:none !important; }
 html.repv-active :is(main, .application-main, [class*="PageLayout-Pane"]) { text-shadow:${halo}; }
 html.repv-active :is(${PANELS}, ${FLOATING}, input, textarea, select, button, .btn, .Button, pre, code) { text-shadow:none; }
 html.repv-active :is(input[type="text"], input[type="search"], textarea, select, .form-control, .FormControl-input, [class*="TextInputWrapper"]) { background-color:${control} !important; }
@@ -458,7 +472,8 @@ li[data-repv-card]:focus-within { outline:2px solid var(--repv-card-accent); out
     if (!root) return;
     let style = document.getElementById(STYLE_ID);
     if (!theme) {
-      root.classList.remove('repv-active', ...MOTION_CLASSES);
+      root.classList.remove('repv-active', 'repv-scene-window', ...MOTION_CLASSES);
+      registerInstance(false);
       lastMotion = '';
       clearPanels();
       if (style) style.remove();
@@ -478,7 +493,11 @@ li[data-repv-card]:focus-within { outline:2px solid var(--repv-card-accent); out
     const css = buildCss(theme, Boolean(url));
     if (style.textContent !== css) style.textContent = css;
     root.classList.add('repv-active');
+    registerInstance(true);
     lastMotion = applyMotion(root, theme, Boolean(url));
+    const wantWindow = Boolean(url) && config.sceneWindow && Boolean(resolution.repository) && !activePreview?.noWindow;
+    if (root.classList.contains('repv-scene-window') !== wantWindow) root.classList.toggle('repv-scene-window', wantWindow);
+    if (wantWindow) lastMotion = `${lastMotion} repv-scene-window`.trim();
     applyColorMode(root, lastMode);
     if (url) queuePanelScan(); else clearPanels();
     renderCards();
@@ -510,8 +529,9 @@ li[data-repv-card]:focus-within { outline:2px solid var(--repv-card-accent); out
     document.getElementById(WALLPAPER_STYLE_ID)?.remove();
     clearCards();
     clearPanels();
+    registerInstance(false);
     reducedQuery?.removeEventListener?.('change', onReducedMotionChange);
-    if (document.documentElement) { document.documentElement.classList.remove('repv-active', ...MOTION_CLASSES); applyColorMode(document.documentElement, null); }
+    if (document.documentElement) { document.documentElement.classList.remove('repv-active', 'repv-scene-window', ...MOTION_CLASSES); applyColorMode(document.documentElement, null); }
   }
   function guard(fn) {
     return (...args) => { if (tornDown) return; if (!extensionAlive()) { teardown(); return; } fn(...args); };
@@ -567,9 +587,39 @@ li[data-repv-card]:focus-within { outline:2px solid var(--repv-card-accent); out
   });
   chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
     if (message && message.type === 'GET_REPO') {
-      sendResponse({href: location.href, repository: C.repositoryFromUrl(location.href)});
+      sendResponse({href: location.href, repository: C.repositoryFromUrl(location.href), diagnostics: diagnostics()});
     }
   });
+  /* Diagnostics for the popup/Studio: what is ACTUALLY running on this page (not what settings say). */
+  const INSTANCE_ATTR = 'data-repv-instances';
+  // Present only while this copy is styling the page (removed when inactive/disabled, so restoration leaves no trace).
+  let warnedDuplicate = false;
+  function registerInstance(active) {
+    const root = document.documentElement; if (!root) return;
+    const ids = new Set((root.getAttribute(INSTANCE_ATTR) || '').split(' ').filter(Boolean));
+    let id; try { id = chrome.runtime.id; } catch (_) { id = null; }
+    if (active && id) ids.add(id); else if (id) ids.delete(id);
+    const next = [...ids].join(' ');
+    if (next) { if (root.getAttribute(INSTANCE_ATTR) !== next) root.setAttribute(INSTANCE_ATTR, next); } else root.removeAttribute(INSTANCE_ATTR);
+    if (ids.size > 1 && !warnedDuplicate && (warnedDuplicate = true)) console.warn('[RepoVibe] More than one RepoVibe installation is active on this page:', [...ids].join(', '), '— disable older copies in chrome://extensions.');
+  }
+  function diagnostics() {
+    const root = document.documentElement, cs = getComputedStyle(root);
+    const panels = [...document.querySelectorAll('[data-repv-panel], .Box, header.GlobalNav, .AppHeader')].slice(0, 200);
+    const blurs = panels.map(el => getComputedStyle(el).backdropFilter).filter(b => b && b !== 'none');
+    const instances = (root.getAttribute(INSTANCE_ATTR) || '').split(' ').filter(Boolean);
+    const t = lastTheme ? C.normalizeTheme(lastTheme) : null;
+    return {
+      version: chrome.runtime.getManifest().version, extensionId: chrome.runtime.id, instances, duplicate: instances.length > 1,
+      active: root.classList.contains('repv-active'), stylesheet: (document.getElementById(STYLE_ID)?.textContent || '').length,
+      appearance: config.appearance, sceneWindow: root.classList.contains('repv-scene-window'),
+      theme: t && { id: t.id, name: t.name, wallpaperBlur: t.wallpaperBlur, panelBlur: t.glass, overlay: t.wallpaperOverlay, brightness: t.wallpaperBrightness, opacity: t.wallpaperOpacity, panelOpacityChosen: t.glassOpacity },
+      panelOpacityRendered: Number(cs.getPropertyValue('--repv-panel-opacity')) || null,
+      panelsWithBackdropBlur: blurs.length, panelsDetected: document.querySelectorAll('[data-repv-panel]').length,
+      wallpaperOnRoot: /url\(/.test(cs.backgroundImage)
+    };
+  }
+
   async function init() {
     const thisRequest = ++requestedId;
     const changesBefore = configChanges;

@@ -119,7 +119,7 @@ test('wallpaper controls update the live preview: opacity, brightness, blur, ove
     // Every slider is a visible layer of the root scene stack: opacity veil, overlay, brightness veil, image (Midnight bg).
     assert.match(s.image, /^linear-gradient\(rgba\(11, 18, 32, 0\.4\)[^)]*\)\), linear-gradient\(rgba\(11, 18, 32, 0\.5\)[^)]*\)\), linear-gradient\(rgba\(0, 0, 0, 0\.2\)[^)]*\)\), url\("chrome-extension:\/\/[^"]+galaxy-planet\.webp"\)(, none)?$/, `scene stack: ${s.image}`);
     assert.match(s.size, /, contain(, auto)?$/); assert.match(s.pos, /, 50% 0%(, [^,]+)?$/);
-    assert.equal(s.boxBg, `rgba(21, 30, 48, ${s.panel})`, 'panel glass = the guarded opacity');
+    assert.equal(s.boxBg, Number(s.panel) >= 1 ? 'rgb(21, 30, 48)' : `rgba(21, 30, 48, ${s.panel})`, 'panel glass = the guarded opacity');
     assert.ok(Number(s.panel) >= 0.55, 'never below the chosen panel opacity'); assert.match(s.boxBlur, /blur\(20px\)/);
     assert.deepEqual(errors, []);
   } finally { await close(); }

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "RepoVibe \u2014 GitHub Themes",
   "short_name": "RepoVibe",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Give every GitHub repository a different vibe. Local, private themes with a live visual editor.",
   "permissions": [
     "storage"

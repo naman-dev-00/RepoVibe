@@ -236,7 +236,7 @@ test('live wallpaper motion: modes, reduced motion, persistence', () => {
 test('panel guard: single-layer opacity, feedback when raised, loose items guarded against pure white', () => {
   for (const t of C.PRESETS.filter(p => p.flagship)) {
     const g = C.panelOpacity(t);
-    assert.ok(g.opacity >= g.chosen && g.opacity <= 0.75, `${t.name}: flagship panels stay translucent (${g.opacity})`);
+    assert.ok(g.opacity >= g.chosen && g.opacity <= 0.95, `${t.name}: guarded panel opacity ${g.opacity}`);
     assert.equal(g.raised, g.opacity > g.chosen + 0.001);
     assert.ok(g.loose > 0 && g.loose <= 0.8, `${t.name}: loose-item backing ${g.loose}`);
   }
@@ -250,4 +250,43 @@ test('panel guard: single-layer opacity, feedback when raised, loose items guard
   assert.ok(C.panelOpacity({ ...C.PRESETS[18], wallpaperOverlay: 60 }).opacity <= C.panelOpacity({ ...C.PRESETS[18], wallpaperOverlay: 0 }).opacity);
   // Uploaded images assume the worst case.
   assert.ok(C.panelOpacity({ ...C.PRESETS[18], wallpaperRef: 'idb:w0123456789abcdef012345' }).opacity >= C.panelOpacity(C.PRESETS[18]).opacity);
+});
+
+/* ---- Crisp Immersive design system: appearance presets, independent controls, restore. */
+test('Crisp Immersive is the default: no wallpaper blur, no panel backdrop blur, native brightness, minimal overlay', () => {
+  const config = C.normalizeConfig({ version: 2 });
+  assert.equal(config.appearance, 'crisp'); assert.equal(config.sceneWindow, true);
+  for (const p of C.PRESETS) {
+    assert.equal(p.glass, 0, `${p.name}: no panel backdrop blur by default`);
+    assert.equal(p.wallpaperBlur, 0); assert.equal(p.wallpaperBrightness, 100); assert.ok(p.wallpaperOverlay <= 6);
+    const t = C.themeById(config, p.id);
+    assert.equal(t.glass, 0); assert.equal(t.wallpaperBlur, 0); assert.equal(t.appearance, 'crisp');
+  }
+  // Old stored configs (no appearance) upgrade to Crisp for built-in themes.
+  assert.equal(C.normalizeConfig({ version: 2, defaultThemeId: 'preset-8' }).appearance, 'crisp');
+  assert.equal(C.normalizeConfig({ version: 2, appearance: 'glassy' }).appearance, 'crisp');
+});
+test('appearance presets are visibly different and only set the six visual controls', () => {
+  const forest = C.PRESETS[7];
+  const v = name => C.themeById(C.normalizeConfig({ version: 2, appearance: name }), forest.id);
+  const crisp = v('crisp'), balanced = v('balanced'), frosted = v('frosted');
+  assert.equal(crisp.glass, 0); assert.equal(balanced.glass, 0); assert.ok(frosted.glass >= 12, 'only Frosted Glass blurs panels');
+  assert.ok(balanced.wallpaperOverlay > crisp.wallpaperOverlay && balanced.glassOpacity > crisp.glassOpacity, 'Balanced: more overlay, more solid panels');
+  assert.ok(frosted.glassOpacity < crisp.glassOpacity, 'Frosted: more translucent panels');
+  for (const t of [crisp, balanced, frosted]) { assert.equal(t.wallpaperBlur, 0, 'no preset blurs the wallpaper itself'); assert.equal(t.wallpaperRef, forest.wallpaperRef); assert.equal(t.accent, forest.accent); }
+  assert.deepEqual([...C.VISUAL_FIELDS].sort(), ['glass', 'glassOpacity', 'wallpaperBlur', 'wallpaperBrightness', 'wallpaperOpacity', 'wallpaperOverlay']);
+  // Custom themes keep their own explicit values whatever the appearance.
+  const cfg = C.normalizeConfig({ version: 2, appearance: 'frosted', customThemes: { 'custom-a': { ...forest, id: 'custom-a', glass: 3, wallpaperBlur: 2 } } });
+  assert.equal(C.themeById(cfg, 'custom-a').glass, 3); assert.equal(C.themeById(cfg, 'custom-a').wallpaperBlur, 2);
+});
+test('restore visual defaults resets only visual controls; assignments, wallpapers, colours and names are kept', () => {
+  const cfg = C.normalizeConfig({ version: 2, appearance: 'frosted', repoAssignments: { 'a/b': 'custom-old' }, autoAssignments: { 'c/d': 'preset-3' },
+    customThemes: { 'custom-old': { ...C.PRESETS[7], id: 'custom-old', name: 'Mine', accent: '#123456', glass: 14, wallpaperBlur: 8, wallpaperOverlay: 40, wallpaperBrightness: 70, glassOpacity: 55, wallpaperRef: 'idb:w0123456789abcdef012345' } } });
+  assert.equal(C.restoreVisualDefaults(cfg), 1);
+  const t = C.normalizeConfig(cfg).customThemes['custom-old'];
+  assert.equal(cfg.appearance, 'crisp');
+  assert.deepEqual([t.glass, t.wallpaperBlur, t.wallpaperOverlay, t.wallpaperBrightness, t.glassOpacity], [0, 0, 6, 100, 86]);
+  assert.deepEqual([t.name, t.accent, t.wallpaperRef], ['Mine', '#123456', 'idb:w0123456789abcdef012345']);
+  assert.equal(cfg.repoAssignments['a/b'], 'custom-old'); assert.equal(cfg.autoAssignments['c/d'], 'preset-3');
+  assert.equal(C.restoreVisualDefaults(cfg), 0, 'idempotent');
 });

@@ -248,6 +248,24 @@ async function sceneMetrics(context, page) {
     }
     return out;
   });
+  // Blocks (16 px) whose centre shows the scene with nothing painted above it: where sharpness is measured.
+  const exposed = await page.evaluate(() => {
+    const alphaOf = c => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return 0; const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return p.length > 3 ? p[3] : 1; };
+    const out = [];
+    for (let y = 0; y + 16 <= innerHeight; y += 16) for (let x = 0; x + 16 <= innerWidth; x += 16) {
+      // Exposed = nothing painted above the scene AND no text, image, icon or control in the block (glyph edges would
+      // otherwise count as scene detail). Checked at the centre and four inner corners of the block.
+      const pts = [[x + 8, y + 8], [x + 2, y + 2], [x + 14, y + 2], [x + 2, y + 14], [x + 14, y + 14]];
+      const clean = pts.every(([px, py]) => {
+        const st = document.elementsFromPoint(px, py).filter(e => e !== document.documentElement);
+        const top = st[0];
+        if (top && (top.matches('a, button, input, textarea, select, img, svg, path, label, code, pre, span, h1, h2, h3, h4, p, li, td, th, summary') || [...top.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()))) return false;
+        return st.every(e => alphaOf(getComputedStyle(e).backgroundColor) < 0.02 && getComputedStyle(e).backdropFilter === 'none');
+      });
+      out.push(clean ? 1 : 0);
+    }
+    return out;
+  });
   const shot = await page.screenshot({ animations: 'disabled' });
   const scene = await page.evaluate(() => {
     const r = getComputedStyle(document.documentElement);
@@ -255,14 +273,14 @@ async function sceneMetrics(context, page) {
     const onRoot = /url\(/.test(r.backgroundImage);
     return m && { url: m[1], size: onRoot ? r.backgroundSize.split(', ').at(-2) : 'cover', pos: onRoot ? r.backgroundPosition.split(', ').at(-2) : 'center', w: innerWidth, h: innerHeight };
   });
-  let correlation = null;
+  let correlation = null, sharpness = null;
   if (scene) {
     const helper = await extPage(context); // extension origin: bundled wallpapers are loadable there
     await helper.setViewportSize({ width: scene.w, height: scene.h });
     await helper.setContent(`<body style="margin:0;width:100vw;height:100vh;background:url('${scene.url}') ${scene.pos} / ${scene.size} no-repeat #000"></body>`);
     await helper.waitForTimeout(400);
     const ref = await helper.screenshot();
-    correlation = await helper.evaluate(async ([a, b]) => {
+    [correlation, sharpness] = await helper.evaluate(async ([a, b, mask]) => {
       const load = async src => { const i = new Image(); i.src = src; await i.decode(); const c = new OffscreenCanvas(i.width, i.height); const g = c.getContext('2d'); g.drawImage(i, 0, 0); return g.getImageData(0, 0, i.width, i.height); };
       const A = await load(a), B = await load(b), S = 16, xs = [], ys = [];
       for (let y = 0; y + S <= A.height; y += S) for (let x = 0; x + S <= A.width; x += S) {
@@ -272,12 +290,25 @@ async function sceneMetrics(context, page) {
       }
       const mean = v => v.reduce((s, x) => s + x, 0) / v.length, ma = mean(xs), mb = mean(ys);
       let n = 0, da = 0, db = 0; for (let i = 0; i < xs.length; i++) { n += (xs[i] - ma) * (ys[i] - mb); da += (xs[i] - ma) ** 2; db += (ys[i] - mb) ** 2; }
-      return n / Math.sqrt(da * db);
-    }, [`data:image/png;base64,${shot.toString('base64')}`, `data:image/png;base64,${ref.toString('base64')}`]);
+      // Sharpness: Laplacian edge energy of the page vs the source wallpaper inside exposed blocks (1 ≈ native sharpness,
+      // blur → much lower). Text never sits in exposed blocks by construction.
+      const L = (D, x, y) => { const i = (y * D.width + x) * 4; return D.data[i] * .2126 + D.data[i + 1] * .7152 + D.data[i + 2] * .0722; };
+      let ea = 0, eb = 0, blocks = 0, k = 0;
+      for (let y = 0; y + 16 <= A.height; y += 16) for (let x = 0; x + 16 <= A.width; x += 16, k++) {
+        if (!mask[k]) continue; blocks++;
+        for (let yy = 1; yy < 15; yy++) for (let xx = 1; xx < 15; xx++) {
+          const X = x + xx, Y = y + yy;
+          ea += Math.abs(4 * L(A, X, Y) - L(A, X - 1, Y) - L(A, X + 1, Y) - L(A, X, Y - 1) - L(A, X, Y + 1));
+          eb += Math.abs(4 * L(B, X, Y) - L(B, X - 1, Y) - L(B, X + 1, Y) - L(B, X, Y - 1) - L(B, X, Y + 1));
+        }
+      }
+      return [n / Math.sqrt(da * db), blocks >= 8 && eb > 0 ? ea / eb : null];
+    }, [`data:image/png;base64,${shot.toString('base64')}`, `data:image/png;base64,${ref.toString('base64')}`, exposed]);
     await helper.close();
   }
   const sorted = [...transmission].sort((x, y) => x - y);
-  return { median: sorted[sorted.length >> 1], min: sorted[0], clear: transmission.filter(t => t >= 0.9).length / transmission.length, correlation };
+  return { median: sorted[sorted.length >> 1], min: sorted[0], clear: transmission.filter(t => t >= 0.9).length / transmission.length, correlation, sharpness,
+    exposedShare: exposed.reduce((s, v) => s + v, 0) / exposed.length };
 }
 
 module.exports = { sceneMetrics, HOME_REPOS, visualContrast, EXT, EXT_ID, KEY, OUT_DIR, launch, extPage, setConfig, getConfig, openGitHub, state, hexToRgb, diffRatio, matchSnapshot, openStudioFor, pixelAt };

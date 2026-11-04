@@ -2,6 +2,85 @@
 
 Branch `feature/phase1b-immersive-themes` (PR #2, stacked on PR #1). Not merged.
 
+## 0a. Visual redesign: Crisp Immersive (v0.3.0), replacing the blurred, frosted default
+
+**Report.** On a real logged-in account the previous fix still looked like recoloured GitHub, because transparency, blur and dimming effects obscured the scenes.
+
+The screenshot mentioned in the request did not reach this session. Diagnosis therefore used controlled A/B renders of real github.com pages (offline replay of captured real pages) and real-site runs.
+
+**What obscured the art.** One factor was changed at a time on the real Code page (Enchanted Forest, 1366×768).
+
+| Layer | Finding |
+|---|---|
+| Panel `backdrop-filter: blur(8px) saturate(1.1)` | Applied to **11 surfaces**: the 904×942 file table, the header strips and five sidebar sections. It turned roughly 40 % of the viewport into frosted glass. This was the main cause. |
+| Global overlay 12 % + brightness 92 % | A second dimming layer over the whole scene. |
+| Wide halo text-shadow (up to 16 px) on loose text | Dark glows over the scene around titles. |
+| Exposed area | Only **16 %** of the 1366 px Code page showed the scene with nothing over it. Even a perfectly crisp scene was only glimpsed. |
+| Wallpaper blur | 0 by default (not a cause); a blurred body copy only exists when chosen. |
+| README surface | **Bug found:** `article.markdown-body` also has `container-lg`, so the transparent-shell rule overrode its panel. README text sat directly on the scene. |
+| Footer, pagination, disabled controls | No surface below the fold. GitHub's disabled-text colour fell below native contrast on scene themes. |
+
+**New design system** (`content.js`, `shared/core.js`):
+
+1. **Crisp Immersive is the default.**
+   - Wallpaper blur 0, panel backdrop blur 0, native brightness (100 %), overlay 6 % (4 % on light themes).
+   - The scene is painted once, as the fixed root background, at native sharpness. There is no dimming veil beyond the minimal overlay and no blurred copy.
+2. **Clean reading panels:**
+   - Nearly solid (86–88 %, readability-guarded) with a hairline edge and a soft shadow instead of frost.
+   - One layer only; nested panels are transparent.
+   - The README, footer and pagination are now panels. GitHub's disabled-text colour is derived from the theme, never worse than native.
+3. **Scene window:** a transparent band (clamp 140 px – 27 vh – 320 px; 72 px on phones) between GitHub's repository tabs and the repository content.
+   - The scene shows there at full native sharpness.
+   - Nothing is covered or moved out of reach; the content simply starts lower.
+   - It can be switched off in the popup and in the Studio.
+4. **Three appearance presets** for the built-in themes (`config.appearance`). Each sets the six visual controls explicitly; none couples them afterwards. Custom themes keep their own values.
+
+   | Preset | Wallpaper blur | Panel backdrop blur | Overlay | Brightness | Panel opacity (chosen) |
+   |---|---|---|---|---|---|
+   | **Crisp Immersive** (default) | 0 | 0 | 6 % | 100 % | 86 % |
+   | Balanced | 0 | 0 | 32 % (comfort) | 85 % | 96 % |
+   | Frosted Glass (opt-in) | 0 | 18 px + sheen | 10 % | 96 % | 52 % |
+
+   The readability guard models the Frosted sheen. On dark scenes it raises Frosted panels to about 0.9 so text stays AA, and the Studio shows that change.
+5. **Independent controls**, as labelled in the Studio: wallpaper blur, panel backdrop blur, wallpaper brightness, wallpaper opacity, overlay darkness and panel opacity.
+6. **Upgrades and diagnostics:**
+   - Older stored settings without `appearance` become Crisp Immersive for the built-in themes.
+   - **Studio → Settings → Restore visual defaults** resets the appearance, and the six visual controls of every custom theme, to Crisp values. Repository, owner and automatic assignments, wallpapers (including IndexedDB uploads), colours and names are kept.
+   - **Diagnostics** (Studio → Settings) report what is *actually running* in the GitHub tab: version, a second RepoVibe copy active on the page (duplicate installations), stylesheet size, scene on the page background, appearance, scene window, and the effective blur / overlay / brightness / chosen vs rendered panel opacity.
+   - The popup footer shows the installed version.
+
+**Before → after** on the same real github.com page: `docs/screenshots/flagship/crisp-before-after-1366.jpg`.
+
+**Visual inspection, per theme** (Crisp Immersive default, real Code page, 1366×768, offline replay of real github.com):
+
+| Theme | Environment recognisable? | Visible artwork sharp? | What still covers the scene | Contrast / navigation |
+|---|---|---|---|---|
+| Cyberpunk Neon | Yes: neon tower canyon, signs, light trails in the scene window and margins | Yes | File table, About sidebar, header strips (readable panels) | AA; GitHub navigation untouched |
+| Enchanted Forest | Yes: trunks, misty clearing, fireflies, glowing ground plants | Yes | Same | AA |
+| Cosmic Galaxy | Yes: ringed planet, moon, asteroids, stars | Yes | Same | AA |
+| Futuristic Sci-Fi | Yes: the arched white hall and corridor | Yes; the light, restrained scene is the most subtle | Same | AA |
+
+**Measured.**
+- **Readability:** screenshot-measured text contrast on real Code / Issues / Pull request pages, including **two screens below the fold** (README, footer, pagination). 1366×768 and 1920×1080 for the four worlds, and all **20 presets** at 1600×900. Every combination has **0 text elements below 4.5:1**. The single exception is GitHub's *disabled* "Previous" pagination button on the light Sci-Fi theme, at 3.58:1. Inactive controls are exempt from WCAG 1.4.3, and native GitHub renders it at 3.57:1. Balanced and Frosted Glass: 0 below 4.5:1 on all 12 flagship page combinations.
+- **Sharpness:** on the layout fixture, exposed-scene edge energy measures 1.15–1.62 vs 0.10–0.28 for the same page with a 6 px wallpaper blur.
+- **Exposure:** 51 % of the viewport shows the scene with nothing over it, against 16 % on the pre-redesign real Code page.
+
+**Limits (honest).**
+- Artwork physically covered by readable panels cannot be fully visible. In Crisp Immersive the panels are clean and nearly solid, so the scene shows where it is exposed: the scene window, gaps and margins.
+- On dense lists at 1366 px that is mainly the scene window and the margins.
+- The Forest band shows the trunks, mist and fireflies. The glowing ground plants appear lower, around the content.
+- Your logged-in pages remain UNVERIFIED by the automated suites, which never sign in. Use Studio → Settings → Diagnostics in your browser to confirm the version, the absence of a duplicate installation, and the effective values.
+
+**Tests added.**
+- `tests/e2e/crisp.e2e.js` (7 tests):
+  - Crisp by default from a pre-redesign config, per flagship: **zero elements with backdrop blur**, no blurred wallpaper copy, scene window ≥ 140 px, single panel layer with no nested glass, ≥ 25 % exposed, sharpness ≥ 1.6× a blurred control, AA text.
+  - The presets are visibly different, and only Frosted blurs.
+  - Independent controls.
+  - Popup appearance and scene-window switches act on the page, and the version is shown.
+  - Studio **Restore visual defaults** keeps assignments, wallpapers, colours and names; **diagnostics** show the effective values.
+- 3 unit tests.
+- Live: LIVE 9 now also checks Crisp (no RepoVibe backdrop blur, no blurred copy, scene window, sharpness vs a blurred control, README surface and AA) and the three presets on real github.com.
+
 ## 0. P0 defect: "actual wallpapers are invisible on GitHub" — root cause, fix, evidence
 
 **Reported:** on a real, logged-in GitHub account the four flagship themes changed only the interface colours. The forest and the galaxy were not recognisable.

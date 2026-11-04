@@ -7,7 +7,7 @@
 /* ---- Phase 1B: artwork gallery, wallpaper picker, repository-first controls ---- */
 .theme-tile{background:var(--tile-image,none) center/cover,linear-gradient(145deg,var(--tile-bg),var(--tile-end))}
 .theme-tile:before{opacity:.18}.theme-tile span{background:#0009;padding:3px 6px;border-radius:6px}
-.motion-top{margin-top:14px}.popup-row{display:flex;gap:4px}.popup-row .subtle-button{flex:1;padding:9px 4px}.popup-row .subtle-button:disabled{opacity:.35}
+.motion-top{margin-top:14px}.toggle-line{display:flex;align-items:center;gap:8px;font-size:11px;color:#b9b0c8;margin:-4px 0 10px}.toggle-line input{accent-color:#a97efa}.popup-row{display:flex;gap:4px}.popup-row .subtle-button{flex:1;padding:9px 4px}.popup-row .subtle-button:disabled{opacity:.35}
 .source-chip{display:inline-block;margin-top:7px;font-size:11px;color:#ccb2f5;background:#5d488027;border:1px solid #7356a247;border-radius:12px;padding:4px 9px}
 .workspace-right{max-width:none}.repo-actions{display:flex;gap:6px;justify-content:flex-end;margin-top:9px;flex-wrap:wrap}.repo-actions .outline-button{padding:7px 10px;font-size:11px}
 .gallery-card{cursor:pointer;display:flex;flex-direction:column}
@@ -42,3 +42,5 @@
 .style-badge.is-3d{background:linear-gradient(120deg,#7c3aed,#06b6d4);color:#fff;border-color:#fff6;box-shadow:0 2px 10px #06b6d455}
 .gallery-art .art-mock{z-index:1}
 .wallpaper-tile.is-3d:after{content:"3D";position:absolute;top:5px;left:5px;font-size:9px;font-weight:900;background:linear-gradient(120deg,#7c3aed,#06b6d4);color:#fff;padding:2px 6px;border-radius:4px}
+
+.scene-modes{display:flex;gap:6px;flex-wrap:wrap}.scene-modes .outline-button.selected{background:#332746;color:#eadbff;border-color:#a97efa}.toggle-row.diagnostics small{word-break:break-word;white-space:normal}

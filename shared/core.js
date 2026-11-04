@@ -25,7 +25,7 @@
     ['Solar Flare', 'Dunes at dusk', '#291913', '#422617', '#5c331c', '#fff1dd', '#d9b297', '#ffad54', '#885337', '#5a2918', '#2b1b19', '#341f19', 'neon'],
     ['Arctic Frost', 'Alpine golden hour', '#eaf5fc', '#fbfdff', '#deecf6', '#213952', '#4b6178', '#2a5f9e', '#bfd7e8', '#e1f5ff', '#d6e4ff', '#f2f8fd', 'glass'],
     ['Lavender Nights', 'A gentle glow', '#1e1837', '#2c2448', '#3a305c', '#f8efff', '#b9abcd', '#d0a6ff', '#5b4d78', '#392252', '#221a43', '#29203f', 'soft'],
-    ['Dark Academia', 'Timeless and thoughtful', '#241d19', '#362b23', '#45362b', '#f2e8d3', '#bcb09b', '#d4b47d', '#69513a', '#30221a', '#221a17', '#2e251e', 'minimal'],
+    ['Dark Academia', 'Timeless and thoughtful', '#241d19', '#362b23', '#45362b', '#f2e8d3', '#c9bea9', '#d4b47d', '#69513a', '#30221a', '#221a17', '#2e251e', 'minimal'],
     ['Futuristic Sci-Fi', 'Holographic AI core', '#eaf2f9', '#fbfdff', '#e4edf6', '#12233a', '#3a4b61', '#075a99', '#c6d6e6', '#dcf1ff', '#e6ebf8', '#f3f7fc', 'glass'],
     ['Obsidian', 'Pure concentration', '#0d0e11', '#18191e', '#202228', '#f4f4f7', '#a1a1ad', '#a5a9bd', '#3b3e48', '#15161a', '#0d0e11', '#17181c', 'minimal'],
     ['Aurora', 'Northern lights over a fjord', '#0c1724', '#122b34', '#1b3b45', '#e8fff8', '#9dcbc6', '#7eedd7', '#355d5c', '#113b4b', '#2d2557', '#142633', 'glass'],
@@ -48,6 +48,17 @@
   const MOTIONS = ['none', 'rain', 'fireflies', 'stars', 'holo'];
   const FLAGSHIP_MOTION = { 'preset-1': 'rain', 'preset-8': 'fireflies', 'preset-19': 'stars', 'preset-15': 'holo' };
   const MOTION_MODES = ['static', 'ambient', 'cinematic'];
+  /* Appearance presets for the built-in themes (config.appearance). Each sets the six visual controls explicitly; they
+     never change one another afterwards. Crisp Immersive is the default: sharp scene (no wallpaper blur, no panel
+     backdrop blur, native brightness, minimal overlay) and clean, nearly solid reading panels. Balanced adds a subtle
+     overlay and more solid panels. Frosted Glass is the opt-in glassmorphism style. Custom themes keep their own values. */
+  const APPEARANCES = {
+    crisp: { label: 'Crisp Immersive', dark: { wallpaperBlur: 0, glass: 0, wallpaperOpacity: 100, wallpaperBrightness: 100, wallpaperOverlay: 6, glassOpacity: 86 }, light: { wallpaperBlur: 0, glass: 0, wallpaperOpacity: 100, wallpaperBrightness: 100, wallpaperOverlay: 4, glassOpacity: 88 } },
+    balanced: { label: 'Balanced', dark: { wallpaperBlur: 0, glass: 0, wallpaperOpacity: 100, wallpaperBrightness: 85, wallpaperOverlay: 32, glassOpacity: 96 }, light: { wallpaperBlur: 0, glass: 0, wallpaperOpacity: 100, wallpaperBrightness: 100, wallpaperOverlay: 26, glassOpacity: 96 } },
+    frosted: { label: 'Frosted Glass', dark: { wallpaperBlur: 0, glass: 18, wallpaperOpacity: 100, wallpaperBrightness: 96, wallpaperOverlay: 10, glassOpacity: 52 }, light: { wallpaperBlur: 0, glass: 18, wallpaperOpacity: 100, wallpaperBrightness: 100, wallpaperOverlay: 6, glassOpacity: 58 } }
+  };
+  const VISUAL_FIELDS = ['wallpaperBlur', 'glass', 'wallpaperOpacity', 'wallpaperBrightness', 'wallpaperOverlay', 'glassOpacity'];
+  function appearanceValues(name, theme) { const a = APPEARANCES[name] || APPEARANCES.crisp; return { ...(isLightHex(theme.bg) ? a.light : a.dark) }; }
   // Development/testing mappings seeded once (service worker, on install/update). They are ordinary manual
   // repository assignments afterwards: the user can change or remove them and they are never re-added.
   const DEFAULT_REPO_MAPPINGS = Object.freeze({
@@ -73,8 +84,8 @@
     bg: row[2], surface: row[3], surface2: row[4], text: row[5], muted: row[6], accent: row[7], border: row[8],
     gradientTo: row[9], gradientThird: row[10], codeBg: row[11], vibe: row[12],
     radius: row[12] === 'pixel' ? 3 : row[12] === 'minimal' ? 8 : 16,
-    glass: 8,
-    glassOpacity: isLightHex(row[2]) ? 62 : 55, // starting point; the readability guard raises it per wallpaper (single layer)
+    glass: 0, // no panel backdrop blur by default (Crisp Immersive); Frosted Glass is an explicit choice
+    glassOpacity: isLightHex(row[2]) ? 88 : 86, // clean, nearly solid reading surfaces; the scene stays sharp around them
     gradientAngle: 135,
     backgroundMode: 'image',
     wallpaper: '',
@@ -82,8 +93,8 @@
     wallpaperStyle: (WALLPAPERS.find(w => w.slug === PRESET_WALLPAPERS[index]) || {}).style || 'illustrated',
     wallpaperOpacity: 100,
     wallpaperBlur: 0,
-    wallpaperBrightness: isLightHex(row[2]) ? 100 : 92, // scenes stay recognisable; panels carry readability
-    wallpaperOverlay: isLightHex(row[2]) ? 8 : 12,
+    wallpaperBrightness: 100, // native brightness: panels carry readability, the scene is not dimmed
+    wallpaperOverlay: isLightHex(row[2]) ? 4 : 6,
     wallpaperPosition: 'center',
     wallpaperSize: 'cover',
     font: row[12] === 'pixel' ? 'mono' : 'system',
@@ -95,7 +106,7 @@
   const CONFIG_VERSION = 2;
   const DEFAULT = {
     version: CONFIG_VERSION, enabled: true, defaultThemeId: 'native',
-    autoAssign: true, autoAssignments: {}, motionMode: 'ambient', seededMappings: false,
+    autoAssign: true, autoAssignments: {}, motionMode: 'ambient', seededMappings: false, appearance: 'crisp', sceneWindow: true,
     repoAssignments: {}, ownerAssignments: {}, customThemes: {}
   };
   const colorKeys = ['bg', 'surface', 'surface2', 'text', 'muted', 'accent', 'border', 'gradientTo', 'gradientThird', 'codeBg'];
@@ -161,6 +172,8 @@
     // everyone else gets automatic per-repository themes. v2 stores the user's explicit choice.
     config.autoAssign = raw.version >= 2 ? raw.autoAssign !== false : config.defaultThemeId === 'native';
     config.motionMode = MOTION_MODES.includes(raw.motionMode) ? raw.motionMode : 'ambient';
+    config.appearance = Object.hasOwn(APPEARANCES, raw.appearance) ? raw.appearance : 'crisp';
+    config.sceneWindow = raw.sceneWindow !== false;
     config.seededMappings = raw.seededMappings === true;
     for (const type of ['repoAssignments', 'ownerAssignments', 'autoAssignments']) {
       if (!raw[type] || typeof raw[type] !== 'object') continue;
@@ -191,13 +204,29 @@
   }
   function themeById(config, id) {
     if (typeof id !== 'string' || id === 'native') return null;
-    return own(config.customThemes, id) || PRESETS.find(t => t.id === id) || null;
+    const custom = own(config.customThemes, id);
+    if (custom) return custom;
+    const preset = PRESETS.find(t => t.id === id);
+    // Built-in themes follow the chosen appearance preset (Crisp Immersive by default).
+    return preset ? { ...preset, ...appearanceValues(config.appearance, preset), appearance: config.appearance || 'crisp' } : null;
+  }
+  /** Restore visual defaults without touching repository/owner/automatic assignments, wallpapers, colours or names:
+      appearance → Crisp Immersive and every custom theme's six visual controls → the Crisp values for its tone.
+      Returns the number of custom themes changed. */
+  function restoreVisualDefaults(config) {
+    config.appearance = 'crisp';
+    let changed = 0;
+    for (const theme of Object.values(config.customThemes)) {
+      const v = appearanceValues('crisp', theme);
+      if (VISUAL_FIELDS.some(k => theme[k] !== v[k])) { Object.assign(theme, v); changed++; }
+    }
+    return changed;
   }
   /** Readability guard. Text sits on glass (surface at opacity g) over the wallpaper layer, which is: image pixel ×
       brightness, tinted by the overlay (theme bg at o), drawn at layer opacity over the theme bg. For the brightest and
       darkest measured pixels of the wallpaper, find the smallest g ≥ the user's choice at which text, secondary text and
       accent all keep ≥ minRatio. Browsers composite in sRGB channel space, which this mirrors. Returns 0..1. */
-  function requiredGlass(theme, tone = WORST_CASE_TONE, minRatio = 4.6) {
+  function requiredGlass(theme, tone = WORST_CASE_TONE, minRatio = 4.6, sheen = 0) {
     const mix = (a, b, t) => a.map((v, i) => v * t + b[i] * (1 - t));
     const rgb = h => { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
     const lum = c => c.map(v => { v = Math.min(255, Math.max(0, v)) / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
@@ -210,7 +239,8 @@
     const backdrops = tone.map(h => { const px = bright(rgb(h)); return mix(mix(bg, px, o), bg, op); });
     const fgs = [theme.text, theme.muted, theme.accent].map(rgb); // GitHub's semantic colours are raised in content.js
     for (let g = Math.max(0, theme.glassOpacity / 100); g <= 1.0001; g += 0.01) {
-      const ok = backdrops.every(back => { const panel = mix(surface, back, g); return fgs.every(fg => ratio(fg, panel) >= minRatio); });
+      // sheen: the Frosted Glass highlight (white at its strongest alpha) painted over the panel colour.
+      const ok = backdrops.every(back => { const panel = mix([255, 255, 255], mix(surface, back, g), sheen); return fgs.every(fg => ratio(fg, panel) >= minRatio); });
       if (ok) return Math.min(1, Math.round(g * 100) / 100);
     }
     return 1;
@@ -226,7 +256,8 @@
   function panelOpacity(theme) {
     const t = normalizeTheme(theme);
     // 4.8:1 target (0.3 above AA) absorbs anti-aliasing and GitHub's own nested tints measured on real pages.
-    const needed = requiredGlass(t, wallpaperTone(t.wallpaperRef, t.glass >= 6), 4.8);
+    const sheen = t.glass >= 8 ? (isLightHex(t.bg) ? 0.32 : 0.14) : 0; // must match content.js (Frosted Glass highlight)
+    const needed = requiredGlass(t, wallpaperTone(t.wallpaperRef, t.glass >= 6), 4.8, sheen);
     // Loose items outside panels (headings, links, badges) get an unblurred backing in the theme background colour.
     // They are small and can sit on any pixel (including the brightest 2 % the tone excludes), so their bright extreme is
     // pure white.
@@ -334,6 +365,7 @@
   }
   root.RepoVibeCore = Object.freeze({
     STORAGE_KEY, PRESETS, DEFAULT, MAX_CUSTOM_THEMES, CONFIG_VERSION, WALLPAPERS, POSITIONS, SIZES,
+    APPEARANCES, VISUAL_FIELDS, appearanceValues, restoreVisualDefaults,
     MOTIONS, MOTION_MODES, FLAGSHIP_MOTION, DEFAULT_REPO_MAPPINGS, seedDefaultMappings, motionFor,
     safeWallpaperRef, fnv1a, pickAutoTheme, requiredGlass, wallpaperTone, panelOpacity, normalizeConfig, normalizeTheme, safeWallpaper,
     repositoryFromUrl, themeById, themeResolution, loadConfig, saveConfig, updateConfig, themeUsage, assignTheme, isPreset,

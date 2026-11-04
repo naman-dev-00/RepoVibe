@@ -15,7 +15,9 @@ RepoVibe is an installable, local-first Chrome extension that makes GitHub visua
 
 **Note:** After editing this extension's source locally, return to `chrome://extensions` and press its Reload button. A hard reload of the GitHub tab might be needed after an extension reload.
 
-## What works in v0.2.0
+## What works in v0.3.0
+
+- **Crisp Immersive (default):** sharp 3D scenes with no blur, minimal overlay and clean, readable panels. A **scene window** between the repository tabs and the content shows the environment at full sharpness. **Balanced** and **Frosted Glass** are one click away in the popup. The six visual controls are independent. **Studio → Settings** has *Restore visual defaults* and *Diagnostics* (installed version, duplicate installations, effective blur and opacity).
 
 - **Four flagship live worlds:** Cyberpunk Neon (neon rain canyon), Enchanted Forest (moonlit glade with fireflies), Cosmic Galaxy (ringed giant and nebula) and Futuristic Sci-Fi (holographic AI hall). Each is an original raymarched 3D render with a lightweight live layer: rain, fireflies, twinkling stars or a holographic grid. The motion setting is **Static / Ambient (default) / Cinematic** and is always off when the system asks for reduced motion. See `docs/FLAGSHIP_REPORT.md`.
 - **Themed Top repositories on GitHub Home.** On the signed-in dashboard, each sidebar row shows a miniature of its own repository's theme behind readable glass. Links are unchanged, and the cards stay in sync with the repository pages. Verified against an authenticated-page fixture; real signed-in GitHub is unverified.
