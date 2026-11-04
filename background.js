@@ -37,7 +37,23 @@ async function migrateInlineWallpapers() {
 }
 
 // Seed the default repository → theme mappings once (they then behave like any manual choice).
-function seedMappings() { return C.updateConfig(C.seedDefaultMappings).catch(e => console.warn('[RepoVibe] Unable to seed mappings', e)); }
+// chrome.storage has no cross-context transactions: a GitHub tab that read the config just before seeding can write it
+// back without the seeds (and without seededMappings). A separate marker records that seeding happened; if a later write
+// drops the flag, the missing default mappings are re-applied (existing choices are never replaced).
+const SEEDED_KEY = 'repovibe.seeded';
+async function seedMappings() {
+  try {
+    await C.updateConfig(C.seedDefaultMappings);
+    await chrome.storage.local.set({ [SEEDED_KEY]: true });
+  } catch (e) { console.warn('[RepoVibe] Unable to seed mappings', e); }
+}
+chrome.storage.onChanged.addListener(async (changes, area) => {
+  if (area !== 'local' || !changes[C.STORAGE_KEY]) return;
+  const next = changes[C.STORAGE_KEY].newValue;
+  if (!next || next.seededMappings === true) return;
+  const marker = await chrome.storage.local.get(SEEDED_KEY);
+  if (marker[SEEDED_KEY]) C.updateConfig(C.seedDefaultMappings).catch(() => {});
+});
 chrome.runtime.onInstalled.addListener(() => { seedMappings(); migrateInlineWallpapers(); });
 chrome.runtime.onStartup.addListener(() => { migrateInlineWallpapers(); });
 
