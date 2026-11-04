@@ -71,8 +71,10 @@ for (const [, id, slug, motion, label] of FLAGSHIPS) L.liveTest(`LIVE 9 (${label
           const vc = await visualContrast(context, page, 300);
           const nat = native[name];
           const okText = vc.below3.length === 0 && (vc.below45 === 0 || vc.below45 <= nat.below45);
-          c.check(ev.ok && m.correlation >= 0.25 && m.clear >= 0.1 && m.median >= 0.3 && changed >= 0.1 && okText, `${label} · ${name} · ${w}×${h}`,
-            `scene: correlation with the wallpaper ${m.correlation.toFixed(2)} (pre-fix renderer −0.03…0.50), unobstructed ${(m.clear * 100).toFixed(0)}% of viewport (pre-fix 0%), median transmission ${m.median.toFixed(2)}; ${(changed * 100).toFixed(1)}% of pixels differ from the same theme in solid colour; text min ${vc.min.toFixed(2)}, <4.5:1 ${vc.below45} (native ${nat.below45}), <3:1 ${vc.below3.length}${vc.low.length ? ` e.g. ${vc.low.slice(0, 3).map(x => `"${x.text}" ${x.ratio.toFixed(2)}`).join('; ')}` : ''}`);
+          // Crisp Immersive shows the scene UNCOVERED (scene window, gaps, margins) next to near-solid reading panels, so the
+          // measure is the uncovered share (≥ 25 %), not how much shows through panels (median transmission, reported only).
+          c.check(ev.ok && m.correlation >= 0.25 && m.clear >= 0.25 && changed >= 0.1 && okText, `${label} · ${name} · ${w}×${h}`,
+            `scene: correlation with the wallpaper ${m.correlation.toFixed(2)} (pre-fix renderer −0.03…0.50), unobstructed ${(m.clear * 100).toFixed(0)}% of viewport (pre-fix 0%; frosted build 12–23%), median transmission ${m.median.toFixed(2)}; ${(changed * 100).toFixed(1)}% of pixels differ from the same theme in solid colour; text min ${vc.min.toFixed(2)}, <4.5:1 ${vc.below45} (native ${nat.below45}), <3:1 ${vc.below3.length}${vc.low.length ? ` e.g. ${vc.low.slice(0, 3).map(x => `"${x.text}" ${x.ratio.toFixed(2)}`).join('; ')}` : ''}`);
           if (name === 'code' || w === 1366) await L.logShot(context, page, `scene-${label}-${name}-${w}`);
         }
       }
@@ -92,7 +94,8 @@ for (const [, id, slug, motion, label] of FLAGSHIPS) L.liveTest(`LIVE 9 (${label
       const hasReadme = await page.evaluate(() => { const a = document.querySelector('article.markdown-body'); if (!a) return false; window.scrollTo(0, a.getBoundingClientRect().top + scrollY - 120); return true; });
       if (hasReadme) {
         await page.waitForTimeout(500);
-        const rd = await page.evaluate(() => getComputedStyle(document.querySelector('article.markdown-body')).backgroundColor);
+        // The README's reading surface is the nearest painted ancestor (the detected README box or the article itself).
+        const rd = await page.evaluate(() => { for (let e = document.querySelector('article.markdown-body'); e && e !== document.body; e = e.parentElement) { const bg = getComputedStyle(e).backgroundColor; if (!/rgba\(0, 0, 0, 0\)|transparent/.test(bg)) return bg; } return 'rgba(0, 0, 0, 0)'; });
         const vr = await visualContrast(context, page, 300);
         c.check(/rgba?\(/.test(rd) && !/, 0\)$/.test(rd) && vr.below3.length === 0 && vr.below45 === 0, `${label} · README`, `README surface ${rd}; text min ${vr.min.toFixed(2)}, <4.5:1 ${vr.below45}, <3:1 ${vr.below3.length}`);
         await L.logShot(context, page, `scene-${label}-readme-1366`);
@@ -102,7 +105,9 @@ for (const [, id, slug, motion, label] of FLAGSHIPS) L.liveTest(`LIVE 9 (${label
       await setConfig(context, { enabled: true, motionMode: 'static', defaultThemeId: 'custom-diag', customThemes: { 'custom-diag': { ...preset, id: 'custom-diag', wallpaperOpacity: 100, wallpaperBrightness: 100, wallpaperBlur: 0, wallpaperOverlay: 0 } } });
       await L.gotoLive(page, `https://github.com/${A}`); await L.settleAnimations(page); await page.waitForTimeout(500);
       const d = await sceneMetrics(context, page);
-      c.check(d.correlation >= 0.3 && d.clear >= 0.1, `${label} · diagnostic config`, `opacity 100 / brightness 100 / blur 0 / overlay 0: correlation ${d.correlation.toFixed(2)}, unobstructed ${(d.clear * 100).toFixed(0)}%`);
+      // Diagnostic config must show the scene uncovered and at native sharpness (correlation is reported: it is diluted by the
+      // solid reading panels on low-contrast scenes such as the night forest).
+      c.check(d.clear >= 0.25 && d.sharpness != null && d.sharpness >= soft.sharpness * 1.5, `${label} · diagnostic config`, `opacity 100 / brightness 100 / blur 0 / overlay 0: unobstructed ${(d.clear * 100).toFixed(0)}%, sharpness ${d.sharpness?.toFixed(2)} (6 px-blurred control ${soft.sharpness?.toFixed(2)}), correlation ${d.correlation.toFixed(2)}`);
       // Live motion over the visible scene (after static visibility).
       await setConfig(context, { enabled: true, motionMode: 'ambient', defaultThemeId: id });
       await L.gotoLive(page, `https://github.com/${A}`); await page.waitForTimeout(600);
