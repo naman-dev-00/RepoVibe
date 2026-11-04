@@ -64,10 +64,20 @@ async function perf(page, client, ms, move) {
         const helper = await extPage(context); await helper.setViewportSize({ width: 1366, height: 620 });
         await helper.setContent(`<body style="margin:0;background:#000;font:600 13px sans-serif;color:#fff">${[['pointer at left edge', shotL], ['pointer at right edge', shotR]].map(([t, b]) => `<div style="position:relative;height:300px;margin-bottom:${t.includes('left') ? 20 : 0}px"><img style="display:block" src="data:image/png;base64,${b.toString('base64')}"><span style="position:absolute;left:8px;top:8px;background:#000b;padding:3px 8px;border-radius:5px">${label} · ${t}</span></div>`).join('')}</body>`);
         await helper.waitForTimeout(300); await helper.screenshot({ path: path.join(SHOTS, `${label}-parallax.jpg`), type: 'jpeg', quality: 85 }); await helper.close();
+        // autonomous motion: pointer held still, three moments ~2 s apart (scene band crop)
+        await page.mouse.move(683, 384); await settle(page, 0);
+        const frames = [];
+        for (let i = 0; i < 3; i++) { frames.push(await page.screenshot({ clip: { x: 0, y: 160, width: 1366, height: 300 } })); await page.waitForTimeout(2000); }
+        rec.autonomous = await page.evaluate(() => [...document.querySelectorAll('.repv-s:not([hidden]) > img')].length);
+        const strip = await extPage(context); await strip.setViewportSize({ width: 1366, height: 3 * 300 + 40 });
+        await strip.setContent(`<body style="margin:0;background:#000;font:600 13px sans-serif;color:#fff">${frames.map((b, i) => `<div style="position:relative;height:300px;margin-bottom:${i < 2 ? 20 : 0}px"><img style="display:block" src="data:image/png;base64,${b.toString('base64')}"><span style="position:absolute;left:8px;top:8px;background:#000b;padding:3px 8px;border-radius:5px">${label} · pointer still · t = ${i * 2} s</span></div>`).join('')}</body>`);
+        await strip.waitForTimeout(300); await strip.screenshot({ path: path.join(SHOTS, `${label}-autonomous.jpg`), type: 'jpeg', quality: 82 }); await strip.close();
         rec.perf = { ambientPointer: await perf(page, client, 4000, true) };
         await setMode(context, "c.motionMode = 'cinematic';"); await page.waitForTimeout(1200);
         await page.mouse.move(683, 384); await settle(page, 0); await page.waitForTimeout(3000);
         await page.screenshot({ path: path.join(SHOTS, `${label}-cinematic.jpg`), type: 'jpeg', quality: 85 });
+        // full-page parallax states (pointer far left / far right) in Cinematic
+        for (const [side, x, t] of [['left', 4, 0.994], ['right', 1362, -0.994]]) { await page.mouse.move(x, 384, { steps: 3 }); await settle(page, t); await page.evaluate(() => document.getAnimations().forEach(a => a.pause())); await page.screenshot({ path: path.join(SHOTS, `${label}-cinematic-pointer-${side}.jpg`), type: 'jpeg', quality: 80 }); await page.evaluate(() => document.getAnimations().forEach(a => a.play())); }
         rec.perf.cinematicPointer = await perf(page, client, 4000, true);
         await setMode(context, "c.motionMode = 'ambient'; c.depthQuality = 'lite';"); await page.waitForTimeout(1200);
         rec.perf.liteAmbientPointer = await perf(page, client, 4000, true);

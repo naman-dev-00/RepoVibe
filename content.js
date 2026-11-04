@@ -389,6 +389,33 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
       { n: 'shard', plane: 'pop', at: 'band', x: 0.02, y: 0.4, h: 0.7, k: 3.0, dx: 22, dy: -5, rot: -11, dur: 21 },
       { n: 'hero', src: 'foreB', plane: 'pop', at: 'band', x: 0.79, y: 0.5, h: 0.95, k: 2.2, dx: -30, dy: 5, rot: 12, dur: 26 }, // in front of the planet, inside the scene window
       { n: 'popB', plane: 'pop', at: 'margin', side: 'left', y: 0.66, h: 0.2, k: 2.4, dx: 14, dy: -18, rot: 16, dur: 27 }
+    ],
+    'enchanted-forest': [
+      { n: 'flowerB', plane: 'scene', k: 0.6, x: 30, y: 90, w: 4.2, dx: 3, dy: 0, rot: 2, dur: 8, fx: 'pulse' },
+      { n: 'mush', plane: 'scene', k: 0.72, x: 11, y: 86, w: 9, dx: 0, dy: 0, rot: 0, dur: 30, fx: 'pulse' },
+      { n: 'flowerA', plane: 'scene', k: 0.86, x: 87, y: 84, w: 6.4, dx: 4, dy: 0, rot: 2.5, dur: 7, fx: 'pulse' },
+      { n: 'lf1', src: 'leaf', plane: 'scene', k: 0.9, x: 64, y: 0, w: 1.5, fall: 34, dx: 120, rot: 420, flip: 1 },
+      { n: 'lf2', src: 'leaf', plane: 'scene', k: 1.5, x: 22, y: 0, w: 2.3, fall: 25, dx: -160, rot: -380 },
+      { n: 'lf3', src: 'leaf', plane: 'scene', k: 2.1, x: 82, y: 0, w: 3.4, fall: 19, dx: 140, rot: 300, flip: 1 },
+      { n: 'sprayA', plane: 'pop', at: 'band', x: 0.97, y: 0.5, h: 1.1, k: 2.6, dx: -12, dy: 3, rot: 2.5, dur: 9 },     // wind sway
+      { n: 'sprayB', plane: 'pop', at: 'band', x: 0.03, y: 0.45, h: 0.9, k: 2.8, dx: 12, dy: -3, rot: -3, dur: 11 },
+      { n: 'mSpray', src: 'sprayA', plane: 'pop', at: 'margin', side: 'right', y: 0.55, h: 0.3, k: 2.3, dx: -10, dy: 4, rot: 3, dur: 10, flip: 1 }
+    ],
+    'neon-city-3d': [
+      { n: 'drone', plane: 'scene', k: 0.5, x: 50, y: 16, w: 8, cross: 38, rot: 0 },
+      { n: 'dr2', src: 'drone', plane: 'scene', k: 0.8, x: 50, y: 30, w: 5, crossRev: 27, rot: 0, flip: 1 },
+      { n: 'holo', plane: 'scene', k: 0.72, x: 72, y: 32, w: 13, dx: 8, dy: -5, rot: 0, dur: 12, fx: 'flicker' },
+      { n: 'signA', plane: 'pop', at: 'band', x: 0.035, y: 0.5, h: 1.05, k: 2.6, dx: 5, dy: 2, rot: 0.8, dur: 6, fx: 'flicker' },
+      { n: 'signB', plane: 'pop', at: 'band', x: 0.9, y: 0.45, h: 0.62, k: 2.3, dx: -6, dy: 2, rot: -0.6, dur: 7, fx: 'flicker' },
+      { n: 'mSign', src: 'signA', plane: 'pop', at: 'margin', side: 'left', y: 0.55, h: 0.42, k: 2.4, dx: 4, dy: 3, rot: 0.6, dur: 6, fx: 'flicker' }
+    ],
+    'scifi-ai': [
+      { n: 'ring', plane: 'scene', k: 0.6, x: 63, y: 30, w: 15, dx: 6, dy: -4, rot: 0, dur: 14, fx: 'spin' },
+      { n: 'probe', plane: 'scene', k: 0.78, x: 50, y: 20, w: 5.5, cross: 36, rot: 0 },
+      { n: 'pr2', src: 'probe', plane: 'scene', k: 1.25, x: 88, y: 62, w: 7, dx: -40, dy: 16, rot: 6, dur: 14 },
+      { n: 'panel', plane: 'pop', at: 'band', x: 0.05, y: 0.5, h: 1.05, k: 2.5, dx: 8, dy: -3, rot: 1, dur: 9, fx: 'pulse' },
+      { n: 'crystal', plane: 'pop', at: 'band', x: 0.9, y: 0.5, h: 0.85, k: 2.2, dx: -6, dy: 8, rot: 6, dur: 8, fx: 'spinY' },
+      { n: 'mPanel', src: 'panel', plane: 'pop', at: 'margin', side: 'right', y: 0.55, h: 0.4, k: 2.3, dx: -6, dy: 4, rot: -1, dur: 10, fx: 'pulse' }
     ]
   };
   function spriteUrl(slug, n) { return chrome.runtime.getURL(`wallpapers/depth/${slug}/s-${n}.webp`); }
@@ -400,10 +427,12 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     img.src = spriteUrl(slug, s.src || s.n); img.alt = '';
     if (s.flip) img.style.scale = '-1 1'; img.decoding = 'async'; img.draggable = false;
     const m = cinematic ? 1.8 : 1;
-    if (s.cross) { img.dataset.cross = ''; img.style.setProperty('--dur', `${s.cross / (cinematic ? 1.5 : 1)}s`); }
+    if (s.cross || s.crossRev) { img.dataset.cross = s.crossRev ? 'rev' : ''; img.style.setProperty('--dur', `${(s.cross || s.crossRev) / (cinematic ? 1.5 : 1)}s`); }
+    else if (s.fall) { img.dataset.fall = ''; img.style.setProperty('--dur', `${s.fall / (cinematic ? 1.4 : 1)}s`); }
     else img.style.setProperty('--dur', `${s.dur / (cinematic ? 1.35 : 1)}s`);
     img.style.setProperty('--dx', `${(s.dx || 0) * m}px`); img.style.setProperty('--dy', `${(s.dy || 0) * m}px`); img.style.setProperty('--rot', `${(s.rot || 0) * (cinematic ? 1.4 : 1)}deg`);
-    img.style.animationDelay = `${-((s.n.charCodeAt(0) * 7 + s.n.length * 13) % 20)}s`; // desynchronised loops
+    img.style.animationDelay = `${-((s.n.charCodeAt(0) * 7 + s.n.charCodeAt(s.n.length - 1) * 3 + s.n.length * 13) % 20)}s`; // desynchronised loops
+    if (s.fx) img.dataset.fx = s.fx;
     wrap.appendChild(img);
     if (s.plane === 'scene') { wrap.style.left = `${s.x}%`; wrap.style.top = `${s.y}%`; wrap.style.width = `${s.w}vw`; }
     else wrap.dataset.pop = s.at;
@@ -430,6 +459,10 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     const band = document.getElementById('repo-content-pjax-container') || document.querySelector('turbo-frame#repo-content-turbo-frame'); // the element that carries the scene-window padding
     const bandH = band && document.documentElement.classList.contains('repv-scene-window') ? parseFloat(getComputedStyle(band).paddingTop) || 0 : 0;
     const br = band ? band.getBoundingClientRect() : null;
+    // skip when nothing that placement depends on has changed (panel scans re-queue this after DOM mutations)
+    const sig = `${innerWidth}x${innerHeight}|${br ? Math.round(br.top + scrollY) : -1}|${bandH}|${document.documentElement.scrollHeight}|${t.foreground}|${t.parallax}|${pop.childElementCount}|${[...pop.querySelectorAll('img')].filter(i => i.complete).length}`;
+    if (pop.dataset.sig === sig) return;
+    pop.dataset.sig = sig;
     // side margins: the open space at mid-height, found by probing (first text/control/panel from each side)
     const probeY = [0.45, 0.6, 0.75].map(f => innerHeight * f);
     let colLeft = innerWidth / 2, colRight = innerWidth / 2;
@@ -646,7 +679,21 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
 @media (prefers-reduced-motion:no-preference) {
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate; }
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-cross] { animation:repv-cross var(--dur, 120s) linear infinite; }
+ :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-cross="rev"] { animation-name:repv-cross-rev; }
+ :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fall] { animation:repv-fall var(--dur, 30s) linear infinite; }
+ :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="flicker"] { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate, repv-flick 4.3s steps(1, end) infinite; }
+ :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="pulse"] { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate, repv-glow 3.2s ease-in-out infinite alternate; }
+ :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="spin"] { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate, repv-spin 40s linear infinite; }
+ :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="spinY"] { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate, repv-spin-y 9s ease-in-out infinite alternate; }
+ html.repv-depth-cinematic :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="spin"] { animation-duration:var(--dur, 30s), 22s; }
 }
+#repovibe-depth > .repv-s:has(> img[data-fall]) { top:0 !important; }
+@keyframes repv-cross-rev { from { transform:translate3d(60vw, -3vh, 0); } to { transform:translate3d(-80vw, 5vh, 0); } }
+@keyframes repv-fall { 0% { transform:translate3d(0, -12vh, 0) rotate(0deg); opacity:0; } 6% { opacity:1; } 50% { transform:translate3d(calc(var(--dx) * .5), 55vh, 0) rotate(calc(var(--rot) * .5)); } 94% { opacity:1; } 100% { transform:translate3d(var(--dx), 118vh, 0) rotate(var(--rot)); opacity:0; } }
+@keyframes repv-flick { 0%, 100% { opacity:1; } 31% { opacity:.55; } 33% { opacity:1; } 62% { opacity:.8; } 64% { opacity:1; } 66% { opacity:.4; } 67% { opacity:1; } }
+@keyframes repv-glow { from { opacity:.72; } to { opacity:1; } }
+@keyframes repv-spin { from { rotate:0deg; } to { rotate:360deg; } }
+@keyframes repv-spin-y { from { scale:.82 1; } to { scale:1 1; } }
 @keyframes repv-drift { 0% { transform:translate3d(0, 0, 0) rotate(0deg); } 50% { transform:translate3d(calc(var(--dx) * var(--drift, 1)), calc(var(--dy) * var(--drift, 1)), 0) rotate(calc(var(--rot) * .55 * var(--drift, 1))); } 100% { transform:translate3d(calc(var(--dx) * -.45 * var(--drift, 1)), calc(var(--dy) * .7 * var(--drift, 1)), 0) rotate(calc(var(--rot) * var(--drift, 1))); } }
 @keyframes repv-cross { from { transform:translate3d(-60vw, 6vh, 0) rotate(0deg); } to { transform:translate3d(80vw, -4vh, 0) rotate(var(--rot)); } }
 /* Static (and reduced motion): the same layered scene, at rest: no overscan, no animation, no pointer response */

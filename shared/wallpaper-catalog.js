@@ -21,6 +21,12 @@
         "near",
         "front",
         "rays"
+      ],
+      "sprites": [
+        "crystal",
+        "panel",
+        "probe",
+        "ring"
       ]
     },
     {
@@ -71,6 +77,14 @@
         "near",
         "front",
         "rays"
+      ],
+      "sprites": [
+        "flowerA",
+        "flowerB",
+        "leaf",
+        "mush",
+        "sprayA",
+        "sprayB"
       ]
     },
     {
@@ -106,6 +120,12 @@
         "near",
         "front",
         "rays"
+      ],
+      "sprites": [
+        "drone",
+        "holo",
+        "signA",
+        "signB"
       ]
     },
     {

@@ -1,3 +1,4 @@
+// @sprites panel:760x1000, ring:900x900, crystal:620x760, probe:560x380
 // Futuristic sci-fi AI hall: sculpted pale ribs receding along a dark corridor, lit from within by cyan light
 // strips; glossy reflective floor; a holographic core (rings + sphere) at the vanishing point; volumetric
 // ceiling beams; holographic UI panels close to the camera.
@@ -141,7 +142,76 @@ vec4 rays(vec2 uv) {
   }
   return vec4(vec3(0.7, 0.95, 1.0), SAT(a * 2.2));
 }
+// ---- Sprites (uLayer >= 10): holographic UI panel, rotating holo ring, data crystal and a probe drone (transparency).
+vec4 overC(vec4 a, vec4 b) { return vec4(mix(a.rgb, b.rgb, b.a), max(a.a, b.a)); }
+vec4 holoPanel(vec2 uv) {
+  float asp = uRes.x / uRes.y, aa = 1.5 / uRes.y;
+  vec2 hs = vec2(0.44 * asp, 0.45);
+  vec2 dq = abs(uv) - hs; float sd = length(max(dq, 0.0)) + min(max(dq.x, dq.y), 0.0) - 0.02;
+  vec3 cy = vec3(0.3, 0.9, 1.0);
+  float frame = smoothstep(aa * 2.0, 0.0, abs(sd)), inside = step(sd, 0.0);
+  vec2 l = (uv + hs) / (2.0 * hs);
+  float rows = step(abs(fract(l.y * 12.0) - 0.5), 0.12) * step(0.1, l.x) * step(l.x, 0.16 + 0.55 * hash11(floor(l.y * 12.0)));
+  float graph = smoothstep(0.012, 0.0, abs(l.y - (0.78 + 0.08 * sin(l.x * 18.0) * noise(vec2(l.x * 6.0, 1.0))))) * step(0.08, l.x) * step(l.x, 0.92);
+  float ring = smoothstep(aa * 2.0, 0.0, abs(length((l - vec2(0.75, 0.3)) * hs * 2.0) - 0.07)) + smoothstep(aa * 2.0, 0.0, abs(length((l - vec2(0.75, 0.3)) * hs * 2.0) - 0.045)) * 0.6;
+  float corner = step(0.86, max(abs(l.x - 0.5), abs(l.y - 0.5)) * 2.0) * frame;
+  float scan = 0.6 + 0.4 * step(0.5, fract(uv.y * 170.0));
+  float a = inside * (0.1 + 0.75 * max(rows, max(graph, ring))) * scan + frame * 0.85 + corner * 0.2;
+  vec3 col = cy * (0.55 + 1.5 * max(frame, max(rows, max(graph, ring))));
+  vec2 fe = 0.5 * vec2(asp, 1.0) - abs(uv);
+  float halo = exp(-max(sd, 0.0) * 40.0) * 0.4 * step(0.0, sd) * SAT(min(fe.x, fe.y) * 20.0);
+  return vec4(col, SAT(max(a, halo)));
+}
+vec4 holoRing(vec2 uv) {
+  float r = length(uv), a = atan(uv.y, uv.x), aa = 1.5 / uRes.y;
+  vec3 cy = vec3(0.3, 0.92, 1.0);
+  float r1 = smoothstep(aa * 3.0, 0.0, abs(r - 0.42) - 0.006);
+  float ticks = step(0.5, fract(a * 36.0 / 6.2832)) * smoothstep(aa * 2.0, 0.0, abs(r - 0.39) - 0.012);
+  float r2 = smoothstep(aa * 2.0, 0.0, abs(r - 0.33) - 0.003) * step(0.25, fract(a / 6.2832 * 3.0));
+  float arc = smoothstep(aa * 3.0, 0.0, abs(r - 0.27) - 0.015) * step(fract(a / 6.2832 + 0.1), 0.35);
+  float dots = step(0.82, hash11(floor(a * 60.0 / 6.2832))) * smoothstep(aa * 2.0, 0.0, abs(r - 0.46) - 0.005);
+  float core = exp(-r * r / 0.004);
+  float glow = exp(-pow((r - 0.42) / 0.05, 2.0)) * 0.35;
+  float al = max(max(r1, ticks * 0.8), max(max(r2, arc * 0.7), max(dots, core))) ;
+  vec3 col = cy * (0.8 + 1.6 * al) + vec3(1.0) * core;
+  return vec4(col, SAT(max(al, glow)));
+}
+vec4 crystal(vec2 uv) {
+  // a floating octahedral data crystal: facets with flat shading, bright edges, inner glow
+  vec2 p = uv * vec2(1.0, 0.85); float aa = 1.5 / uRes.y;
+  float d = abs(p.x) / 0.24 + abs(p.y) / 0.36;           // diamond silhouette (fits the frame)
+  float inside = smoothstep(1.0 + aa * 6.0, 1.0 - aa * 6.0, d);
+  if (inside <= 0.0) { float g = exp(-max(d - 1.0, 0.0) * 6.0) * 0.35; return vec4(vec3(0.3, 0.9, 1.0) * 1.4, g); }
+  float facet = (p.x > 0.0 ? 1.0 : 0.0) + (p.y > 0.0 ? 2.0 : 0.0);
+  vec3 base = vec3(0.04, 0.2, 0.3) + vec3(0.1, 0.35, 0.45) * (facet == 3.0 ? 1.0 : facet == 1.0 ? 0.6 : facet == 2.0 ? 0.45 : 0.2);
+  float edge = smoothstep(aa * 6.0, 0.0, abs(d - 1.0)) + smoothstep(0.006, 0.0, abs(p.x)) * 0.8 + smoothstep(0.006, 0.0, abs(p.y)) * 0.6;
+  float inner = exp(-dot(p, p) / 0.012);
+  float lines = step(0.92, fract((p.y + abs(p.x) * 0.5) * 22.0)) * 0.25;
+  return vec4(base + vec3(0.5, 0.95, 1.0) * (edge * 1.5 + inner * 1.2 + lines), inside);
+}
+vec4 probe(vec2 uv) {
+  float asp = uRes.x / uRes.y, aa = 1.5 / uRes.y;
+  vec2 q = uv;
+  float body = smoothstep(aa * 2.0, -aa * 2.0, length(q / vec2(1.0, 0.62)) - 0.2);
+  float wingL = smoothstep(aa * 2.0, -aa * 2.0, length(max(abs(q - vec2(-0.32, 0.0)) - vec2(0.11, 0.018), 0.0)) - 0.01);
+  float wingR = smoothstep(aa * 2.0, -aa * 2.0, length(max(abs(q - vec2(0.32, 0.0)) - vec2(0.11, 0.018), 0.0)) - 0.01);
+  float shape = max(body, max(wingL, wingR));
+  vec3 col = mix(vec3(0.12, 0.14, 0.18), vec3(0.75, 0.8, 0.88), SAT(q.y * 3.0 + 0.55));
+  float eye = exp(-dot(q - vec2(0.0, -0.02), q - vec2(0.0, -0.02)) / 0.002);
+  col += vec3(0.3, 0.95, 1.0) * eye * 2.5;
+  float lights = exp(-dot(q - vec2(-0.43, 0.0), q - vec2(-0.43, 0.0)) / 0.0008) + exp(-dot(q - vec2(0.43, 0.0), q - vec2(0.43, 0.0)) / 0.0008);
+  float glow = SAT(lights * 1.2 + eye * 0.5);
+  return vec4(shape > 0.0 ? col : vec3(0.4, 0.95, 1.0) * 2.0, SAT(max(shape, glow)));
+}
 vec3 render(vec2 uv) {
+  if (uLayer >= 10) {
+    int k = uLayer - 10; vec4 r;
+    if (k == 0) r = holoPanel(uv);
+    else if (k == 1) r = holoRing(uv);
+    else if (k == 2) r = crystal(uv);
+    else r = probe(uv);
+    gAlpha = r.a; return r.rgb;
+  }
   if (uLayer == 4) { vec4 f = foreground(uv); gAlpha = f.a; return f.rgb; }
   if (uLayer == 5) { vec4 r = rays(uv); gAlpha = r.a; return r.rgb; }
   vec3 ro = vec3(-1.2, 2.2, 0.0);

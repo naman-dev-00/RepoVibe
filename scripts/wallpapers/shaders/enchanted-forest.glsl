@@ -1,3 +1,4 @@
+// @sprites sprayA:1400x900, sprayB:1100x760, flowerA:640x760, flowerB:560x640, leaf:320x320, mush:640x560
 // Enchanted forest at night — layered 3D scene (RepoVibe depth engine).
 // Raymarched SDF trees (trunks with root flare, branches, displaced canopy clumps), glowing mushrooms and flowers as
 // real geometry, a reflective stream, moonlit teal haze. uLayer selects a depth slab (see common.glsl):
@@ -182,7 +183,109 @@ vec4 rays(vec2 uv) {
   float a = SAT(shafts * fall * 1.4);
   return vec4(vec3(0.55, 0.85, 0.95), a * 0.85);
 }
+// ---- Sprites (uLayer >= 10): close foliage, glowing flowers, a falling leaf and a mushroom cluster on transparency.
+vec4 leafAt(vec2 uv, vec2 c, float ang, float len, float sd) {
+  vec2 q = uv - c; q = mat2(cos(ang), -sin(ang), sin(ang), cos(ang)) * q;
+  float x = q.x / len; if (abs(x) > 1.0) return vec4(0.0);
+  float wid = len * (0.34 + 0.06 * hash11(sd));
+  float halfW = wid * pow(max(1.0 - x * x, 0.0), 0.75) * (1.0 - 0.22 * x);
+  float aa = 1.5 / uRes.y;
+  float inside = smoothstep(aa, -aa, abs(q.y) - halfW);
+  if (inside <= 0.0) return vec4(0.0);
+  float side = sign(q.y);
+  float vein = smoothstep(aa * 1.6, 0.0, abs(q.y) - aa * 0.4) + 0.55 * smoothstep(aa * 1.4, 0.0, abs(fract(x * 5.0 - abs(q.y) / wid * 1.8) - 0.5) * wid * 0.5);
+  float edge = smoothstep(halfW * 0.55, halfW, abs(q.y));
+  float tex = noise(q * 140.0 + sd) * 0.5 + noise(q * 420.0 + sd) * 0.5;
+  float lit = SAT(0.55 + 0.45 * side * sin(ang + 0.6));             // one half faces the moon
+  float var = hash11(sd * 1.7);
+  vec3 col = mix(vec3(0.006, 0.022, 0.018), mix(vec3(0.03, 0.1, 0.07), vec3(0.05, 0.11, 0.05), var), pow(lit, 1.6) * (0.5 + 0.5 * x)) * (0.75 + 0.5 * tex);
+  col += vec3(0.3, 0.75, 0.7) * pow(edge, 3.0) * 0.5 * pow(lit, 2.0);   // thin moonlit rim
+  col += vec3(0.1, 0.3, 0.24) * vein * 0.18 * lit;
+  col += vec3(0.05, 0.2, 0.1) * pow(SAT(1.0 - abs(q.y) / halfW), 3.0) * 0.12 * lit; // translucency near the midrib
+  return vec4(col, inside);
+}
+vec4 overS(vec4 a, vec4 b) { return vec4(mix(a.rgb, b.rgb, b.a), max(a.a, b.a)); }
+vec4 spray(vec2 uv, float sd, int n, float scale) {
+  vec4 acc = vec4(0.0);
+  float asp = uRes.x / uRes.y;
+  vec2 a0 = vec2(-0.5 * asp - 0.02, -0.18), a1 = vec2(0.36 * asp, 0.14);
+  // twig (tapered, slightly curved)
+  for (int j = 0; j < 24; j++) {
+    float t0 = float(j) / 24.0, t1 = float(j + 1) / 24.0;
+    vec2 p0 = mix(a0, a1, t0) + vec2(0.0, 0.06 * sin(t0 * 3.1)), p1 = mix(a0, a1, t1) + vec2(0.0, 0.06 * sin(t1 * 3.1));
+    vec2 pa = uv - p0, ba = p1 - p0; float h = SAT(dot(pa, ba) / dot(ba, ba));
+    float r = 0.012 * scale * (1.0 - 0.75 * mix(t0, t1, h));
+    float tw = smoothstep(1.5 / uRes.y, 0.0, length(pa - ba * h) - r);
+    acc = overS(acc, vec4(mix(vec3(0.02, 0.03, 0.025), vec3(0.08, 0.1, 0.08), SAT((uv - p0).y / r * 0.5 + 0.5)), tw));
+  }
+  for (int i = 0; i < 22; i++) {
+    if (i >= n) break;
+    float fi = float(i), t = 0.08 + 0.9 * fi / float(n);
+    vec2 base = mix(a0, a1, t) + vec2(0.0, 0.06 * sin(t * 3.1));
+    float side = mod(fi, 2.0) < 1.0 ? 1.0 : -1.0;
+    float ang = 0.35 + side * (0.9 + 0.35 * hash11(fi + sd)) + (hash11(fi * 3.1 + sd) - 0.5) * 0.5;
+    float len = (0.16 - 0.08 * t) * scale * (0.85 + 0.3 * hash11(fi + sd * 2.0));
+    vec2 c = base + vec2(cos(ang), sin(ang)) * len * 0.95;
+    acc = overS(acc, leafAt(uv, c, ang, len, fi + sd));
+  }
+  return acc;
+}
+vec4 flower(vec2 uv, float sd, vec3 hue) {
+  vec4 acc = vec4(0.0);
+  // stems
+  for (int k = 0; k < 3; k++) {
+    float fk = float(k);
+    vec2 top = vec2((fk - 1.0) * 0.16 + 0.03 * hash11(sd + fk), 0.12 - 0.12 * abs(fk - 1.0)), bot = vec2((fk - 1.0) * 0.05, -0.5);
+    vec2 pa = uv - bot, ba = top - bot; float h = SAT(dot(pa, ba) / dot(ba, ba));
+    float st = smoothstep(1.5 / uRes.y, 0.0, length(pa - ba * h - vec2(0.03 * sin(h * 3.0), 0.0)) - 0.006);
+    acc = overS(acc, vec4(vec3(0.03, 0.12, 0.08), st));
+  }
+  float glow = 0.0;
+  for (int k = 0; k < 3; k++) {
+    float fk = float(k);
+    vec2 c = vec2((fk - 1.0) * 0.16 + 0.03 * hash11(sd + fk), 0.12 - 0.12 * abs(fk - 1.0) + 0.04);
+    vec2 q = uv - c; float r = length(q), a = atan(q.y, q.x);
+    float petals = 0.075 * (0.75 + 0.25 * cos(5.0 * (a + sd)));
+    float inside = smoothstep(1.5 / uRes.y, -1.5 / uRes.y, r - petals);
+    float core = exp(-r * r / 0.0006);
+    vec3 col = mix(hue * 0.6, hue * 2.2, SAT(1.0 - r / petals)) + vec3(1.0, 0.95, 0.8) * core * 1.5;
+    col += hue * 0.5 * smoothstep(0.0025, 0.0, abs(fract(a * 5.0 / 6.2832 + 0.5) - 0.5) * r); // petal veins
+    acc = overS(acc, vec4(col, inside));
+    glow += exp(-r * r / 0.012) * 0.7;
+  }
+  // soft emissive halo (premultiplied-ish: low alpha, bright colour)
+  float ha = SAT(glow) * 0.55 * (1.0 - acc.a);
+  return vec4(acc.a > 0.0 ? mix(hue * 1.6, acc.rgb, acc.a / max(acc.a + ha, 1e-3)) : hue * 1.6, SAT(acc.a + ha));
+}
+vec4 mushCluster(vec2 uv, float sd) {
+  vec4 acc = vec4(0.0); float glow = 0.0;
+  for (int k = 0; k < 5; k++) {
+    float fk = float(k), x = (fk - 2.0) * 0.17 + 0.03 * hash11(fk + sd), sc = 0.7 + 0.5 * hash11(fk * 2.0 + sd) - 0.15 * abs(fk - 2.0);
+    vec2 base = vec2(x, -0.42), capC = base + vec2(0.02 * (hash11(fk) - 0.5), 0.32 * sc);
+    vec2 pa = uv - base, ba = capC - base; float h = SAT(dot(pa, ba) / dot(ba, ba));
+    float stem = smoothstep(1.5 / uRes.y, 0.0, length(pa - ba * h) - 0.022 * sc * (1.1 - 0.3 * h));
+    acc = overS(acc, vec4(vec3(0.55, 0.62, 0.6) * (0.5 + 0.5 * h), stem));
+    vec2 q = (uv - capC) / vec2(0.13 * sc, 0.07 * sc);
+    float cap = smoothstep(0.03, -0.03, length(q) - 1.0) * step(-0.25, q.y);
+    float spots = step(0.82, noise(q * 6.0 + fk * 7.0));
+    vec3 cc = mix(vec3(0.15, 0.75, 0.8), vec3(0.75, 1.0, 1.0), SAT(q.y)) * 1.4 + vec3(1.0) * spots * 0.6;
+    acc = overS(acc, vec4(cc, cap));
+    glow += exp(-dot(uv - capC, uv - capC) / (0.02 * sc));
+  }
+  float ha = SAT(glow) * 0.5 * (1.0 - acc.a);
+  return vec4(acc.a > 0.0 ? acc.rgb : vec3(0.3, 0.95, 1.0) * 1.4, SAT(acc.a + ha));
+}
 vec3 render(vec2 uv) {
+  if (uLayer >= 10) {
+    int k = uLayer - 10; vec4 r;
+    if (k == 0) r = spray(uv, 1.0, 22, 1.25);
+    else if (k == 1) r = spray(uv * vec2(-1.0, 1.0), 9.0, 18, 1.1);
+    else if (k == 2) r = flower(uv, 2.0, vec3(0.3, 0.9, 1.0));
+    else if (k == 3) r = flower(uv, 5.0, vec3(1.0, 0.45, 0.85));
+    else if (k == 4) r = leafAt(uv, vec2(0.0), 0.6, 0.42, 3.0);
+    else r = mushCluster(uv, 4.0);
+    gAlpha = r.a; return r.rgb;
+  }
   RO = vec3(pathX(0.0) + 0.3, 1.7, 0.0);
   vec3 ta = vec3(pathX(60.0), 4.5, 60.0);
   CAM = camera(RO, ta, 0.0);

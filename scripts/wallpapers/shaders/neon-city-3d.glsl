@@ -1,3 +1,4 @@
+// @sprites signA:520x1150, signB:1100x460, holo:960x600, drone:760x300
 // Rainy cyberpunk street canyon: SDF towers on both sides, emissive windows and neon signs, wet reflective road,
 // distant skyline in neon fog, rain streaks.
 const float CELL = 16.0;
@@ -137,7 +138,77 @@ vec4 rays(vec2 uv) {
   }
   return vec4(a > 0.0 ? col / a : vec3(0.0), SAT(a * 0.9));
 }
+// ---- Sprites (uLayer >= 10): close neon signs, a holographic billboard and a flying drone on transparency.
+vec4 overN(vec4 a, vec4 b) { return vec4(mix(a.rgb, b.rgb, b.a), max(a.a, b.a)); }
+vec4 neonBoard(vec2 uv, vec2 hs, vec3 nc, float sd, bool vertical) {
+  float aa = 1.5 / uRes.y;
+  vec2 q = uv; vec2 dq = abs(q) - hs; float sd0 = length(max(dq, 0.0)) + min(max(dq.x, dq.y), 0.0) - 0.012;
+  vec2 fe = 0.5 * vec2(uRes.x / uRes.y, 1.0) - abs(uv); float edgeFade = SAT(min(fe.x, fe.y) * 14.0);
+  float halo = exp(-max(sd0, 0.0) * 34.0) * 0.6 * step(0.0, sd0) * edgeFade;
+  vec4 acc = vec4(nc * 1.3, halo);
+  float box = smoothstep(aa, -aa, sd0);
+  if (box > 0.0) {
+    float tube = smoothstep(aa * 2.5, 0.0, abs(sd0 + 0.018)) + 0.5 * exp(-abs(sd0 + 0.018) * 160.0);
+    vec2 cell = vertical ? vec2(hs.x * 0.9, hs.x * 0.9) : vec2(hs.y * 0.8, hs.y * 0.8);
+    vec2 g = floor((q + hs - 0.04) / cell), gf = fract((q + hs - 0.04) / cell);
+    float strokes = 0.0; // glyph-like strokes, one character per cell
+    for (int i = 0; i < 4; i++) {
+      float fi = float(i), h = hash12(g + fi * 3.7 + sd);
+      vec2 a0 = vec2(0.2 + 0.6 * hash12(g + fi), 0.2 + 0.6 * hash12(g * 1.3 + fi)), a1 = h > 0.5 ? vec2(a0.x, 1.0 - a0.y) : vec2(1.0 - a0.x, a0.y);
+      vec2 pa = gf - a0, ba = a1 - a0; float t = SAT(dot(pa, ba) / dot(ba, ba));
+      strokes = max(strokes, smoothstep(0.1, 0.05, length(pa - ba * t)));
+    }
+    strokes *= step(abs(q.x), hs.x - 0.035) * step(abs(q.y), hs.y - 0.035);
+    float flick = 0.85 + 0.15 * step(0.3, hash11(floor(g.y) + sd));
+    vec3 col = vec3(0.02, 0.01, 0.03) + nc * (tube * 2.6 + strokes * 2.0 * flick) + nc * 0.05;
+    col += vec3(1.0) * pow(strokes, 3.0) * 0.6; // hot white core of the tubes
+    acc = overN(vec4(acc.rgb, acc.a), vec4(col, box));
+  }
+  return acc;
+}
+vec4 holoAd(vec2 uv) {
+  float asp = uRes.x / uRes.y, aa = 1.5 / uRes.y;
+  vec2 hs = vec2(0.46 * asp, 0.44);
+  vec2 dq = abs(uv) - hs; float sd0 = max(dq.x, dq.y);
+  float frame = smoothstep(aa * 2.0, 0.0, abs(sd0)) ;
+  float inside = step(sd0, 0.0);
+  vec3 cy = vec3(0.25, 0.95, 1.0), pk = vec3(1.0, 0.3, 0.8);
+  float scan = 0.55 + 0.45 * step(0.5, fract(uv.y * 140.0));
+  vec2 p = uv * vec2(1.0, 1.1);
+  float face = smoothstep(0.004, 0.0, abs(length(p - vec2(-0.25 * asp, 0.02)) - 0.22)); // abstract portrait ring
+  float bars = step(0.12 * asp, uv.x) * step(abs(fract(uv.y * 7.0) - 0.5), 0.18) * step(uv.x, 0.12 * asp + 0.32 * asp * hash11(floor(uv.y * 7.0)));
+  float a = inside * (0.12 + 0.6 * max(face, bars)) * scan + frame * 0.95;
+  vec3 col = mix(cy, pk, SAT(uv.x / asp + 0.5)) * (0.6 + 1.4 * max(frame, max(face, bars)));
+  vec2 fe = 0.5 * vec2(asp, 1.0) - abs(uv); float halo = exp(-max(sd0, 0.0) * 45.0) * 0.35 * step(0.0, sd0) * SAT(min(fe.x, fe.y) * 20.0);
+  return vec4(col, SAT(max(a, halo)));
+}
+vec4 drone(vec2 uv) {
+  float asp = uRes.x / uRes.y, aa = 1.5 / uRes.y;
+  vec2 q = uv * vec2(1.0, 1.6);
+  float body = smoothstep(aa * 2.0, -aa * 2.0, length(max(abs(q) - vec2(0.28 * asp, 0.05), 0.0)) - 0.12);
+  float fin = smoothstep(aa * 2.0, -aa * 2.0, length(max(abs(q - vec2(0.3 * asp, 0.16)) - vec2(0.08 * asp, 0.02), 0.0)) - 0.03);
+  float shape = max(body, fin);
+  vec3 col = mix(vec3(0.012, 0.012, 0.02), vec3(0.09, 0.08, 0.13), SAT(q.y * 4.0 + 0.5));
+  col += vec3(1.0, 0.2, 0.7) * smoothstep(0.03, 0.0, abs(q.y + 0.13)) * body * 1.2; // magenta underglow strip
+  col += vec3(0.6, 0.5, 0.8) * smoothstep(0.02, 0.0, abs(q.y - 0.11)) * body * 0.5;           // rim highlight
+  float win = step(abs(q.y - 0.03), 0.025) * step(abs(fract(q.x * 9.0) - 0.5), 0.3) * step(abs(q.x), 0.22 * asp);
+  col += vec3(1.0, 0.75, 0.4) * win * 1.4;
+  vec2 lp = vec2(-0.43 * asp, -0.01); float head = exp(-dot(uv - lp, uv - lp) / 0.0012);
+  vec2 tp = vec2(0.42 * asp, 0.02); float tail = exp(-dot(uv - tp, uv - tp) / 0.0008);
+  vec3 glow = vec3(0.4, 0.95, 1.0) * head * 2.0 + vec3(1.0, 0.2, 0.5) * tail * 2.0;
+  float beam = exp(-pow((uv.y + 0.01) / 0.03, 2.0)) * SAT(-(uv.x - lp.x) / (0.5 * asp)) * 0.0; // (no forward beam)
+  float ga = SAT(head + tail) * 0.9 + beam;
+  return vec4(shape > 0.0 ? col + glow * 0.4 : glow / max(ga, 1e-3), SAT(max(shape, ga)));
+}
 vec3 render(vec2 uv) {
+  if (uLayer >= 10) {
+    int k = uLayer - 10; vec4 r; float asp = uRes.x / uRes.y;
+    if (k == 0) r = neonBoard(uv, vec2(0.17 * asp, 0.4), vec3(1.0, 0.22, 0.68), 3.0, true);
+    else if (k == 1) r = neonBoard(uv, vec2(0.42 * asp, 0.3), vec3(0.2, 0.92, 1.0), 7.0, false);
+    else if (k == 2) r = holoAd(uv);
+    else r = drone(uv);
+    gAlpha = r.a; return r.rgb;
+  }
   if (uLayer == 4) { vec4 f = foreground(uv); gAlpha = f.a; return f.rgb; }
   if (uLayer == 5) { vec4 r = rays(uv); gAlpha = r.a; return r.rgb; }
   vec3 ro = RO_CITY;
