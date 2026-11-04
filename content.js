@@ -176,7 +176,7 @@ html.repv-active :where(${PANELS}) :where(${PANELS}) { background-color:transpar
 html.repv-active [data-repv-sticky] { background-color:${rgba(v.surface, Math.max(0.94, a))} !important; } /* pinned rows keep a solid backing wherever they float */
 html.repv-active :is(main, .application-main, [class*="PageLayout-Pane"]) { text-shadow:${halo}; }
 html.repv-active :is(${PANELS}, ${FLOATING}, input, textarea, select, button, .btn, .Button, pre, code) { text-shadow:none; }
-html.repv-active :is(input[type="text"], input[type="search"], textarea, select, .form-control, .FormControl-input, [class*="TextInputWrapper"]) { background-color:${control} !important; }
+html.repv-active :is(input[type="text"], input[type="search"], textarea:not(#read-only-cursor-text-area, [data-testid="read-only-cursor-text-area"]), select, .form-control, .FormControl-input, [class*="TextInputWrapper"]) { background-color:${control} !important; }
 html.repv-active :is(main, .application-main) :is(a, h1, h2, h3, p, .Label, [class*="prc-Label"], .Counter, [class*="CounterLabel"], [data-variant="invisible"], .Button--invisible, .btn-octicon):not(:where(${PANELS}) *):not(.btn):not(:has(img)):not(:is([class*="ButtonBase"], .btn, button)[data-variant]:not([data-variant="invisible"])) { background-color:${rgba(v.bg, looseA)} !important; border-radius:6px; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
 html.repv-active :is(main, .application-main) a:has(img):not(:where(${PANELS}) *) > :is(span, strong):not(:has(img)) { background-color:${rgba(v.bg, looseA)} !important; border-radius:6px; padding:0 4px; }
 html.repv-active :is(main, .application-main) :is(a, h1, h2, h3, p):not(:where(${PANELS}) *):not(.btn):not([class*="Button"]):not(:has(img)) { padding-left:4px; padding-right:4px; margin-left:-4px; margin-right:-4px; }
@@ -190,11 +190,11 @@ html.repv-active :is(.Box, .markdown-body, .blob-wrapper, .file, [data-repv-pane
 ${glass ? `/* themed border & glow on controls, inputs and floating UI */
 html.repv-active :is(.btn, .Button, [class*="ButtonBase"]):not(:where(${FLOATING}) *) { border-color:${rgba(edgeC, light ? 0.45 : 0.5)} !important; box-shadow:0 0 0 1px ${edgeRing}, 0 0 8px -3px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.06)}; }
 html.repv-active :is(.btn, .Button, [class*="ButtonBase"]):not(:where(${FLOATING}) *):hover { border-color:${edgeLine} !important; box-shadow:0 0 0 1px ${edgeLine}, 0 0 12px -2px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.35 : 0.08)}; }
-html.repv-active :is(input[type="text"], input[type="search"], textarea, .form-control, .FormControl-input, [class*="TextInputWrapper"], .search-input) { border-color:${rgba(edgeC, light ? 0.45 : 0.5)} !important; box-shadow:0 0 0 1px ${edgeRing}, 0 0 10px -4px ${glowNear} !important; }
-html.repv-active :is(input[type="text"], input[type="search"], textarea, .form-control, .FormControl-input):focus, html.repv-active [class*="TextInputWrapper"]:focus-within { box-shadow:0 0 0 1px ${edgeLine}, 0 0 14px -2px ${glowNear} !important; }
+html.repv-active :is(input[type="text"], input[type="search"], textarea:not(#read-only-cursor-text-area, [data-testid="read-only-cursor-text-area"]), .form-control, .FormControl-input, [class*="TextInputWrapper"], .search-input) { border-color:${rgba(edgeC, light ? 0.45 : 0.5)} !important; box-shadow:0 0 0 1px ${edgeRing}, 0 0 10px -4px ${glowNear} !important; }
+html.repv-active :is(input[type="text"], input[type="search"], textarea:not(#read-only-cursor-text-area, [data-testid="read-only-cursor-text-area"]), .form-control, .FormControl-input):focus, html.repv-active [class*="TextInputWrapper"]:focus-within { box-shadow:0 0 0 1px ${edgeLine}, 0 0 14px -2px ${glowNear} !important; }
 html.repv-active :is(${FLOATING}) { border-color:${edgeLine} !important; box-shadow:0 0 0 1px ${edgeRing}, 0 0 18px -4px ${glowNear}, 0 16px 40px ${rgba('#000000', light ? 0.18 : 0.45)} !important; }` : ''}
 html.repv-active :is(${FLOATING}) { background-color:${v.surface} !important; backdrop-filter:none !important; text-shadow:none; }
-html.repv-active :is(.btn, .Button, button:not([class]), input[type="text"], input[type="search"], textarea) {
+html.repv-active :is(.btn, .Button, button:not([class]), input[type="text"], input[type="search"], textarea:not(#read-only-cursor-text-area, [data-testid="read-only-cursor-text-area"])) {
  border-radius:calc(var(--repv-radius) * .65) !important; }
 html.repv-active :is(.btn, .Button, .form-control, .FormControl-input, .form-select) {
  border-color:${v.border} !important; }

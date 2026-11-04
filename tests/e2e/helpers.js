@@ -211,7 +211,18 @@ async function pixelAt(context, png, x, y) {
 /** Screenshot-based readability: hide all text, photograph what is really behind each text element (wallpaper,
     glass, panels), then compare the text colour against the median background pixel. Returns ratios for up to
     `limit` visible text elements. Independent of CSS bookkeeping — it measures rendered pixels. */
-async function visualContrast(context, page, limit = 150) {
+// GitHub uses smooth scrolling: wait until scroll position and document height are stable before measuring, so text
+// positions captured for the measurement match the screenshot taken a moment later.
+async function settleLayout(page) {
+  let prev = null;
+  for (let i = 0; i < 25; i++) {
+    const now = await page.evaluate(() => `${scrollX},${scrollY},${document.documentElement.scrollHeight}`);
+    if (now === prev) return; prev = now; await page.waitForTimeout(120);
+  }
+}
+async function visualContrast(context, page, limit = 150, retry = 1) {
+  await settleLayout(page);
+  const pos0 = await page.evaluate(() => `${scrollX},${scrollY}`);
   const items = await page.evaluate(lim => {
     const out = [];
     for (const el of document.querySelectorAll('body *')) {
@@ -224,6 +235,16 @@ async function visualContrast(context, page, limit = 150) {
       if (r.width < 8 || r.height < 8 || r.top < 0 || r.bottom > innerHeight || r.left < 0 || r.right > innerWidth) continue;
       const cs = getComputedStyle(el);
       if (cs.visibility !== 'visible' || Number(cs.opacity) < 0.4) continue;
+      // Occluded text (e.g. a file row scrolled underneath GitHub's pinned sticky header) is not visible: not a target.
+      // RepoVibe's own overlays (pop-out objects, butterfly) are pointer-events:none, so text beneath them IS measured.
+      // Only an element that actually paints over the text counts (GitHub's code view lays a TRANSPARENT read-only
+      // textarea over the code lines: that text is visible and must be measured).
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      if (top && !el.contains(top) && !top.contains(el)) {
+        let opaque = false;
+        for (let e = top; e && !e.contains(el); e = e.parentElement) { if (Number(getComputedStyle(e).opacity) < 0.05) break; const m = getComputedStyle(e).backgroundColor.match(/rgba?\(([^)]+)\)/); const p = m ? m[1].split(/[ ,/]+/).filter(Boolean).map(Number) : []; if (p.length && (p.length > 3 ? p[3] : 1) >= 0.5) { opaque = true; break; } }
+        if (opaque) continue;
+      }
       out.push({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height), color: cs.color, text: el.textContent.trim().slice(0, 30) });
     }
     return out;
@@ -232,6 +253,8 @@ async function visualContrast(context, page, limit = 150) {
   await page.waitForTimeout(100);
   const shot = await page.screenshot();
   await hide.evaluate(el => el.remove());
+  // the page moved between capturing text positions and the screenshot: measure again rather than compare mismatched pixels
+  if (retry > 0 && await page.evaluate(() => `${scrollX},${scrollY}`) !== pos0) return visualContrast(context, page, limit, retry - 1);
   const helper = await context.newPage();
   const ratios = await helper.evaluate(async ([src, list]) => {
     const img = new Image(); img.src = src; await img.decode();

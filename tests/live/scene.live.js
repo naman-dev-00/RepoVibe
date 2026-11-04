@@ -91,7 +91,7 @@ for (const [, id, slug, motion, label] of FLAGSHIPS) L.liveTest(`LIVE 9 (${label
       // README view: the README body is a readable surface over the scene.
       await setConfig(context, { enabled: true, motionMode: 'static', defaultThemeId: id });
       await L.gotoLive(page, `https://github.com/${A}`); await L.settleAnimations(page);
-      const hasReadme = await page.evaluate(() => { const a = document.querySelector('article.markdown-body'); if (!a) return false; window.scrollTo(0, a.getBoundingClientRect().top + scrollY - 120); return true; });
+      const hasReadme = await page.evaluate(() => { const a = document.querySelector('article.markdown-body'); if (!a) return false; window.scrollTo({ top: a.getBoundingClientRect().top + scrollY - 120, behavior: 'instant' }); return true; });
       if (hasReadme) {
         await page.waitForTimeout(500);
         // Text-only readability backing (default): the README container is open (no broad surface) and each text block

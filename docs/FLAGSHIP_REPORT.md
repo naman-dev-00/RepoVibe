@@ -40,9 +40,18 @@ Branch `feature/phase1b-immersive-themes` (PR #2, stacked on PR #1). Not merged.
   - none appears in Static.
 - **Measurement runs:** contrast-measurement and live configs switch it off, because a transient object near a still cursor is not page text.
 
+**Live on `8c7b965`:** 14/15 tests, 237 PASS, 2 FAIL. Sci-Fi README: "package.json" 3.82 and "prep v7.0.1 release (" 3.50, at y = 24. Investigated:
+- **Root cause: a measurement race.** GitHub uses **smooth scrolling**, so `scrollTo` animates for about 0.5–0.75 s; the same happens with RepoVibe disabled (1051 → 1350 → 1369). LIVE 9 measured 500 ms after scrolling. When the animation ran longer, the text positions captured for the measurement no longer matched the screenshot taken a moment later. Reproduced locally: the page moved 1416 → 1576 *during* the first measurement, giving false 1.3–3.9:1 readings. The settled repeat measures 7.25 with 0 below 4.5:1.
+  - The earlier `be10bd4` reading at the same spot may have been partly the same race. The backing for pinned sticky rows remains correct either way.
+- **Fix in the measurement:**
+  - `visualContrast` waits until scroll position and document height are stable, and re-measures if the page moved between capturing positions and taking the screenshot;
+  - the live README check scrolls instantly;
+  - text genuinely hidden under an opaque page element is skipped.
+- **A real defect found along the way.** RepoVibe's input styling (control background, themed ring and glow) also matched GitHub's **transparent read-only code overlay** (`#read-only-cursor-text-area`), which sits over the code lines in the file viewer. On real file pages that could paint a box over the code. That overlay is now excluded, and a new E2E test asserts it stays unstyled while ordinary textareas stay themed.
+
 **Verification:**
 - **Unit:** 30/30.
-- **Offline E2E:** 58/58, including the new butterfly and no-parallax tests.
+- **Offline E2E:** 59/59, including the new butterfly, no-parallax and code-overlay tests.
 - **Text contrast**, real-page replays (3 pages × 4 worlds × Static and Ambient × 1366 and 1920 px): **48/48 runs, 0 elements below 4.5:1**, minimum 4.63 (GitHub's own header).
 - **Performance**, software rendering (SwiftShader), 1366 px, 5 s of pointer motion (`docs/perf-profile.json`).
 

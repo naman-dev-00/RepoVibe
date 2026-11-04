@@ -96,3 +96,18 @@ test('sticky rows that stay pinned while their panel scrolls away get a solid ba
     assert.deepEqual(errors, []);
   } finally { await close(); }
 });
+
+test("GitHub's transparent read-only code overlay (textarea over the code lines) is never painted by input styling", async () => {
+  const { context, errors, close } = await launch();
+  try {
+    await setConfig(context, { enabled: true, defaultThemeId: 'preset-15' });
+    const page = await context.newPage(); await page.goto('https://github.com/acme/project');
+    await page.waitForFunction(() => document.documentElement.classList.contains('repv-active'));
+    const s = await page.evaluate(() => { const t = document.getElementById('read-only-cursor-text-area'), cs = getComputedStyle(t); const ref = getComputedStyle(document.createElement('textarea'));
+      const probe = document.createElement('textarea'); document.body.appendChild(probe); const ps = getComputedStyle(probe); const out = { shadow: cs.boxShadow, bg: cs.backgroundColor, inputShadow: ps.boxShadow, inputBg: ps.backgroundColor }; probe.remove(); void ref; return out; });
+    assert.equal(s.shadow, 'none', 'no themed ring/glow on the code overlay');
+    assert.notEqual(s.bg, s.inputBg, 'the code overlay does not receive the themed control background');
+    assert.notEqual(s.inputShadow, 'none', 'ordinary textareas are still themed');
+    assert.deepEqual(errors, []);
+  } finally { await close(); }
+});
