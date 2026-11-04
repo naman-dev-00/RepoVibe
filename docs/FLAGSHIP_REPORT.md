@@ -2,6 +2,145 @@
 
 Branch `feature/phase1b-immersive-themes` (PR #2, stacked on PR #1). Not merged.
 
+## 0e. 3D Overdrive: living, layered worlds with pop-out objects — latest
+
+**Goal.** GitHub should sit inside a living 3D environment, not in front of a wallpaper. This build makes three changes to get there:
+- **Moving objects:** close and mid-depth objects are now individual objects that move on their own and with the pointer, each at its own depth.
+- **Pop-out layer:** some objects are drawn *in front of* the page, but only in safe regions.
+- **Layered Static:** Static and reduced-motion modes keep the full layered scene, at rest.
+
+**Honest statement of the technique.** The scenes are real 3D renders (raymarched GLSL), made offline. At runtime the page shows layered 2D planes and individually rendered 2D objects moved with CSS transforms. There is no real-time 3D geometry in the browser.
+
+### 1. Architecture
+
+| Part | What it does |
+|---|---|
+| Offline renderer (`scripts/wallpapers/render3d.js`) | Per-depth layers as before (far/mid/near/front/rays, `uLayer` 1–5). New: **sprite mode**. A shader declares `// @sprites name:WxH, …`; each sprite is rendered alone on transparency with `uLayer = 10 + index` (`--sprites`, `--sprites-only`, `--only s-<name>`). |
+| Scene plane (`#repovibe-depth`, fixed, `z-index:-1`, `pointer-events:none`) | 9 layer slots (far → nearest particles), plus **scene sprites** inserted by depth: mid sprites under the light shafts, close sprites just behind the nearest particles. |
+| Pop-out plane (`#repovibe-popout`, absolute in the document, `z-index:2`, `pointer-events:none`) | Objects drawn **above the page**, placed only in safe regions:<ul><li>the scene window (the band between the repository tabs and the content), cropped by the screen edges;</li><li>a side margin wider than 150 px.</li></ul>Sizes and positions are chosen at runtime (see §3). |
+| Motion | **Pointer parallax.** One smoothed rAF loop writes `translate3d` on every layer and sprite, scaled by its depth factor k:<ul><li>far 0.12;</li><li>mid sprites 0.4–0.86;</li><li>close sprites 1.2–2.1;</li><li>pop-out objects 2.2–3.0 (horizontal).</li></ul>**Autonomous motion.** CSS loops on each object's image: drift/rotate paths, sky-crossing (`cross`/`crossRev`), falling leaves (`fall`), neon `flicker`, glow `pulse` and holo-ring `spin`. They use independent properties (`transform`, `rotate`, `scale`, `opacity`), so effects combine. Cinematic: about 2.3× parallax, about 1.8× drift distance, faster loops, camera drift on the layers. |
+| Modes | **Static and reduced motion:** the same layered scene with sprites at rest; no animation, no pointer response, no overscan. **Ambient:** gentle parallax and autonomous motion. **Cinematic:** stronger everything. Hidden tabs pause; disable or theme change removes both planes and all listeners. |
+| Controls (Studio → Appearance) | Existing: motion mode, 3D depth on/off, depth quality (Auto/Full/Lite), scene window on/off and height, readability backing, brightness, overlay, panel opacity. **New sliders:** parallax 0–200 %, animation 0–200 % (0 = still), particle density 0–100 %, foreground/pop-out 0–150 % (0 removes the pop-out plane and fades the front layer). *Restore visual defaults* resets all of them. |
+| Assets | 4 worlds × (3–5 layers + 4–8 sprites), all original procedural renders. They are listed in the catalogue, so packaging verification and unit tests check every file. |
+
+### 2. Files changed (this round)
+
+- **Engine and settings:** `content.js` (sprite tables, sprite builder, pop-out placement, parallax loop, CSS); `shared/core.js` (`depthTuning`); `studio.html`, `studio.js` (sliders).
+- **Rendering pipeline:**
+  - `scripts/wallpapers/render3d.js` (sprite mode);
+  - `scripts/wallpapers/shaders/common.glsl` (no vignette on sprites);
+  - `cosmic-galaxy.glsl` (asteroid sprite raymarcher; baked rocks retired);
+  - `enchanted-forest.glsl`, `neon-city-3d.glsl`, `scifi-ai.glsl` (sprite sets);
+  - `scripts/wallpapers/build-catalog.js`, `shared/wallpaper-catalog.js` (sprites listed).
+- **Packaging and evidence:** `scripts/verify-package.js`, `scripts/depth-evidence.js`.
+- **Assets:** `wallpapers/depth/*/s-*.webp` (new); `wallpapers/cosmic-galaxy.webp` and its thumbnail (re-rendered).
+- **Tests:** `tests/core.test.js`, `tests/e2e/depth.e2e.js`, `tests/live/github.live.js`, three refreshed baselines.
+
+### 3. How the pop-out effect works (and why it never blocks GitHub)
+
+Pop-out objects are drawn in a layer above the page, but only where the page has nothing to show. The placement runs on load, resize, image load and DOM changes, skipping when the layout is unchanged:
+1. **Reach.** Each candidate gets its *reach*: pointer parallax (k × amplitude) plus its own drift range (Cinematic 1.8×). It must fit entirely in the scene window, never over the repository tabs above it or the content below.
+2. **Sampling.** A 5 × 5 grid over the object's box, grown by its reach, is tested with `elementsFromPoint`. Any text node, link, button, input, image, icon, code, ARIA control or painted panel rejects the size.
+3. **Sizing.** The largest of four sizes that passes is used; if none passes, the object is hidden.
+4. **Side margins.** These are found by probing for the first text, control or panel from each side.
+5. **Pointer and stacking.** The plane is `pointer-events:none`, so every click reaches GitHub. Its `z-index:2` keeps GitHub's menus, dialogs and sticky header above it.
+
+Depth cues on pop-out objects:
+- the largest parallax of anything on screen;
+- a contact shadow;
+- cropping by the screen edge;
+- overlap with the scene window's edges, plus its own motion.
+
+### 4. Worlds
+
+| World | Far | Mid (moving objects) | Close / pop-out | Autonomous motion |
+|---|---|---|---|---|
+| **Cosmic Galaxy (hero)** | Stars, nebula, spiral galaxy, moon | Ringed planet and halo; asteroid belt of 10 individually drifting rocks, one crossing the whole sky | 2 large rocks cropped by the screen edges. Pop-out: a hero rock in front of the planet inside the scene window, a big rock at the right edge, an elongated shard at the left edge, a rock in wide left margins. | Every rock drifts and rotates on its own path. Stars twinkle at 2 depths. Bokeh drifts. Starlight breathes. Cinematic camera drift. |
+| Enchanted Forest | Moonlit glade and trees | Trees at 3 depths, glowing mushroom cluster, glowing flower clusters | Pop-out: leaf sprays at both scene-window edges (wind sway), plus one in wide right margins. Falling leaves at 3 depths. | Wind sway, falling leaves, flower and mushroom glow pulse, fireflies at 3 depths, mist drift, moon shafts. |
+| Cyberpunk Neon | Skyline and wet road reflections | Towers at 2 depths, holographic billboard, 2 drones crossing in opposite directions | Pop-out: big flickering neon signs at both scene-window edges and in a wide left margin | Neon flicker, rain at 2 depths, drones, haze beams. |
+| Futuristic Sci-Fi | Dark cyan hall, mirrored floor, hologram core | Ribs at 2 depths, spinning holo ring, probe drones (one crossing) | Pop-out: holographic UI panels at the left edge and in wide right margins, floating data crystal at the right edge | Ring spin, panel pulse, crystal float, drones, particles, ceiling beams. |
+
+The asteroid sprites are raymarched rocks:
+- a smooth body with bump-mapped pitting and crater bowls (C1-smooth, so no outline rings);
+- a side-lit terminator with self-shadowing and ambient occlusion;
+- icy glints and a violet night-side rim;
+- rendered at 560–1280 px, then shown at 20–260 px, so they stay sharp.
+
+### 5–7. Evidence (committed)
+
+Captured on a real github.com page replay (`actions/checkout`, logged out, captured locally, not committed), 1366 × 768, popup closed. Files are in `docs/screenshots/depth/`, named by world:
+
+| File | What it shows |
+|---|---|
+| `<world>-ambient.jpg`, `-cinematic.jpg`, `-static.jpg` | The three motion modes. |
+| `<world>-cinematic-pointer-left.jpg` / `-right.jpg` | Full-page parallax states. |
+| `<world>-parallax.jpg` | Scene-band crop, pointer at the left edge vs the right edge. |
+| `<world>-autonomous.jpg` | Three frames 2 s apart with the pointer held still: objects move on their own. |
+
+**Recordings:** `docs/recordings/<world>-depth.webm`, about 12 s each: a pointer sweep in Ambient, then Cinematic.
+
+**Home cards:** `docs/screenshots/flagship/home-before-after-variants.png`. The cards are unchanged in design: a static scene thumbnail per repository with a hover tilt and scene shift, and no live scene per card.
+
+### 8. Performance (headless Chromium, **CPU-only compositing: no GPU in this container**)
+
+4 s of continuous pointer motion, CDP `Performance.getMetrics` plus a rAF counter (`docs/depth-metrics.json`):
+
+| Mode | Galaxy fps | Forest / Cyberpunk / Sci-Fi fps | Main-thread task ms/s | Script ms/s | JS heap |
+|---|---|---|---|---|---|
+| Static (layered, at rest) | 60 | 60 | 39–60 | ≈3 | 2.8–3.7 MB |
+| Depth off (flat + live layer) | 60 | 59–60 | 59–74 | ≈3 | 2.8–3.4 MB |
+| Ambient, Full | 18 | 14–15 | 66–96 | 5–7 | 3.3–3.9 MB |
+| Ambient, Lite (Auto picks this below 40 fps) | 34 | 25 | 86–141 | 8–13 | 2.8–3.1 MB |
+| Cinematic, Full | 23 | 17–18 | 76–125 | 6–8 | 2.9–3.0 MB |
+
+Before this round, the same harness measured about 30 fps for Ambient Full. The extra moving objects and the pop-out layer cost frame rate under CPU compositing. The task time rises in Lite because more frames are produced.
+
+What dominates, in this environment:
+- the full-viewport particle planes: particles 0 → +15 fps;
+- the number of animated layers;
+- the pop-out filter shadow, which has been replaced by a gradient: +4 fps.
+
+Main-thread script stays below 15 ms/s; layout is 0. On a GPU-composited desktop, layers are textured quads and should be far cheaper, but that is **UNVERIFIED**. Safety valves:
+- Auto quality switches to **Lite** below 40 fps (fewer planes, no full-viewport animation, resting belt rocks, no pop-out shadow);
+- the particle, animation and foreground sliders;
+- Static keeps the layered look with zero animation.
+
+### 9. Tests
+
+- **Unit:** 30/30. New checks:
+  - every sprite the engine references exists on disk and in the catalogue;
+  - `depthTuning` normalisation and restore.
+- **Offline E2E:** 55/55. New and updated:
+  - Galaxy hero: at least 6 objects move with the pointer still; pop-out objects have `z-index:2` and `pointer-events:none`; nothing readable or clickable lies under any of them; clicks pass through; foreground 0 removes the plane; disable restores.
+  - Depth ordering, far < mid < close sprites < pop-out, for all four worlds.
+  - Static and reduced motion: layered but motionless, with no pointer response.
+- **Contrast with the full scene active**, real-page replays at 1920 × 1080 (code, issues and PR list × 4 worlds × Ambient and Cinematic): 24/24 runs with **0 text elements below 4.5:1**. The minimum, 4.63, is GitHub's own header.
+- **Live github.com:** see the PR description. LIVE 8 now requires at least 2 moving objects in the depth scene on every real page and logs the pop-out count.
+
+### 10. Limitations
+
+- **2.5D.** Layered 2D planes and objects, not live 3D geometry. Objects do not rotate in true 3D: rotation is in-plane, and the crystal "turn" is a scale.
+- **Pop-out size is bounded** by the scene window: about 120–230 px tall on Standard. A *Tall* scene window gives bigger pop-out objects. Narrow screens (< 768 px) show no pop-out objects.
+- **Performance** on real GPUs is unmeasured (see §8).
+- **Flat fallback.** The flat Galaxy image (used with blur, uploads, or depth off) no longer bakes in asteroids.
+- **Signed-in GitHub** remains UNVERIFIED (the suites never sign in).
+
+### 11. Acceptance (this round)
+
+| Requirement | Status |
+|---|---|
+| Foreground / mid / background separation, independent layers, parallax | **PASS**: 9 planes plus per-object depth; measured ordering in E2E |
+| Autonomous motion (asteroids drift, stars twinkle, leaves fall, rain, holograms) | **PASS**: E2E verifies motion with the pointer still; autonomous frame strips |
+| Pop-out objects in front of the page, never blocking interaction | **PASS** offline. E2E: objects shown, nothing under them, click-through. Live: pop-out count logged. |
+| Galaxy hero: close rocks clearly nearer, reacts to the mouse, sharper and more dimensional | **PASS**: high-detail rock sprites, strongest parallax, contact shadows, cropped by screen edges |
+| Other three worlds upgraded and distinct | **PASS** |
+| Static / Ambient / Cinematic visibly different; reduced motion; hidden-tab pause; cleanup | **PASS** |
+| User controls | **PASS** |
+| Readability | **PASS**: 0 text below 4.5:1 in 24 real-page runs |
+| Performance | **PARTIAL**: CPU-only numbers above; GPU unverified; Auto/Lite/sliders available |
+| Home cards preserved | **PASS** |
+| Real signed-in GitHub | **UNVERIFIED** |
+
 ## 0c. Text-only readability backing — latest
 
 **Request.** The scene was visible, but README areas, sidebars and lists still sat behind broad panels. Backing should exist only where text exists, and empty space should stay open.

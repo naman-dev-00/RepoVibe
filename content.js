@@ -648,7 +648,12 @@ html.repv-depth-cinematic #repovibe-depth { --amp:30px; }
 #repovibe-depth > .repv-veil { position:absolute; inset:0; }
 #repovibe-depth > [data-l="rays"] { opacity:.8; } /* light-coloured alpha art: no blend mode (avoids an extra render surface) */
 html.repv-depth-lite #repovibe-depth > :is([data-l="pfar"], [data-l="mist"], [data-l="pnear"]) { visibility:hidden; }
-html.repv-depth-lite #repovibe-depth > :is([data-l="pfar"], [data-l="mist"], [data-l="pnear"]) > i, html.repv-depth-lite #repovibe-depth > .repv-l:not([data-tile]) > i { animation:none !important; } /* Lite keeps the mid particle plane moving */
+/* Lite (manual, or Auto below 40 fps): fewer full-viewport planes and no full-viewport animation — the main cost of
+   software compositing. The mid particle plane stays (still), main objects keep drifting, distant belt rocks rest,
+   pop-out objects lose their filter shadow. */
+html.repv-depth-lite #repovibe-depth > .repv-l > i { animation:none !important; }
+html.repv-depth-lite #repovibe-depth > .repv-s[data-k^="0.4"] > img, html.repv-depth-lite #repovibe-depth > .repv-s[data-k^="0.5"] > img { animation:none !important; }
+html.repv-depth-lite #repovibe-popout > .repv-s::before { display:none; }
 #repovibe-depth > [data-l="front"] > i { transform-origin:50% 0; }
 html.repv-depth.repv-active::after, html.repv-depth body::after { content:none !important; animation:none !important; }
 html.repv-depth body::before { animation:none !important; will-change:auto !important; } /* covered by the depth scene: no hidden work */
@@ -672,7 +677,9 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
 .repv-s > img { display:block; width:100%; height:auto; user-select:none; }
 #repovibe-popout { position:absolute; top:0; left:0; width:100%; height:0; overflow:visible; z-index:2; pointer-events:none; }
 #repovibe-popout > .repv-s { will-change:transform; }
-#repovibe-popout > .repv-s > img { height:100%; width:auto; filter:drop-shadow(0 22px 26px rgba(0, 0, 0, .55)) drop-shadow(0 0 1px rgba(0, 0, 0, .6)); }
+#repovibe-popout > .repv-s > img { height:100%; width:auto; position:relative; }
+/* contact shadow under each pop-out object: a cheap gradient on the (non-animated) wrapper, not a per-frame filter */
+#repovibe-popout > .repv-s::before { content:""; position:absolute; left:8%; right:8%; top:30%; bottom:-14%; border-radius:50%; background:radial-gradient(closest-side, rgba(0, 0, 0, .5), rgba(0, 0, 0, .22) 60%, transparent); transform:translateY(12%); }
 #repovibe-popout > .repv-s[hidden], #repovibe-depth > .repv-s[hidden] { display:none; }
 #repovibe-depth > [data-l="front"] { opacity:var(--fg, 1); }
 #repovibe-depth > :is([data-l="pfar"], [data-l="pmid"], [data-l="pnear"], [data-l="mist"]) { opacity:var(--particles, 1); }

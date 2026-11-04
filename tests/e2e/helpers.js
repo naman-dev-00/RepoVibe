@@ -83,7 +83,9 @@ async function extPage(context, file = 'popup.html') {
 // preserving the semantics the earlier tests were written for (unassigned repos stay native; pixel measurements are
 // not disturbed by ambient motion). Auto-assignment and motion tests opt in explicitly.
 async function setConfig(context, config) {
-  if (config && config.version === undefined) config = { version: 2, autoAssign: false, motionMode: 'static', ...config };
+  // Legacy-style configs (baseline tests) get Static motion and no pop-out layer (its placement is deferred until images
+  // load, which would make pixel baselines timing-dependent); depth tests set these explicitly.
+  if (config && config.version === undefined) config = { version: 2, autoAssign: false, motionMode: 'static', depthTuning: { parallax: 100, motion: 100, particles: 100, foreground: 0 }, ...config };
   const page = await extPage(context);
   // The service worker seeds the default repository mappings once at install; wait for it so it cannot race
   // (and overwrite) the configuration a test writes. Tests that want the seeded mappings read them before this.

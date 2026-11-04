@@ -5,6 +5,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { launch, extPage, setConfig } = require('./helpers');
+const FULL_TUNING = { parallax: 100, motion: 100, particles: 100, foreground: 100 };
 
 const updateConfig = (context, fnSource) => extPage(context).then(async p => {
   await p.waitForFunction(() => !!globalThis.RepoVibeCore);
@@ -30,7 +31,7 @@ test('depth engine: layered scene, parallax ordered by depth, never intercepts i
   const { context, errors, close } = await launch();
   try {
     context.setDefaultTimeout(30000);
-    await setConfig(context, { enabled: true, defaultThemeId: 'preset-8', motionMode: 'ambient', depthEffects: true, depthQuality: 'full' });
+    await setConfig(context, { enabled: true, defaultThemeId: 'preset-8', motionMode: 'ambient', depthEffects: true, depthQuality: 'full', depthTuning: FULL_TUNING });
     const page = await context.newPage();
     await page.setViewportSize({ width: 1366, height: 800 });
     await page.goto('https://github.com/acme/project');
@@ -125,7 +126,7 @@ test('depth engine: each flagship world builds its own layered scene', async () 
     const page = await context.newPage();
     await page.setViewportSize({ width: 1366, height: 800 });
     for (const [preset, slug] of [['preset-1', 'neon-city-3d'], ['preset-8', 'enchanted-forest'], ['preset-19', 'cosmic-galaxy'], ['preset-15', 'scifi-ai']]) {
-      await setConfig(context, { enabled: true, defaultThemeId: preset, motionMode: 'ambient' });
+      await setConfig(context, { enabled: true, defaultThemeId: preset, motionMode: 'ambient', depthTuning: FULL_TUNING });
       await page.goto('https://github.com/acme/project');
       await page.waitForFunction(s => document.getElementById('repovibe-depth')?.dataset.scene === s, slug);
       const layers = await page.evaluate(() => [...document.querySelectorAll('#repovibe-depth > .repv-l')].map(l => l.dataset.l));
@@ -148,7 +149,7 @@ test('Cosmic Galaxy hero: asteroids move on their own, pop-out objects sit in fr
   const { context, errors, close } = await launch();
   try {
     context.setDefaultTimeout(30000);
-    await setConfig(context, { enabled: true, defaultThemeId: 'preset-19', motionMode: 'ambient', depthQuality: 'full' });
+    await setConfig(context, { enabled: true, defaultThemeId: 'preset-19', motionMode: 'ambient', depthQuality: 'full', depthTuning: FULL_TUNING });
     const page = await context.newPage(); await page.setViewportSize({ width: 1920, height: 1080 });
     await page.goto('https://github.com/acme/project/layout');
     // the offline fixture has no repository content container: add one at the top of the content (scene window band)
