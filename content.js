@@ -111,6 +111,7 @@ html.repv-open :is(${SIDE}) :is(${SIDE_TEXT}):not(:is(${SIDE_TEXT}, button, .btn
  background-color:${back} !important; box-shadow:0 0 0 3px ${back}; border-radius:5px; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
 html.repv-open :is(${SIDE}) :is(h1, h2, h3, h4, p, li, dt, dd):not(:is(${SIDE_TEXT}) *) { width:fit-content; max-width:100%; }
 html.repv-open :is(${OPEN}) { text-shadow:${halo}; }
+html.repv-open [data-repv-text] { background-color:${back} !important; box-shadow:0 0 0 3px ${back}; border-radius:5px; box-decoration-break:clone; -webkit-box-decoration-break:clone; }
 /* Issue / pull request lists (React list view): the list is open; each row's title, labels, metadata line and trailing
    counters get their own compact backing; the list toolbar keeps a panel. */
 html.repv-open :is(${LIST}) { background-color:transparent !important; box-shadow:none !important; backdrop-filter:none !important; }
@@ -228,13 +229,43 @@ ${glass ? openCss + MOTION_CSS + DEPTH_CSS : ''}
       if (el.closest(`[${PANEL_ATTR}], ${FLOATING}`) || el.closest(PANELS.replace(', [data-repv-panel]', ''))) continue;
       if (isBoxed(el)) el.setAttribute(PANEL_ATTR, '');
     }
+    scanOpenText();
+  }
+  /* Open reading safety net: inside open containers, any visible text that is not on a backing yet (text in plain
+     spans/divs that the CSS block rules do not name, e.g. sidebar "9.0k stars") gets its nearest element tagged
+     data-repv-text, which carries the same compact backing. Bounded; re-run with the panel scan. */
+  const TEXT_ATTR = 'data-repv-text';
+  const alphaOf = c => { const m = /rgba?\(([^)]+)\)/.exec(c || ''); if (!m) return 0; const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return p.length > 3 ? p[3] : 1; };
+  function scanOpenText() {
+    if (!document.documentElement.classList.contains('repv-open')) return;
+    const backed = new Map();
+    const isBacked = (el, stop) => {
+      for (let e = el; e && e !== stop.parentElement; e = e.parentElement) {
+        if (backed.has(e)) return backed.get(e);
+        if (e.hasAttribute(TEXT_ATTR) || alphaOf(getComputedStyle(e).backgroundColor) >= 0.3) { backed.set(e, true); return true; }
+      }
+      return false;
+    };
+    let budget = 5000;
+    for (const box of document.querySelectorAll(`${OPEN}, ${LIST}`)) {
+      if (box.closest(FLOATING)) continue;
+      const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n && budget > 0; n = walker.nextNode(), budget--) {
+        if (!n.nodeValue.trim()) continue;
+        const el = n.parentElement;
+        if (!el || el.closest(`pre, code, svg, template, script, style, [hidden], ${FLOATING}`)) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width <= 2 || r.height <= 2) continue; // hidden / visually-hidden text
+        if (!isBacked(el, box)) { el.setAttribute(TEXT_ATTR, ''); backed.set(el, true); }
+      }
+    }
   }
   function queuePanelScan() {
     if (panelScanQueued) return;
     panelScanQueued = true;
     setTimeout(() => requestAnimationFrame(scanPanels), 120);
   }
-  function clearPanels() { panelChecked = new WeakSet(); for (const el of document.querySelectorAll(`[${PANEL_ATTR}]`)) el.removeAttribute(PANEL_ATTR); }
+  function clearPanels() { panelChecked = new WeakSet(); for (const el of document.querySelectorAll(`[${PANEL_ATTR}], [${TEXT_ATTR}]`)) { el.removeAttribute(PANEL_ATTR); el.removeAttribute(TEXT_ATTR); } }
 
   /* ---- Live wallpapers: lightweight ambient motion drawn with two fixed, pointer-events:none pseudo-element layers
      (html::after, body::after) between the wallpaper and the page. Only transform/opacity are animated (compositor

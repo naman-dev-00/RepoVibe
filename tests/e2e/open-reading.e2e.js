@@ -10,7 +10,7 @@ const updateConfig = (context, src) => extPage(context).then(async p => {
   await p.evaluate(s => RepoVibeCore.updateConfig(new Function('c', s)), src);
   await p.close();
 });
-const README = `<div class="Layout-sidebar" id="tSide" style="position:absolute;right:40px;top:260px;width:260px"><div class="BorderGrid-row"><h2>About</h2><p>Action for checking out a repo</p><a href="/acme/other">Readme</a></div></div>
+const README = `<div class="Layout-sidebar" id="tSide" style="position:absolute;right:40px;top:260px;width:260px"><div class="BorderGrid-row"><h2>About</h2><p>Action for checking out a repo</p><a href="/acme/other">Readme</a><div class="insights"><span id="tStat">202 watching</span></div></div></div>
 <article class="markdown-body" id="tMd" style="margin:40px 320px 0 40px;min-height:820px">
 <h1>Checkout v7</h1><p>Only two short lines of README text here.</p>
 <ul><li>First item</li><li>Second item with <a href="/acme/other">a link</a></li></ul>
@@ -27,7 +27,8 @@ test('text-only readability backing: compact per-block backings, empty space ope
     await page.waitForFunction(() => document.documentElement.classList.contains('repv-open'));
     await page.evaluate(html => { document.querySelector('main, .application-main, body').insertAdjacentHTML('beforeend', html); }, README);
     await page.evaluate(() => document.getElementById('tMd').scrollIntoView());
-    await page.waitForTimeout(300);
+    // plain-span text (no named element) is caught by the runtime safety net
+    await page.waitForFunction(() => document.getElementById('tStat').hasAttribute('data-repv-text'));
     const s = await page.evaluate(() => {
       const bg = e => getComputedStyle(e).backgroundColor, md = document.getElementById('tMd'), r = md.getBoundingClientRect();
       const q = sel => md.querySelector(sel);
@@ -42,7 +43,8 @@ test('text-only readability backing: compact per-block backings, empty space ope
     // broad surfaces are gone
     for (const k of ['md', 'side', 'sideRow']) assert.equal(alpha(s[k]), 0, `${k} has no broad backing (${s[k]})`);
     // each text block has its own backing; nested inline text does not stack a second one
-    for (const k of ['h1', 'p', 'li', 'sideH2', 'sideA']) assert.ok(alpha(s[k]) >= 0.5, `${k} backed (${s[k]})`);
+    s.stat = await page.evaluate(() => getComputedStyle(document.getElementById('tStat')).backgroundColor);
+    for (const k of ['h1', 'p', 'li', 'sideH2', 'sideA', 'stat']) assert.ok(alpha(s[k]) >= 0.5, `${k} backed (${s[k]})`);
     assert.equal(alpha(s.liA), 0, 'a link inside a backed list item is not double-backed');
     // compact: the backing hugs the text, centred blocks stay centred
     assert.ok(s.pWidth < s.mdWidth * 0.6, `paragraph backing hugs its text (${s.pWidth} of ${s.mdWidth})`);
@@ -61,6 +63,7 @@ test('text-only readability backing: compact per-block backings, empty space ope
     await updateConfig(context, "c.readingBacking = 'text'; c.enabled = false;");
     await page.waitForFunction(() => !document.documentElement.className.includes('repv'));
     assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('#tMd p')).width === getComputedStyle(document.querySelector('#tMd')).width), true, 'disabled: native block layout');
+    assert.equal(await page.evaluate(() => document.querySelectorAll('[data-repv-text]').length), 0, 'disabled: no text markers left');
     assert.deepEqual(errors, []);
   } finally { await close(); }
 });

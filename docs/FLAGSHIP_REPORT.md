@@ -37,6 +37,10 @@ They had no backdrop blur since Crisp Immersive (v0.3.0), but they were large, n
 - **Kept as panels** (dense UI): file tables, code viewers, comment boxes, headers, menus, dialogs and the flash banner.
 - **No blur.** No blur is added anywhere. The backing uses the same guard-computed alpha as other loose text: AA over the brightest pixel of the scene.
 
+- **Runtime safety net.** Inside open containers, any visible text that no CSS rule backs gets its nearest element tagged `data-repv-text`, which receives the same compact backing. This covers text in plain `<span>`/`<div>` elements, such as the sidebar's "9.0k stars" and "202 watching". The scan runs with the panel scan, is bounded, and is removed on disable.
+
+  **Found by the live run on `5b21748`.** On real github.com the Sci-Fi world had two sidebar stats at 1.46–1.85:1, because those plain spans had no backing. The same gap explains the LIVE 9 text checks at 1920 px for Forest and Sci-Fi; correlation and visibility passed there. Reproduced locally (1.85:1 at 1600 px) and fixed: 0 text below 4.5:1 at 1366, 1600 and 1920 px for all four worlds.
+
 **Measured before/after** on the same real-page replays, 1366 × 768, 4 worlds × 3 pages × 3 scroll positions (`scripts/open-reading-evidence.js`, `docs/open-reading-metrics.json`). "Scene exposed" is the share of the viewport with nothing painted over the scene:
 
 | View | Scene exposed, full panels | Scene exposed, text only | Text below 4.5:1 (text only) |
