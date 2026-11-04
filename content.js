@@ -411,7 +411,7 @@ html.repv-depth-cinematic #repovibe-depth { --amp:30px; }
 #repovibe-depth > .repv-veil { position:absolute; inset:0; }
 #repovibe-depth > [data-l="rays"] { opacity:.8; } /* light-coloured alpha art: no blend mode (avoids an extra render surface) */
 html.repv-depth-lite #repovibe-depth > :is([data-l="pfar"], [data-l="mist"], [data-l="pnear"]) { visibility:hidden; }
-html.repv-depth-lite #repovibe-depth > .repv-l > i { animation:none !important; }
+html.repv-depth-lite #repovibe-depth > :is([data-l="pfar"], [data-l="mist"], [data-l="pnear"]) > i, html.repv-depth-lite #repovibe-depth > .repv-l:not([data-tile]) > i { animation:none !important; } /* Lite keeps the mid particle plane moving */
 #repovibe-depth > [data-l="front"] > i { transform-origin:50% 0; }
 html.repv-depth.repv-active::after, html.repv-depth body::after { content:none !important; animation:none !important; }
 html.repv-depth body::before { animation:none !important; will-change:auto !important; } /* covered by the depth scene: no hidden work */

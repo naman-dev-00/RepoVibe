@@ -475,12 +475,13 @@ L.liveTest('LIVE 8: four flagship worlds with live wallpapers on real pages; def
         const ev = await L.liveEvidence(page, response, new URL(url).pathname, A);
         await page.waitForFunction(s => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes(`${s}.webp`), slug, { timeout: 8000 }).catch(() => {});
         const st = await page.evaluate(() => ({ cls: document.documentElement.className, anims: document.getAnimations().filter(a => /^repv-/.test(a.animationName || '') && a.playState === 'running').map(a => a.animationName),
+          depth: (() => { const el = document.getElementById('repovibe-depth'); return el ? { scene: el.dataset.scene, layers: el.querySelectorAll('.repv-l').length, pe: getComputedStyle(el).pointerEvents, lite: document.documentElement.classList.contains('repv-depth-lite') } : null; })(),
           layers: [getComputedStyle(document.documentElement, '::after'), getComputedStyle(document.body, '::after')].map(s => s.pointerEvents) }));
         await freeze(page); await page.waitForTimeout(400);
         const vc = await visualContrast(context, page);
         const link = await page.evaluate(() => { const a = [...document.querySelectorAll('main a[href]')].find(x => { const r = x.getBoundingClientRect(); return r.width > 20 && r.top > 80 && r.bottom < innerHeight; }); if (!a) return null; const r = a.getClientRects()[0]; return document.elementFromPoint(r.left + 3, r.top + r.height / 2)?.closest('a') === a; });
-        c.check(ev.ok && st.cls.includes(`repv-motion-${motion}`) && st.anims.length > 0 && st.layers.every(v => v === 'none') && vc.below3.length === 0 && link !== false, `${label} · ${pageName}`,
-          `evidence ${ev.ok ? 'ok' : 'FAILED'}; live layer ${motion} running (${[...new Set(st.anims)].join(', ')}), pointer-events ${st.layers.join('/')}; contrast min ${vc.min.toFixed(2)}, p10 ${vc.p10.toFixed(2)}, <3:1 ${vc.below3.length}; link hit-test ${link}`);
+        c.check(ev.ok && st.cls.includes(`repv-motion-${motion}`) && st.anims.length > 0 && st.layers.every(v => v === 'none') && st.depth?.scene === slug && st.depth.layers >= 7 && st.depth.pe === 'none' && vc.below3.length === 0 && link !== false, `${label} · ${pageName}`,
+          `evidence ${ev.ok ? 'ok' : 'FAILED'}; live layer ${motion} running (${[...new Set(st.anims)].join(', ')}), pointer-events ${st.layers.join('/')}; depth scene ${st.depth ? `${st.depth.scene}, ${st.depth.layers} layers, pointer-events ${st.depth.pe}${st.depth.lite ? ', Auto→Lite' : ''}` : 'MISSING'}; contrast min ${vc.min.toFixed(2)}, p10 ${vc.p10.toFixed(2)}, <3:1 ${vc.below3.length}; link hit-test ${link}`);
         await L.logShot(context, page, `flagship-${label}-${pageName}`);
       }
     }
