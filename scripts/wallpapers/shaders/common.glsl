@@ -57,7 +57,7 @@ vec3 finish(vec3 col, vec2 uv) {
   col = aces(col);
   col = pow(col, vec3(1.0 / 2.2));
   float vx = uv.x + 0.5, vy = uv.y + 0.5; // both in [0, 1]
-  col *= 0.6 + 0.4 * pow(16.0 * vx * (1.0 - vx) * vy * (1.0 - vy), 0.22); // vignette: 1 at centre, 0.6 at corners
+  if (uLayer < 10) col *= 0.6 + 0.4 * pow(16.0 * vx * (1.0 - vx) * vy * (1.0 - vy), 0.22); // vignette (not on sprites, uLayer >= 10)
   col += (hash12(gl_FragCoord.xy + uSeed) - 0.5) / 255.0 * 2.0; // dither (no banding)
   return col;
 }

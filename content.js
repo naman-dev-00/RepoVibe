@@ -230,6 +230,7 @@ ${glass ? openCss + MOTION_CSS + DEPTH_CSS : ''}
       if (isBoxed(el)) el.setAttribute(PANEL_ATTR, '');
     }
     scanOpenText();
+    if (document.getElementById(POP_ID)) queuePlacePop();
   }
   /* Open reading safety net: inside open containers, any visible text that is not on a backing yet (text in plain
      spans/divs that the CSS block rules do not name, e.g. sidebar "9.0k stars") gets its nearest element tagged
@@ -363,15 +364,133 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     'scifi-ai': { pfar: [glowTile(73, 640, 480, 26, ['#7fdcff', '#c8f2ff'], 1, 2.4), '640px 480px'], pmid: [glowTile(79, 900, 640, 12, ['#5fd0ff', '#ffffff'], 2, 4), '900px 640px'],
       pnear: [bokehTile(83, 1400, 900, 5, ['#9fe6ff', '#ffffff']), '1400px 900px'], mist: 'radial-gradient(60% 24% at 50% 80%, rgba(160,225,255,.20), transparent 70%)' }
   };
+  /* Sprites: individually rendered objects (transparent WebP) that move on their own (CSS drift/rotation loop) and
+     with the pointer at their own depth factor k. plane 'scene' = inside the fixed scene behind GitHub (x/y/w in % of
+     the viewport); plane 'pop' = the pop-out layer ABOVE the page, but only in safe regions: the scene window ('band',
+     x/y as fractions of the band, h = height as a multiple of the band height) or a wide side margin ('margin').
+     A pop sprite is shown only where no text, control, image or panel lies under it (checked at runtime). */
+  const POP_ID = 'repovibe-popout';
+  const SPRITES = {
+    'cosmic-galaxy': [
+      // asteroid belt: the three mid rocks reused at different sizes, depths, flips and drift paths
+      { n: 'midC', plane: 'scene', k: 0.55, x: 40, y: 12, w: 3.2, cross: 150, rot: 220 },          // crosses the whole sky on its own
+      { n: 'b1', src: 'midA', plane: 'scene', k: 0.42, x: 33, y: 40, w: 2.1, dx: 30, dy: 10, rot: 60, dur: 46, flip: 1 },
+      { n: 'b2', src: 'midB', plane: 'scene', k: 0.48, x: 57, y: 22, w: 2.6, dx: -26, dy: 12, rot: -48, dur: 52 },
+      { n: 'b3', src: 'midC', plane: 'scene', k: 0.5, x: 13, y: 16, w: 1.8, dx: 20, dy: -8, rot: 90, dur: 38, flip: 1 },
+      { n: 'b4', src: 'midA', plane: 'scene', k: 0.58, x: 84, y: 48, w: 3, dx: -34, dy: -14, rot: 40, dur: 44 },
+      { n: 'b5', src: 'midB', plane: 'scene', k: 0.45, x: 45, y: 66, w: 2.2, dx: 24, dy: -16, rot: -70, dur: 50, flip: 1 },
+      { n: 'b6', src: 'midC', plane: 'scene', k: 0.64, x: 66, y: 78, w: 3.6, dx: -28, dy: 18, rot: 34, dur: 36 },
+      { n: 'b7', src: 'midA', plane: 'scene', k: 0.4, x: 27, y: 85, w: 1.6, dx: 16, dy: 10, rot: -110, dur: 58 },
+      { n: 'midA', plane: 'scene', k: 0.62, x: 72, y: 30, w: 4.6, dx: 46, dy: -20, rot: 28, dur: 34 },
+      { n: 'midB', plane: 'scene', k: 0.7, x: 20, y: 62, w: 5.6, dx: -40, dy: 16, rot: -34, dur: 40 },
+      { n: 'foreB', plane: 'scene', k: 1.2, x: 4, y: 34, w: 12, dx: 26, dy: 18, rot: -16, dur: 31 },  // cropped by the left edge
+      { n: 'foreA', plane: 'scene', k: 1.35, x: 95, y: 72, w: 17, dx: -34, dy: -22, rot: 14, dur: 28 }, // cropped by the right edge
+      { n: 'popA', plane: 'pop', at: 'band', x: 0.985, y: 0.52, h: 1.25, k: 2.7, dx: -24, dy: 6, rot: 9, dur: 24 },
+      { n: 'shard', plane: 'pop', at: 'band', x: 0.02, y: 0.4, h: 0.7, k: 3.0, dx: 22, dy: -5, rot: -11, dur: 21 },
+      { n: 'hero', src: 'foreB', plane: 'pop', at: 'band', x: 0.79, y: 0.5, h: 0.95, k: 2.2, dx: -30, dy: 5, rot: 12, dur: 26 }, // in front of the planet, inside the scene window
+      { n: 'popB', plane: 'pop', at: 'margin', side: 'left', y: 0.66, h: 0.2, k: 2.4, dx: 14, dy: -18, rot: 16, dur: 27 }
+    ]
+  };
+  function spriteUrl(slug, n) { return chrome.runtime.getURL(`wallpapers/depth/${slug}/s-${n}.webp`); }
+  function tuning() { const t = config.depthTuning || {}; return { parallax: (t.parallax ?? 100) / 100, motion: (t.motion ?? 100) / 100, particles: (t.particles ?? 100) / 100, foreground: (t.foreground ?? 100) / 100 }; }
+  function buildSprite(slug, s, cinematic) {
+    const wrap = document.createElement('div');
+    wrap.className = 'repv-s'; wrap.dataset.k = String(s.k); wrap.dataset.sprite = s.n;
+    const img = document.createElement('img');
+    img.src = spriteUrl(slug, s.src || s.n); img.alt = '';
+    if (s.flip) img.style.scale = '-1 1'; img.decoding = 'async'; img.draggable = false;
+    const m = cinematic ? 1.8 : 1;
+    if (s.cross) { img.dataset.cross = ''; img.style.setProperty('--dur', `${s.cross / (cinematic ? 1.5 : 1)}s`); }
+    else img.style.setProperty('--dur', `${s.dur / (cinematic ? 1.35 : 1)}s`);
+    img.style.setProperty('--dx', `${(s.dx || 0) * m}px`); img.style.setProperty('--dy', `${(s.dy || 0) * m}px`); img.style.setProperty('--rot', `${(s.rot || 0) * (cinematic ? 1.4 : 1)}deg`);
+    img.style.animationDelay = `${-((s.n.charCodeAt(0) * 7 + s.n.length * 13) % 20)}s`; // desynchronised loops
+    wrap.appendChild(img);
+    if (s.plane === 'scene') { wrap.style.left = `${s.x}%`; wrap.style.top = `${s.y}%`; wrap.style.width = `${s.w}vw`; }
+    else wrap.dataset.pop = s.at;
+    return wrap;
+  }
+  // Pop-out placement: inside the scene window (band) or a wide side margin, at the largest size that keeps every
+  // sampled point (sprite box grown by its parallax + drift reach) clear of text, controls, media and panels.
+  const CONTENTISH = 'a, button, input, textarea, select, label, img, svg, video, canvas, code, pre, summary, [role="button"], [role="tab"], [role="menu"], [role="dialog"], [contenteditable]';
+  function blockedAt(x, y) {
+    if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) return false;
+    for (const e of document.elementsFromPoint(x, y)) {
+      if (e === document.documentElement || e === document.body || e.closest(`#${DEPTH_ID}, #${POP_ID}`)) continue;
+      if (e.matches(CONTENTISH) || e.closest(CONTENTISH)) return true;
+      if ([...e.childNodes].some(n => n.nodeType === 3 && n.nodeValue.trim())) return true;
+      const bg = getComputedStyle(e).backgroundColor;
+      if (!/rgba\(0, 0, 0, 0\)|transparent/.test(bg)) return true;
+      return false; // topmost real element is an empty layout box: open space
+    }
+    return false;
+  }
+  function placePop() {
+    const pop = document.getElementById(POP_ID); if (!pop) return;
+    const t = tuning();
+    const band = document.getElementById('repo-content-pjax-container') || document.querySelector('turbo-frame#repo-content-turbo-frame'); // the element that carries the scene-window padding
+    const bandH = band && document.documentElement.classList.contains('repv-scene-window') ? parseFloat(getComputedStyle(band).paddingTop) || 0 : 0;
+    const br = band ? band.getBoundingClientRect() : null;
+    // side margins: the open space at mid-height, found by probing (first text/control/panel from each side)
+    const probeY = [0.45, 0.6, 0.75].map(f => innerHeight * f);
+    let colLeft = innerWidth / 2, colRight = innerWidth / 2;
+    for (let x = 0; x < innerWidth / 2; x += 8) if (probeY.some(y => blockedAt(x, y))) { colLeft = x; break; }
+    for (let x = innerWidth - 1; x > innerWidth / 2; x -= 8) if (probeY.some(y => blockedAt(x, y))) { colRight = x; break; }
+    const amp = (document.documentElement.classList.contains('repv-depth-cinematic') ? 30 : 13) * t.parallax;
+    for (const w of pop.querySelectorAll('.repv-s')) {
+      const s = (SPRITES[pop.dataset.scene] || []).find(x => x.n === w.dataset.sprite);
+      const img = w.firstChild; const ratio = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1;
+      let ok = false;
+      if (s && t.foreground > 0 && innerWidth >= 768) {
+        for (const f of [1.25, 1, 0.8, 0.62]) {
+          let h, left, top, fixed = false;
+          if (s.at === 'band') {
+            if (bandH < 60 || !br) break;
+            // how far the sprite can travel: pointer parallax (k × amplitude) + its own drift (Cinematic ≤ 1.8×)
+            const rx = s.k * amp + Math.abs(s.dx || 0) * 1.8 * t.motion + 6, ry = s.k * amp * 0.25 + Math.abs(s.dy || 0) * 1.8 * t.motion + 6;
+            h = Math.min(bandH * s.h * f * (0.55 + 0.45 * t.foreground), bandH - 2 * ry); if (h < 56) break;
+            const wpx = h * ratio;
+            left = br.left + scrollX + s.x * innerWidth - wpx / 2;
+            const bandTop = br.top + scrollY;
+            top = Math.max(bandTop + ry, Math.min(bandTop + bandH - ry - h, bandTop + s.y * bandH - h / 2));
+            const vx = left - scrollX, vy = top - scrollY; // viewport coords for the check
+            const pts = []; for (let i = 0; i <= 4; i++) for (let j = 0; j <= 4; j++) pts.push([vx - rx + (wpx + 2 * rx) * i / 4, vy - ry + (h + 2 * ry) * j / 4]);
+            // never over the repository tabs (above the band) or the content (below it)
+            if (top - ry < br.top + scrollY - 1 || top + h + ry > br.top + scrollY + bandH + 1) continue;
+            if (pts.some(([x, y]) => blockedAt(x, y))) continue;
+          } else {
+            const margin = s.side === 'left' ? colLeft : innerWidth - colRight;
+            if (margin < 150) break;
+            h = innerHeight * s.h * f * (0.55 + 0.45 * t.foreground); const wpx = h * ratio;
+            if (wpx > margin * 0.95) continue;
+            fixed = true;
+            left = s.side === 'left' ? margin * 0.08 : innerWidth - margin * 0.08 - wpx; top = innerHeight * s.y - h / 2;
+            const reach = s.k * amp + Math.abs(s.dx || 0) * 1.8 + 10;
+            if (s.side === 'left' ? left + wpx + reach > colLeft : left - reach < colRight) continue;
+            const pts = []; for (let i = 0; i <= 3; i++) for (let j = 0; j <= 4; j++) pts.push([left - reach + (wpx + 2 * reach) * i / 3, top - reach + (h + 2 * reach) * j / 4]);
+            if (pts.some(([x, y]) => blockedAt(x, y))) continue;
+          }
+          w.style.position = fixed ? 'fixed' : 'absolute';
+          w.style.left = `${Math.round(left)}px`; w.style.top = `${Math.round(top)}px`; w.style.height = `${Math.round(h)}px`; w.style.width = 'auto';
+          ok = true; break;
+        }
+      }
+      w.hidden = !ok;
+    }
+  }
+  let popTimer = 0;
+  function queuePlacePop() { clearTimeout(popTimer); popTimer = setTimeout(() => requestAnimationFrame(placePop), 150); }
   let depthState = { key: '', listening: false, probed: '', autoLite: false, fps: null };
   const ptr = { tx: 0, ty: 0, x: 0, y: 0, raf: 0 };
   function stepPointer() {
     ptr.raf = 0;
     const el = document.getElementById(DEPTH_ID); if (!el) return;
+    if (el.dataset.mode === 'static') return;
     ptr.x += (ptr.tx - ptr.x) * 0.1; ptr.y += (ptr.ty - ptr.y) * 0.1;
-    // Direct per-layer transforms (compositor-only; no inherited custom property invalidating the subtree each frame)
-    const amp = el.dataset.mode === 'cinematic' ? 30 : 13;
-    for (const l of el.children) { const k = LAYER_K[l.dataset.l]; if (k) l.style.transform = `translate3d(${(-ptr.x * k * amp).toFixed(2)}px, ${(-ptr.y * k * amp * 0.55).toFixed(2)}px, 0)`; }
+    // Direct per-element transforms (compositor-only; no inherited custom property invalidating the subtree each frame):
+    // every depth layer and every sprite (scene and pop-out) moves by its own depth factor k.
+    const amp = (el.dataset.mode === 'cinematic' ? 30 : 13) * tuning().parallax;
+    if (!depthState.movers || !depthState.movers[0]?.isConnected) depthState.movers = [...document.querySelectorAll(`#${DEPTH_ID} [data-k], #${POP_ID} [data-k]`)];
+    for (const l of depthState.movers) { const k = +l.dataset.k, vy = l.dataset.pop ? 0.25 : 0.55; l.style.transform = `translate3d(${(-ptr.x * k * amp).toFixed(2)}px, ${(-ptr.y * k * amp * vy).toFixed(2)}px, 0)`; }
     el.dataset.px = (-ptr.x).toFixed(4); el.dataset.py = (-ptr.y).toFixed(4);
     if (Math.abs(ptr.tx - ptr.x) + Math.abs(ptr.ty - ptr.y) > 0.002) ptr.raf = requestAnimationFrame(stepPointer);
   }
@@ -397,24 +516,25 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
   }
   function depthFor(theme, url) {
     if (!theme || !url || !config.depthEffects) return null;
-    if (config.motionMode === 'static' || reducedQuery?.matches) return null; // Static / reduced motion: sharp flat scene
     const v = C.normalizeTheme(theme);
     if (v.wallpaperBlur > 0 || v.wallpaperSize !== 'cover' || v.wallpaperPosition !== 'center') return null;
     const m = /^builtin:([a-z0-9-]+)$/.exec(v.wallpaperRef || '');
     const w = m && C.WALLPAPERS.find(x => x.slug === m[1]);
     if (!w || !w.depth || !w.depth.length) return null;
-    return { slug: w.slug, layers: Object.fromEntries(w.depth.map(d => [d.layer, chrome.runtime.getURL(d.path)])), mode: config.motionMode, veil: sceneLayers(v).map(l => l.replace(' fixed', '')).join(', ') };
+    return { slug: w.slug, layers: Object.fromEntries(w.depth.map(d => [d.layer, chrome.runtime.getURL(d.path)])), mode: config.motionMode === 'static' || reducedQuery?.matches ? 'static' : config.motionMode, veil: sceneLayers(v).map(l => l.replace(' fixed', '')).join(', ') };
   }
   function removeDepth() {
-    document.getElementById(DEPTH_ID)?.remove();
-    document.documentElement?.classList.remove('repv-depth', 'repv-depth-cinematic', 'repv-depth-paused', 'repv-depth-lite');
+    document.getElementById(DEPTH_ID)?.remove(); document.getElementById(POP_ID)?.remove();
+    window.removeEventListener('resize', queuePlacePop); clearTimeout(popTimer); depthState.movers = null;
+    document.documentElement?.classList.remove('repv-depth', 'repv-depth-cinematic', 'repv-depth-static', 'repv-depth-paused', 'repv-depth-lite');
     listenPointer(false); depthState.key = '';
   }
   function renderDepth(theme, url) {
     const d = depthFor(theme, url);
     const root = document.documentElement;
     if (!d) { if (depthState.key || document.getElementById(DEPTH_ID)) removeDepth(); return; }
-    const key = `${d.slug}|${d.mode}|${d.veil}`;
+    const T = tuning();
+    const key = `${d.slug}|${d.mode}|${d.veil}|${T.foreground > 0}`;
     let el = document.getElementById(DEPTH_ID);
     if (!el || depthState.key !== key) {
       el?.remove();
@@ -422,12 +542,16 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
       el.id = DEPTH_ID; el.setAttribute('aria-hidden', 'true'); el.dataset.scene = d.slug; el.dataset.mode = d.mode;
       const P = DEPTH_PARTICLES[d.slug] || {};
       const order = ['far', 'pfar', 'mist', 'mid', 'pmid', 'near', 'rays', 'front', 'pnear'];
+      const SP = SPRITES[d.slug] || [];
+      const addSprites = near => { for (const s of SP.filter(x => x.plane === 'scene' && (near ? x.k >= 1 : x.k < 1))) el.appendChild(buildSprite(d.slug, s, d.mode === 'cinematic')); };
       for (const name of order) {
+        if (name === 'rays') addSprites(false);  // mid-depth sprites sit below the light shafts
+        if (name === 'pnear') addSprites(true);  // close sprites sit just behind the nearest particles
         const img = d.layers[name] ? `url("${d.layers[name]}")` : null;
         const part = P[name];
         if (!img && !part) continue;
         const layer = document.createElement('div');
-        layer.className = 'repv-l'; layer.dataset.l = name; layer.style.setProperty('--k', String(LAYER_K[name]));
+        layer.className = 'repv-l'; layer.dataset.l = name; layer.dataset.k = String(LAYER_K[name]); layer.style.setProperty('--k', String(LAYER_K[name]));
         const inner = document.createElement('i');
         if (img) inner.style.backgroundImage = img;
         else if (Array.isArray(part)) { layer.dataset.tile = ''; inner.style.backgroundImage = part[0]; inner.style.backgroundSize = part[1]; }
@@ -436,11 +560,24 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
       }
       const veil = document.createElement('div'); veil.className = 'repv-veil'; if (d.veil) veil.style.backgroundImage = d.veil; el.appendChild(veil);
       root.appendChild(el);
-      depthState.key = key;
+      document.getElementById(POP_ID)?.remove();
+      const pops = (SPRITES[d.slug] || []).filter(x => x.plane === 'pop');
+      if (pops.length && T.foreground > 0) {
+        const pop = document.createElement('div'); pop.id = POP_ID; pop.setAttribute('aria-hidden', 'true'); pop.dataset.scene = d.slug;
+        for (const s of pops) { const w = buildSprite(d.slug, s, d.mode === 'cinematic'); w.hidden = true; w.firstChild.addEventListener('load', queuePlacePop, { once: true }); pop.appendChild(w); }
+        root.appendChild(pop);
+        window.addEventListener('resize', queuePlacePop, { passive: true });
+      }
+      depthState.key = key; depthState.movers = null;
     }
+    el.style.setProperty('--drift', String(T.motion)); el.style.setProperty('--particles', String(Math.min(1, T.particles))); el.style.setProperty('--fg', String(Math.min(1, T.foreground)));
+    document.getElementById(POP_ID)?.style.setProperty('--drift', String(T.motion));
+    root.classList.toggle('repv-depth-still', T.motion === 0);
+    root.classList.toggle('repv-depth-static', d.mode === 'static');
+    queuePlacePop();
     root.classList.add('repv-depth');
     root.classList.toggle('repv-depth-cinematic', d.mode === 'cinematic');
-    listenPointer(true);
+    listenPointer(d.mode !== 'static');
     if (!ptr.raf) ptr.raf = requestAnimationFrame(stepPointer); // apply the current pointer to freshly built layers
     applyDepthQuality();
     probeDepthQuality(key);
@@ -497,8 +634,26 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
 @keyframes repv-sway { from { transform:rotate(-.7deg) translate3d(-6px, 0, 0); } to { transform:rotate(.7deg) translate3d(6px, 2px, 0); } }
 @keyframes repv-breathe { from { opacity:.45; } to { opacity:1; } }
 @keyframes repv-bokeh { from { transform:translate3d(-20px, 10px, 0); } to { transform:translate3d(24px, -18px, 0); } }
-html.repv-depth-paused #repovibe-depth *, html.repv-depth-paused #repovibe-depth { animation-play-state:paused !important; }
-@media (prefers-reduced-motion:reduce) { #repovibe-depth { display:none; } }
+/* Sprites (scene plane) and the pop-out layer */
+#repovibe-depth > .repv-s { position:absolute; transform:translate3d(0, 0, 0); will-change:transform; translate:-50% -50%; }
+.repv-s > img { display:block; width:100%; height:auto; user-select:none; }
+#repovibe-popout { position:absolute; top:0; left:0; width:100%; height:0; overflow:visible; z-index:2; pointer-events:none; }
+#repovibe-popout > .repv-s { will-change:transform; }
+#repovibe-popout > .repv-s > img { height:100%; width:auto; filter:drop-shadow(0 22px 26px rgba(0, 0, 0, .55)) drop-shadow(0 0 1px rgba(0, 0, 0, .6)); }
+#repovibe-popout > .repv-s[hidden], #repovibe-depth > .repv-s[hidden] { display:none; }
+#repovibe-depth > [data-l="front"] { opacity:var(--fg, 1); }
+#repovibe-depth > :is([data-l="pfar"], [data-l="pmid"], [data-l="pnear"], [data-l="mist"]) { opacity:var(--particles, 1); }
+@media (prefers-reduced-motion:no-preference) {
+ :is(#repovibe-depth, #repovibe-popout) .repv-s > img { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate; }
+ :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-cross] { animation:repv-cross var(--dur, 120s) linear infinite; }
+}
+@keyframes repv-drift { 0% { transform:translate3d(0, 0, 0) rotate(0deg); } 50% { transform:translate3d(calc(var(--dx) * var(--drift, 1)), calc(var(--dy) * var(--drift, 1)), 0) rotate(calc(var(--rot) * .55 * var(--drift, 1))); } 100% { transform:translate3d(calc(var(--dx) * -.45 * var(--drift, 1)), calc(var(--dy) * .7 * var(--drift, 1)), 0) rotate(calc(var(--rot) * var(--drift, 1))); } }
+@keyframes repv-cross { from { transform:translate3d(-60vw, 6vh, 0) rotate(0deg); } to { transform:translate3d(80vw, -4vh, 0) rotate(var(--rot)); } }
+/* Static (and reduced motion): the same layered scene, at rest: no overscan, no animation, no pointer response */
+html.repv-depth-static #repovibe-depth > .repv-l { inset:0; }
+html.repv-depth-static :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth-still :is(#repovibe-depth, #repovibe-popout) * { animation:none !important; }
+html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth-paused #repovibe-depth { animation-play-state:paused !important; }
+@media (prefers-reduced-motion:reduce) { :is(#repovibe-depth, #repovibe-popout) * { animation:none !important; } }
 `;
 
   /* ---- Wallpaper resolution: bundled assets, IndexedDB assets (via service worker), legacy inline data. */

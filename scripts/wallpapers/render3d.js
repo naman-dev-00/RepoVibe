@@ -30,8 +30,14 @@ const only = opt('--only', null); // e.g. --only front,rays (implies --layers, s
   for (const slug of list) {
     const src = `#version 300 es\n${common}\n${fs.readFileSync(path.join(DIR, `${slug}.glsl`), 'utf8')}`;
     const t0 = Date.now();
-   const layerList = only ? only.split(',').map(n => LAYERS.indexOf(n) + 1).filter(n => n > 0) : [0, ...(withLayers ? [1, 2, 3, 4, 5] : [])];
+   // Sprites: '// @sprites name:WxH, ...' in the shader header; rendered with uLayer = 10 + index (--sprites, or --only s-<name>)
+   const spriteDecl = /\/\/ @sprites ([^\n]+)/.exec(fs.readFileSync(path.join(DIR, `${slug}.glsl`), 'utf8'));
+   const sprites = spriteDecl ? spriteDecl[1].split(',').map(x => x.trim().split(':')).map(([name, size], i) => ({ name, i, size: size.split('x').map(Number) })) : [];
+   const wantSprites = sprites.filter(s => args.includes('--sprites') || (only || '').split(',').includes(`s-${s.name}`));
+   const layerList = [...(only ? only.split(',').map(n => LAYERS.indexOf(n) + 1).filter(n => n > 0) : (args.includes('--sprites-only') ? [] : [0, ...(withLayers ? [1, 2, 3, 4, 5] : [])])), ...wantSprites.map(s => 10 + s.i)];
    for (const layer of layerList) {
+    const sp = layer >= 10 ? sprites[layer - 10] : null;
+    const [LW, LH] = sp ? (preview ? sp.size.map(v => Math.round(v / 2)) : sp.size) : [W, H];
     const out = await page.evaluate(async ([src, W, H, seed, layer]) => {
       const strip = 120;
       const gl = new OffscreenCanvas(W, strip).getContext('webgl2', { preserveDrawingBuffer: true });
@@ -68,7 +74,7 @@ const only = opt('--only', null); // e.g. --only front,rays (implies --layers, s
       const enc = async (c, q) => { const b = new Uint8Array(await (await c.convertToBlob({ type: 'image/webp', quality: q })).arrayBuffer()); let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
       const thumb = new OffscreenCanvas(480, 270); const tc = thumb.getContext('2d'); tc.imageSmoothingQuality = 'high'; tc.drawImage(full, 0, 0, 480, 270);
       return { full: await enc(full, 0.9), thumb: await enc(thumb, 0.82) };
-    }, [src, W, H, 7, layer]);
+    }, [src, LW, LH, 7, layer]);
     if (layer === 0) {
       const name = preview ? `${slug}.preview.webp` : `${slug}.webp`;
       fs.writeFileSync(path.join(outDir, name), Buffer.from(out.full, 'base64'));
@@ -76,7 +82,9 @@ const only = opt('--only', null); // e.g. --only front,rays (implies --layers, s
       console.log(`${slug.padEnd(20)} ${W}x${H} ${((Date.now() - t0) / 1000).toFixed(1)} s  ${(fs.statSync(path.join(outDir, name)).size / 1024).toFixed(0)} KB`);
     } else {
       const dir = path.join(outDir, preview ? 'depth-preview' : 'depth', slug); fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(path.join(dir, `${LAYERS[layer - 1]}.webp`), Buffer.from(out.full, 'base64'));
+      const fname = sp ? `s-${sp.name}.webp` : `${LAYERS[layer - 1]}.webp`;
+      fs.writeFileSync(path.join(dir, fname), Buffer.from(out.full, 'base64'));
+      if (sp) { console.log(`${slug.padEnd(20)} sprite ${sp.name.padEnd(6)} ${LW}x${LH} ${((Date.now() - t0) / 1000).toFixed(1)} s  ${(fs.statSync(path.join(dir, fname)).size / 1024).toFixed(0)} KB`); continue; }
       console.log(`${slug.padEnd(20)} layer ${LAYERS[layer - 1].padEnd(5)} ${((Date.now() - t0) / 1000).toFixed(1)} s  ${(fs.statSync(path.join(dir, `${LAYERS[layer - 1]}.webp`)).size / 1024).toFixed(0)} KB`);
     }
    }

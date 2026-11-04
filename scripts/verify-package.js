@@ -40,7 +40,7 @@ const threeD = catalog.filter(w => w.style === '3d').length;
 if (wallpaperSlugs.length < 10) problems.push(`expected at least 10 bundled wallpapers, found ${wallpaperSlugs.length}`);
 for (const slug of wallpaperSlugs) { required.add(`wallpapers/${slug}.webp`); required.add(`wallpapers/thumbs/${slug}.webp`); }
 // 2.5D depth layers declared by the catalogue (pre-rendered slabs for the parallax engine)
-const depthLayers = catalog.flatMap(w => (w.depth || []).map(l => `wallpapers/depth/${w.slug}/${l}.webp`));
+const depthLayers = catalog.flatMap(w => [...(w.depth || []).map(l => `wallpapers/depth/${w.slug}/${l}.webp`), ...(w.sprites || []).map(n => `wallpapers/depth/${w.slug}/s-${n}.webp`)]);
 for (const f of depthLayers) required.add(f);
 if (catalog.filter(w => (w.depth || []).length).length < 4) problems.push('expected depth layers for the four flagship worlds');
 if (!files.has('wallpapers/LICENSE.md')) problems.push('missing wallpapers/LICENSE.md');

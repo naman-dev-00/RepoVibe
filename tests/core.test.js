@@ -317,3 +317,19 @@ test('flagship wallpapers declare depth layers that exist on disk, starting with
     }
   }
 });
+
+test('every sprite referenced by the depth engine exists on disk and in the catalogue', () => {
+  const path = require('node:path');
+  const src = fs.readFileSync(path.join(__dirname, '../content.js'), 'utf8');
+  const block = src.slice(src.indexOf('const SPRITES = {'), src.indexOf('function spriteUrl'));
+  const worlds = [...block.matchAll(/'([a-z0-9-]+)': \[([\s\S]*?)\n    \]/g)];
+  assert.ok(worlds.length >= 1);
+  for (const [, slug, body] of worlds) {
+    const w = C.WALLPAPERS.find(x => x.slug === slug);
+    for (const [, n] of [...body.matchAll(/\{ n: '([A-Za-z0-9]+)'(?!, src)/g), ...body.matchAll(/src: '([A-Za-z0-9]+)'/g)]) {
+      assert.ok(fs.existsSync(path.join(__dirname, '..', 'wallpapers', 'depth', slug, `s-${n}.webp`)), `${slug}/s-${n}.webp`);
+      assert.ok((context.RepoVibeWallpaperCatalog.find(x => x.slug === slug).sprites || []).includes(n), `${slug}: ${n} listed in the catalogue (packaged + verified)`);
+    }
+    assert.ok(w, slug);
+  }
+});

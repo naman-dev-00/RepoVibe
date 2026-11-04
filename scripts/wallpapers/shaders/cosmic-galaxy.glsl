@@ -1,3 +1,4 @@
+// @sprites popA:1280x1280, popB:1024x1024, foreA:1024x1024, foreB:896x896, midA:640x640, midB:560x560, midC:480x480, shard:1024x640
 // Cosmic galaxy: volumetric nebula, a giant banded planet with atmospheric rim and rings, a smaller moon,
 // lit asteroids in the foreground for depth, a distant spiral galaxy and stars.
 const vec3 STAR = normalize(vec3(0.85, 0.25, 0.45)); // key light (off-screen sun)
@@ -99,10 +100,70 @@ vec3 bigRocks(vec3 ro, vec3 rd, out float tA) {
   }
   return col;
 }
+// ---- Sprites (uLayer >= 10): individual, highly detailed asteroids rendered alone on transparency, so the runtime
+// engine can move, rotate and parallax each one independently (autonomous drift + depth).
+mat3 rotXYZ(vec3 a) { vec3 c = cos(a), s = sin(a);
+  return mat3(c.y * c.z, c.y * s.z, -s.y, s.x * s.y * c.z - c.x * s.z, s.x * s.y * s.z + c.x * c.z, s.x * c.y, c.x * s.y * c.z + s.x * s.z, c.x * s.y * s.z - s.x * c.z, c.x * c.y); }
+float rockSDF(vec3 p, float sd, vec3 sc) {
+  vec3 q = p / sc;
+  float r = length(q);
+  vec3 dir = q / max(r, 1e-4);
+  // smooth "potato" body; fine detail is added in shading (bump), not geometry, so silhouettes stay clean
+  float n = 0.24 * (noise3(dir * 1.2 + sd) - 0.5) + 0.09 * (noise3(dir * 2.6 + sd * 1.7) - 0.5) + 0.03 * (noise3(dir * 5.5 + sd * 2.3) - 0.5);
+  for (int k = 0; k < 5; k++) { // a few craters: shallow bowls with soft raised rims
+    float fk = float(k) + sd * 3.0;
+    vec3 c = normalize(vec3(hash11(fk * 1.3) - 0.5, hash11(fk * 2.7) - 0.5, hash11(fk * 4.1) - 0.5));
+    float rad = 0.2 + 0.25 * hash11(fk * 5.9), x = length(dir - c) / rad;
+    float bowl = SAT(1.0 - x * x); n += -0.05 * bowl * bowl + 0.012 * exp(-pow((x - 1.0) * 5.0, 2.0)); // C1-smooth bowl + rim (no outline ring)
+  }
+  return (r - 1.0 - n) * min(sc.x, min(sc.y, sc.z)) * 0.75;
+}
+float rockBump(vec3 p, float sd) { return noise3(p * 9.0 + sd) * 0.6 + noise3(p * 23.0 + sd) * 0.3 + noise3(p * 55.0 + sd) * 0.1; }
+vec4 rockSprite(vec2 uv, float sd, vec3 sc, vec3 rot) {
+  mat3 R = rotXYZ(rot);
+  vec3 ro = vec3(0.0, 0.0, -4.2), rd = normalize(vec3(uv * 0.62, 1.0));
+  float t = 2.4, d = 0.0; bool hit = false;
+  for (int i = 0; i < 160; i++) { d = rockSDF(R * (ro + rd * t), sd, sc); if (d < 0.0005) { hit = true; break; } t += d * 0.6; if (t > 6.0) break; }
+  if (!hit) return vec4(0.0);
+  vec3 p = R * (ro + rd * t); vec2 e = vec2(0.002, 0.0);
+  vec3 nl = normalize(vec3(rockSDF(p + e.xyy, sd, sc) - rockSDF(p - e.xyy, sd, sc), rockSDF(p + e.yxy, sd, sc) - rockSDF(p - e.yxy, sd, sc), rockSDF(p + e.yyx, sd, sc) - rockSDF(p - e.yyx, sd, sc)));
+  // bump: perturb the normal by the gradient of fine noise (pitted, sharp surface detail)
+  vec2 eb = vec2(0.004, 0.0); float b0 = rockBump(p, sd);
+  vec3 g = vec3(rockBump(p + eb.xyy, sd) - b0, rockBump(p + eb.yxy, sd) - b0, rockBump(p + eb.yyx, sd) - b0) / eb.x;
+  vec3 ng = transpose(R) * nl; // smooth geometric normal (rim/fresnel: no bump-induced contour artefacts)
+  nl = normalize(nl - 0.035 * (g - nl * dot(g, nl)));
+  vec3 n = transpose(R) * nl;
+  vec3 L = normalize(vec3(0.92, 0.38, 0.1)); // side light: strong day/night terminator
+  float dif = SAT(dot(n, L));
+  float sh = 1.0; vec3 Lr = R * L;
+  for (int i = 0; i < 20; i++) { float tt = 0.03 + float(i) * 0.07; sh = min(sh, SAT(rockSDF(p + nl * 0.01 + Lr * tt, sd, sc) * 10.0 / tt)); }
+  float ao = SAT(0.35 + 2.6 * rockSDF(p + nl * 0.1, sd, sc) / 0.1);
+  float cav = SAT(0.55 + 1.6 * (b0 - 0.5));
+  vec3 alb = mix(vec3(0.16, 0.14, 0.15), vec3(0.33, 0.28, 0.26), noise3(p * 3.0 + sd)) * (0.7 + 0.45 * cav);
+  vec3 col = alb * (pow(dif, 1.2) * sh * vec3(2.6, 2.35, 2.1) + vec3(0.025, 0.025, 0.05) * ao);
+  float fres = pow(1.0 - SAT(dot(ng, -rd)), 4.0);
+  col += vec3(0.5, 0.32, 1.0) * fres * 0.55 * SAT(1.0 - 2.0 * dot(ng, L));            // thin violet rim on the night side
+  col += vec3(0.3, 0.5, 1.0) * SAT(dot(n, normalize(vec3(-0.7, -0.5, -0.2)))) * 0.05 * ao; // faint planet bounce
+  float ice = step(0.8, noise3(p * 15.0 + sd * 2.0));
+  col += vec3(0.9, 0.95, 1.0) * pow(SAT(dot(reflect(-L, n), -rd)), 30.0) * (0.1 + 1.4 * ice) * sh;
+  return vec4(col, 1.0);
+}
 vec3 render(vec2 uv) {
+  if (uLayer >= 10) {
+    int k = uLayer - 10; vec4 r;
+    if (k == 0) r = rockSprite(uv, 3.1, vec3(1.15, 0.92, 1.0), vec3(0.4, 0.9, 0.2));
+    else if (k == 1) r = rockSprite(uv, 7.4, vec3(1.05, 1.1, 0.9), vec3(1.2, 0.3, 0.8));
+    else if (k == 2) r = rockSprite(uv, 11.9, vec3(1.15, 0.85, 0.95), vec3(0.2, 2.1, 1.4));
+    else if (k == 3) r = rockSprite(uv, 15.2, vec3(1.0, 1.1, 1.05), vec3(2.2, 0.6, 0.1));
+    else if (k == 4) r = rockSprite(uv, 19.7, vec3(1.1, 0.95, 1.0), vec3(0.9, 1.7, 2.6));
+    else if (k == 5) r = rockSprite(uv, 23.3, vec3(0.95, 1.12, 1.0), vec3(1.6, 2.4, 0.5));
+    else if (k == 6) r = rockSprite(uv, 27.8, vec3(1.0, 1.0, 1.1), vec3(0.3, 0.2, 2.9));
+    else r = rockSprite(uv * vec2(0.7, 1.0), 31.4, vec3(1.25, 0.55, 0.7), vec3(0.5, 0.3, 0.6)); // elongated shard (wide frame)
+    gAlpha = r.a; return r.rgb;
+  }
   vec3 ro = vec3(0.0, 0.0, 0.0);
   vec3 rd = camera(ro, vec3(-0.05, 0.08, 1.0), 0.06) * normalize(vec3(uv, 1.1));
-  if (uLayer == 4) { float tb; vec3 c = bigRocks(ro, rd, tb); gAlpha = tb < 1e8 ? 1.0 : 0.0; return c; }
+  if (uLayer == 4) { gAlpha = 0.0; return vec3(0.0); } // close rocks are now individual sprites (moving on their own)
   if (uLayer == 5) { // starlight shafts from the off-screen sun
     vec3 sv = vec3(dot(STAR, camera(ro, vec3(-0.05, 0.08, 1.0), 0.06)[0]), dot(STAR, camera(ro, vec3(-0.05, 0.08, 1.0), 0.06)[1]), 1.0);
     vec2 sp = vec2(1.15, 0.45); vec2 d = uv - sp; float ang = atan(d.y, d.x), r = length(d);
@@ -121,8 +182,7 @@ vec3 render(vec2 uv) {
     vec3 oc = P1 - ro; float dd = length(cross(rd, oc)) - R1;
     if (dot(rd, oc) > 0.0 && dd > 0.0) col += vec3(0.35, 0.5, 1.0) * exp(-dd * 0.35) * 0.6;
     if (ring > 0.0 && (h1.x < 0.0 || tr < h1.x)) { vec3 rp = ro + rd * tr; float shadowP = sphere(rp, STAR, P1, R1).x > 0.0 ? 0.25 : 1.0; col = mix(col, vec3(0.85, 0.75, 0.95) * 0.9 * shadowP, ring * 0.75); }
-    float tA; vec3 ac = asteroids(ro, rd, tA); if (tA < 1e8) col = ac;
-    float tb; vec3 bc = bigRocks(ro, rd, tb); if (tb < 1e8) col = bc;
+    // asteroids are individual sprites now (rendered separately and composed at runtime); the flat image keeps the sky
     return col + vec3(1.0, 0.85, 0.7) * pow(SAT(dot(rd, STAR)), 60.0) * 1.5;
   }
   if (uLayer == 2) { // giant planet + atmosphere halo + rings, with alpha
@@ -134,7 +194,6 @@ vec3 render(vec2 uv) {
       float ra = ring * 0.75; col = mix(col * a, vec3(0.85, 0.75, 0.95) * 0.9 * shadowP, ra) / max(a + ra - a * ra, 1e-3); a = a + ra - a * ra; }
     gAlpha = a; return col;
   }
-  // near: asteroid field
-  float tA; vec3 ac = asteroids(ro, rd, tA);
-  gAlpha = tA < 1e8 ? 1.0 : 0.0; return ac;
+  // near: the asteroid field is made of individual sprites at runtime (autonomous drift); nothing baked here
+  gAlpha = 0.0; return vec3(0.0);
 }

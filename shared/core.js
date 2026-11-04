@@ -109,7 +109,7 @@
   const CONFIG_VERSION = 2;
   const DEFAULT = {
     version: CONFIG_VERSION, enabled: true, defaultThemeId: 'native',
-    autoAssign: true, autoAssignments: {}, motionMode: 'ambient', seededMappings: false, appearance: 'crisp', sceneWindow: true, sceneHeight: 'standard', depthEffects: true, depthQuality: 'auto', readingBacking: 'text',
+    autoAssign: true, autoAssignments: {}, motionMode: 'ambient', seededMappings: false, appearance: 'crisp', sceneWindow: true, sceneHeight: 'standard', depthEffects: true, depthQuality: 'auto', readingBacking: 'text', depthTuning: { parallax: 100, motion: 100, particles: 100, foreground: 100 },
     repoAssignments: {}, ownerAssignments: {}, customThemes: {}
   };
   const colorKeys = ['bg', 'surface', 'surface2', 'text', 'muted', 'accent', 'border', 'gradientTo', 'gradientThird', 'codeBg'];
@@ -180,6 +180,9 @@
     config.sceneHeight = SCENE_HEIGHTS.includes(raw.sceneHeight) ? raw.sceneHeight : 'standard';
     config.depthEffects = raw.depthEffects !== false;
     config.readingBacking = raw.readingBacking === 'panels' ? 'panels' : 'text';
+    const tune = raw.depthTuning && typeof raw.depthTuning === 'object' ? raw.depthTuning : {};
+    const clampInt = (v, lo, hi, d) => Number.isFinite(+v) ? Math.min(hi, Math.max(lo, Math.round(+v))) : d;
+    config.depthTuning = { parallax: clampInt(tune.parallax, 0, 200, 100), motion: clampInt(tune.motion, 0, 200, 100), particles: clampInt(tune.particles, 0, 100, 100), foreground: clampInt(tune.foreground, 0, 150, 100) };
     config.depthQuality = DEPTH_QUALITIES.includes(raw.depthQuality) ? raw.depthQuality : 'auto';
     config.seededMappings = raw.seededMappings === true;
     for (const type of ['repoAssignments', 'ownerAssignments', 'autoAssignments']) {
@@ -224,6 +227,7 @@
     config.appearance = 'crisp';
     config.sceneHeight = 'standard';
     config.readingBacking = 'text';
+    config.depthTuning = { parallax: 100, motion: 100, particles: 100, foreground: 100 };
     let changed = 0;
     for (const theme of Object.values(config.customThemes)) {
       const v = appearanceValues('crisp', theme);

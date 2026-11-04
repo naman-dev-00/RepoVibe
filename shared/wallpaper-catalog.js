@@ -29,19 +29,27 @@
       "category": "Space",
       "style": "3d",
       "tone": [
-        "#cdc6dd",
+        "#cec6dd",
         "#090811"
       ],
       "toneSoft": [
-        "#cdc6dd",
+        "#cec7de",
         "#0a0913"
       ],
       "depth": [
         "far",
         "mid",
-        "near",
-        "front",
         "rays"
+      ],
+      "sprites": [
+        "foreA",
+        "foreB",
+        "midA",
+        "midB",
+        "midC",
+        "popA",
+        "popB",
+        "shard"
       ]
     },
     {

@@ -45,7 +45,8 @@ const STYLES = ['3d', 'illustrated', 'photo'];
     const depthDir = path.join(ROOT, 'wallpapers', 'depth', w.slug);
     const depth = ['far', 'mid', 'near', 'front', 'rays'].filter(l => fs.existsSync(path.join(depthDir, `${l}.webp`)));
     if (depth.length && !depth.includes('far')) problems.push(`${w.slug}: depth layers need at least 'far'`);
-    out.push({ slug: w.slug, name: w.name, category: w.category, style: w.style, tone: info.tone, toneSoft: info.toneSoft, ...(depth.length ? { depth } : {}) });
+    const sprites = fs.existsSync(depthDir) ? fs.readdirSync(depthDir).filter(f => /^s-[A-Za-z0-9]+\.webp$/.test(f)).map(f => f.slice(2, -5)).sort() : [];
+    out.push({ slug: w.slug, name: w.name, category: w.category, style: w.style, tone: info.tone, toneSoft: info.toneSoft, ...(depth.length ? { depth } : {}), ...(sprites.length ? { sprites } : {}) });
   }
   await browser.close();
   if (problems.length) { console.error(`Wallpaper catalog FAILED:\n - ${problems.join('\n - ')}`); process.exit(1); }
