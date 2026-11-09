@@ -32,6 +32,7 @@
       "js": [
         "shared/wallpaper-catalog.js",
         "shared/core.js",
+        "shared/worlds.js",
         "content.js"
       ],
       "run_at": "document_start"

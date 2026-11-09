@@ -377,6 +377,28 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     for (let i = 0; i < n; i++) body += `<circle cx='${(r() * w).toFixed(1)}' cy='${(r() * h).toFixed(1)}' r='${(9 + r() * 14).toFixed(1)}' fill='url(#g${i % colors.length})' opacity='${(0.35 + r() * 0.35).toFixed(2)}'/>`;
     return svgUrl(w, h, body, colors.map((col, i) => `<radialGradient id='g${i}'><stop offset='0' stop-color='${col}' stop-opacity='.95'/><stop offset='.45' stop-color='${col}' stop-opacity='.45'/><stop offset='1' stop-color='${col}' stop-opacity='0'/></radialGradient>`).join(''));
   }
+  /* Declarative particle tiles for the data-only worlds (shared/worlds.js): shape = petal | flake | dot | bubble | cube | ember | page.
+     A tile plane drifts by exactly one tile period per loop (seamless), pushed sideways by the shared gust. */
+  function shapeTile(shape, seed, w, h, n, colors, rMin, rMax) {
+    const r = rng(seed); let body = '', defs = '';
+    colors.forEach((c, i) => { defs += `<radialGradient id='s${i}'><stop offset='0' stop-color='${c}' stop-opacity='1'/><stop offset='.55' stop-color='${c}' stop-opacity='.55'/><stop offset='1' stop-color='${c}' stop-opacity='0'/></radialGradient>`; });
+    for (let i = 0; i < n; i++) {
+      const x0 = r() * w, y0 = r() * h, s = rMin + r() * (rMax - rMin), ci = i % colors.length, c = colors[ci], rot = (r() * 360).toFixed(0), o = (0.55 + r() * 0.45).toFixed(2), m = s * 2.6;
+      const offs = [[0, 0]]; if (x0 < m) offs.push([w, 0]); if (x0 > w - m) offs.push([-w, 0]); if (y0 < m) offs.push([0, h]); if (y0 > h - m) offs.push([0, -h]); // wrap: a particle cut by one edge reappears on the other
+      for (const [ox, oy] of offs) {
+        const x = x0 + ox, y = y0 + oy, T = `transform='translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${rot})' opacity='${o}'`;
+        if (shape === 'petal') body += `<path ${T} d='M0,${-s} C${s * 0.9},${-s * 0.7} ${s * 0.8},${s * 0.5} 0,${s} C${-s * 0.8},${s * 0.5} ${-s * 0.9},${-s * 0.7} 0,${-s} Z' fill='${c}'/>`;
+        else if (shape === 'flake') { let a = ''; for (let k = 0; k < 3; k++) a += `<line x1='${-s}' y1='0' x2='${s}' y2='0' transform='rotate(${k * 60})' stroke='${c}' stroke-width='${Math.max(0.7, s * 0.14).toFixed(2)}' stroke-linecap='round'/>`; body += `<g ${T}>${a}<circle r='${(s * 0.22).toFixed(2)}' fill='${c}'/></g>`; }
+        else if (shape === 'bubble') body += `<g ${T}><circle r='${s}' fill='none' stroke='${c}' stroke-width='${Math.max(0.8, s * 0.1).toFixed(2)}' stroke-opacity='.8'/><circle r='${(s * 0.9).toFixed(2)}' fill='${c}' fill-opacity='.08'/><circle cx='${(-s * 0.35).toFixed(2)}' cy='${(-s * 0.35).toFixed(2)}' r='${(s * 0.2).toFixed(2)}' fill='#fff' fill-opacity='.85'/></g>`;
+        else if (shape === 'cube') body += `<rect ${T} x='${-s}' y='${-s}' width='${2 * s}' height='${2 * s}' fill='${c}' stroke='#fff' stroke-opacity='.35' stroke-width='${Math.max(0.6, s * 0.12).toFixed(2)}'/>`;
+        else if (shape === 'ember') body += `<g ${T}><circle r='${(s * 2.4).toFixed(2)}' fill='url(#s${ci})'/><circle r='${(s * 0.55).toFixed(2)}' fill='${c}'/></g>`;
+        else if (shape === 'page') body += `<g ${T}><rect x='${(-s * 0.7).toFixed(2)}' y='${-s}' width='${(s * 1.4).toFixed(2)}' height='${2 * s}' rx='${(s * 0.08).toFixed(2)}' fill='${c}'/><path d='M${(-s * 0.45).toFixed(2)},${(-s * 0.5).toFixed(2)} H${(s * 0.45).toFixed(2)} M${(-s * 0.45).toFixed(2)},${(-s * 0.1).toFixed(2)} H${(s * 0.45).toFixed(2)} M${(-s * 0.45).toFixed(2)},${(s * 0.3).toFixed(2)} H${(s * 0.2).toFixed(2)}' stroke='#5a4630' stroke-opacity='.45' stroke-width='${Math.max(0.5, s * 0.07).toFixed(2)}'/></g>`;
+        else body += `<circle cx='${x.toFixed(1)}' cy='${y.toFixed(1)}' r='${(s * 2).toFixed(1)}' fill='url(#s${ci})' opacity='${o}'/>`; // dot: soft glow mote
+      }
+    }
+    return svgUrl(w, h, body, defs);
+  }
+  const WORLDS = globalThis.RepoVibeWorlds || {};
   // Per-scene particle planes and atmosphere (only scenes with rendered depth layers use the engine).
   const DEPTH_PARTICLES = {
     'enchanted-forest': { pfar: [glowTile(31, 700, 520, 22, ['#ffe27a', '#b6ff9a'], 2, 4), '700px 520px'], pmid: [glowTile(37, 900, 700, 10, ['#ffe27a', '#9dffd0', '#fff1a8'], 5, 9), '900px 700px'],
@@ -448,6 +470,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
       { n: 'mPanel', src: 'panel', plane: 'pop', at: 'margin', side: 'right', y: 0.55, h: 0.4, k: 2.3, dx: -6, dy: 4, rot: -1, dur: 10, fx: 'pulse' }
     ]
   };
+  const spritesOf = slug => SPRITES[slug] || WORLDS[slug]?.sprites || [];
   function spriteUrl(slug, n) { return chrome.runtime.getURL(`wallpapers/depth/${slug}/s-${n}.webp`); }
   function tuning() { const t = config.depthTuning || {}; return { parallax: (t.parallax ?? 100) / 100, motion: (t.motion ?? 100) / 100, particles: (t.particles ?? 100) / 100, foreground: (t.foreground ?? 100) / 100 }; }
   function buildSprite(slug, s, cinematic) {
@@ -465,12 +488,29 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
       img.style.setProperty('--flut', `${(s.flut || 2.5) / sp}s`); img.style.setProperty('--fa', `${s.fa || 38}deg`); img.style.setProperty('--turn', `${(s.turn || 3.2) / sp}s`);
       wrap.style.setProperty('--sy', `${s.sy ?? 40}%`);
     }
-    else img.style.setProperty('--dur', `${s.dur / (cinematic ? 1.35 : 1)}s`);
+    else if (s.rise) {   // bubbles, motes, spores: rise with sway; start below the stage, fade out above it
+      img.dataset.rise = ''; const sp = cinematic ? 1.3 : 1;
+      img.style.setProperty('--dur', `${s.rise / sp}s`); img.style.setProperty('--sw', `${s.sw || 30}px`); img.style.setProperty('--sway', `${(s.sway || 4.2) / sp}s`);
+      img.style.setProperty('--flut', `${(s.flut || 3) / sp}s`); img.style.setProperty('--fa', `${s.fa || 12}deg`);
+      wrap.style.setProperty('--sy', `${s.sy ?? 60}%`);
+    }
+    else if (s.approach) {   // perspective approach: starts tiny at its vanishing point, grows and slides to its end point
+      img.dataset.approach = ''; img.style.setProperty('--dur', `${s.approach / (cinematic ? 1.35 : 1)}s`); img.style.setProperty('--ax', s.ax || '30vw'); img.style.setProperty('--ay', s.ay || '30vh'); img.style.setProperty('--a0', String(s.a0 ?? 0.05));
+      wrap.style.setProperty('--sy', `${s.sy ?? 50}%`);
+    }
+    else img.style.setProperty('--dur', `${(s.dur || 30) / (cinematic ? 1.35 : 1)}s`);
+    if (s.swim) { img.dataset.swim = ''; img.style.setProperty('--wob', `${s.swim.wob || 24}px`); img.style.setProperty('--wp', `${(s.swim.wp || 5) / (cinematic ? 1.3 : 1)}s`); img.style.setProperty('--tilt', `${s.swim.tilt || 6}deg`); }
+    if (s.wind) {   // tied to the shared gust clock: the gust reaches objects further right a moment later, so it visibly travels
+      img.dataset.wind = ''; img.style.setProperty('--wa', `${s.wind * (cinematic ? 1.6 : 1)}deg`); img.style.setProperty('--ox', s.ox || '50%'); img.style.setProperty('--oy', s.oy || '100%');
+      img.style.setProperty('--gd', `${(-(GUST_S) + (s.x ?? 50) * 0.035).toFixed(2)}s`); img.style.setProperty('--fl', `${(s.fl || 4.2) / (cinematic ? 1.3 : 1)}s`);
+    }
+    if (s.gust) { wrap.dataset.gust = ''; wrap.style.setProperty('--gx', `${s.gust * (cinematic ? 1.5 : 1)}px`); wrap.style.setProperty('--gd', `${(-(GUST_S) + (s.x ?? 50) * 0.035).toFixed(2)}s`); }
+    if (s.jp) img.style.setProperty('--jp', `${s.jp / (cinematic ? 1.25 : 1)}s`);
     img.style.setProperty('--dx', `${(s.dx || 0) * m}px`); img.style.setProperty('--dy', `${(s.dy || 0) * m}px`); img.style.setProperty('--rot', `${(s.rot || 0) * (cinematic ? 1.4 : 1)}deg`);
-    img.style.animationDelay = `${-((s.n.charCodeAt(0) * 7 + s.n.charCodeAt(s.n.length - 1) * 3 + s.n.length * 13) % 20)}s`; // desynchronised loops
+    if (!s.wind) img.style.animationDelay = s.delay !== undefined ? `${s.delay}s` : `${-((s.n.charCodeAt(0) * 7 + s.n.charCodeAt(s.n.length - 1) * 3 + s.n.length * 13) % 20)}s`; // desynchronised loops
     if (s.fx) img.dataset.fx = s.fx;
     wrap.appendChild(img);
-    if (s.plane === 'scene') { wrap.style.left = `${s.x}%`; wrap.style.top = `${s.y}%`; wrap.style.width = `${s.w}vw`; }
+    if (s.plane === 'scene') { wrap.style.left = `${s.x}%`; wrap.style.top = `${s.y}%`; wrap.style.width = `${s.w}%`; if (s.z) wrap.style.zIndex = String(s.z); } // % of the 16:9 stage that shares the baked layers' cover geometry
     else wrap.dataset.pop = s.at;
     return wrap;
   }
@@ -506,7 +546,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     for (let x = innerWidth - 1; x > innerWidth / 2; x -= 8) if (probeY.some(y => blockedAt(x, y))) { colRight = x; break; }
     const amp = 0; // no pointer parallax: an object's reach is its own drift only
     for (const w of pop.querySelectorAll('.repv-s')) {
-      const s = (SPRITES[pop.dataset.scene] || []).find(x => x.n === w.dataset.sprite);
+      const s = spritesOf(pop.dataset.scene).find(x => x.n === w.dataset.sprite);
       const img = w.firstChild; const ratio = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1;
       let ok = false;
       if (s && t.foreground > 0 && innerWidth >= 768) {
@@ -589,9 +629,10 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
       el?.remove();
       el = document.createElement('div');
       el.id = DEPTH_ID; el.setAttribute('aria-hidden', 'true'); el.dataset.scene = d.slug; el.dataset.mode = d.mode;
-      const P = DEPTH_PARTICLES[d.slug] || {};
+      const P = DEPTH_PARTICLES[d.slug] || WORLDS[d.slug]?.particles || {};
+      if (WORLDS[d.slug]?.mist && !P.mist) P.mist = WORLDS[d.slug].mist;
       const order = ['far', 'pfar', 'mist', 'mid', 'pmid', 'near', 'rays', 'front', 'pnear'];
-      const SP = SPRITES[d.slug] || [];
+      const SP = spritesOf(d.slug);
       // scene sprites share a few depth buckets (one parallax mover each) instead of one mover per object
       const bucketK = k => k < 0.52 ? 0.46 : k < 0.75 ? 0.64 : k < 1 ? 0.86 : k < 1.6 ? 1.28 : 1.8;
       const addSprites = near => {
@@ -612,14 +653,22 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
         layer.className = 'repv-l'; layer.dataset.l = name; layer.dataset.k = String(LAYER_K[name]); layer.style.setProperty('--k', String(LAYER_K[name]));
         const inner = document.createElement('i');
         if (img) inner.style.backgroundImage = img;
-        else if (Array.isArray(part)) { layer.dataset.tile = ''; inner.style.backgroundImage = part[0]; inner.style.backgroundSize = part[1]; }
+        else if (Array.isArray(part)) {
+          layer.dataset.tile = ''; inner.style.backgroundImage = part[0]; inner.style.backgroundSize = part[1];
+          const tl = part[2]; // world tile plane: one-tile-period transform loop (seamless, compositor-only) + optional gust push
+          if (tl) {
+            layer.dataset.tw = ''; const cin = d.mode === 'cinematic', pxw = +tl.w, pxh = +tl.h;
+            inner.style.setProperty('--tw', `${pxw}px`); inner.style.setProperty('--th', `${pxh}px`); inner.style.setProperty('--sx', String(tl.sx || 0)); inner.style.setProperty('--sy2', String(tl.sy || 0));
+            inner.style.setProperty('--tp', `${(tl.t || 40) / (cin ? 1.4 : 1)}s`); if (tl.gust) layer.dataset.gustpush = '';
+          }
+        }
         else inner.style.backgroundImage = part;
         layer.appendChild(inner); el.appendChild(layer);
       }
       const veil = document.createElement('div'); veil.className = 'repv-veil'; if (d.veil) veil.style.backgroundImage = d.veil; el.appendChild(veil);
       root.appendChild(el);
       document.getElementById(POP_ID)?.remove();
-      const pops = (SPRITES[d.slug] || []).filter(x => x.plane === 'pop');
+      const pops = spritesOf(d.slug).filter(x => x.plane === 'pop');
       if (pops.length && T.foreground > 0) {
         const pop = document.createElement('div'); pop.id = POP_ID; pop.setAttribute('aria-hidden', 'true'); pop.dataset.scene = d.slug;
         for (const s of pops) { const w = buildSprite(d.slug, s, d.mode === 'cinematic'); w.hidden = true; w.firstChild.addEventListener('load', queuePlacePop, { once: true }); pop.appendChild(w); }
@@ -672,6 +721,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
       requestAnimationFrame(tick);
     }, 1500);
   }
+  const GUST_S = 23; // shared irregular gust cycle (s): wind-driven sprites and gust-pushed wrappers all follow it
   const DEPTH_CSS = `
 html.repv-depth #${'repovibe-depth'} { position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden; contain:strict; --amp:13px; }
 html.repv-depth-cinematic #repovibe-depth { --amp:30px; }
@@ -679,6 +729,7 @@ html.repv-depth-cinematic #repovibe-depth { --amp:30px; }
 #repovibe-depth > .repv-b { position:absolute; inset:0; will-change:transform; }
 #repovibe-depth > .repv-l > i { position:absolute; inset:0; background-position:center; background-size:cover; background-repeat:no-repeat; }
 #repovibe-depth > .repv-l[data-tile] > i { background-position:0 0; background-repeat:repeat; }
+#repovibe-depth > .repv-l[data-tw] > i { inset:calc(-1 * var(--th)) calc(-1 * var(--tw)); } /* one tile of spare area each side: a whole-period slide never shows an edge */
 #repovibe-depth > .repv-veil { position:absolute; inset:0; }
 #repovibe-depth > [data-l="rays"] { opacity:.8; } /* light-coloured alpha art: no blend mode (avoids an extra render surface) */
 html.repv-depth-lite #repovibe-depth > :is([data-l="pfar"], [data-l="mist"], [data-l="pnear"]) { visibility:hidden; }
@@ -745,6 +796,28 @@ html.repv-depth-static #repovibe-depth .repv-s:has(> img[data-fall]), html.repv-
 @keyframes repv-spin-y { from { scale:.82 1; } to { scale:1 1; } }
 @keyframes repv-drift { 0% { transform:translate3d(0, 0, 0) rotate(0deg); } 50% { transform:translate3d(calc(var(--dx) * var(--drift, 1)), calc(var(--dy) * var(--drift, 1)), 0) rotate(calc(var(--rot) * .55 * var(--drift, 1))); } 100% { transform:translate3d(calc(var(--dx) * -.45 * var(--drift, 1)), calc(var(--dy) * .7 * var(--drift, 1)), 0) rotate(calc(var(--rot) * var(--drift, 1))); } }
 @keyframes repv-cross { from { transform:translate3d(-60vw, 6vh, 0) rotate(0deg); } to { transform:translate3d(80vw, -4vh, 0) rotate(var(--rot)); } }
+/* World motion kinds. WIND: one irregular 23 s gust curve shared by every wind-driven object (rotation about its base) and gust-pushed wrapper (translation);
+   --gd delays by x position so a gust visibly travels across the scene. RISE: bubbles/motes. APPROACH: perspective growth. SWIM: body wobble. TILE: seamless particle plane. */
+@media (prefers-reduced-motion:no-preference) {
+ :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-wind] { transform-origin:var(--ox, 50%) var(--oy, 100%); animation:repv-gust-r 23s ease-in-out infinite, repv-flutter var(--fl, 4.2s) ease-in-out infinite alternate; animation-delay:var(--gd, 0s), 0s; }
+ #repovibe-depth .repv-s[data-gust] { animation:repv-gust-x 23s ease-in-out infinite; animation-delay:var(--gd, 0s); }
+ #repovibe-depth .repv-s > img[data-rise] { animation:repv-rise var(--dur, 30s) linear infinite, repv-leaf-sway var(--sway, 4.2s) ease-in-out infinite alternate, repv-leaf-flutter var(--flut, 3s) ease-in-out infinite alternate; }
+ #repovibe-depth .repv-s > img[data-approach] { animation:repv-approach var(--dur, 60s) linear infinite; }
+ #repovibe-depth .repv-s > img[data-swim] { animation-name:repv-drift, repv-swim; animation-duration:var(--dur, 30s), var(--wp, 5s); animation-timing-function:ease-in-out; animation-iteration-count:infinite; animation-direction:alternate; }
+ #repovibe-depth .repv-s > img[data-swim][data-cross] { animation-name:repv-cross, repv-swim; animation-timing-function:linear, ease-in-out; animation-direction:normal, alternate; }
+ #repovibe-depth .repv-s > img[data-jp] { animation-duration:var(--dur, 30s), var(--jp, 4s); }
+ #repovibe-depth > .repv-l[data-tw] > i { animation:repv-tile var(--tp, 40s) linear infinite; }
+ #repovibe-depth > .repv-l[data-tw][data-gustpush] > i { animation:repv-tile var(--tp, 40s) linear infinite, repv-tile-gust 23s ease-in-out infinite; }
+}
+html.repv-depth-lite #repovibe-depth .repv-s > img[data-wind] { animation:none !important; }
+@keyframes repv-gust-r { 0%, 100% { rotate:calc(var(--wa) * -.15); } 12% { rotate:calc(var(--wa) * .25); } 22% { rotate:calc(var(--wa) * .9); } 31% { rotate:calc(var(--wa) * .35); } 47% { rotate:calc(var(--wa) * -.1); } 58% { rotate:calc(var(--wa) * .55); } 66% { rotate:calc(var(--wa) * 1.15); } 78% { rotate:calc(var(--wa) * .2); } 90% { rotate:calc(var(--wa) * -.2); } }
+@keyframes repv-flutter { from { transform:rotate(-.8deg); } to { transform:rotate(.8deg); } }
+@keyframes repv-gust-x { 0%, 100% { translate:0 0; } 22% { translate:calc(var(--gx) * .8) 0; } 31% { translate:calc(var(--gx) * .3) 0; } 47% { translate:calc(var(--gx) * -.1) 0; } 66% { translate:var(--gx) 0; } 78% { translate:calc(var(--gx) * .15) 0; } }
+@keyframes repv-tile-gust { 0%, 100% { translate:0 0; } 22% { translate:60px 8px; } 31% { translate:25px 2px; } 66% { translate:80px 10px; } 78% { translate:12px 0; } }
+@keyframes repv-tile { from { transform:translate3d(0, 0, 0); } to { transform:translate3d(calc(var(--tw) * var(--sx)), calc(var(--th) * var(--sy2)), 0); } }
+@keyframes repv-rise { 0% { transform:translate3d(0, 12vh, 0); opacity:0; } 8% { opacity:1; } 90% { opacity:1; } 100% { transform:translate3d(0, -112vh, 0); opacity:0; } }
+@keyframes repv-approach { 0% { transform:translate3d(0, 0, 0) scale(.05); opacity:0; } 10% { opacity:var(--a0, 1); } 100% { transform:translate3d(var(--ax), var(--ay), 0) scale(1); opacity:1; } }
+@keyframes repv-swim { from { rotate:calc(var(--tilt, 6deg) * -1); translate:0 calc(var(--wob, 24px) * -.5); } to { rotate:var(--tilt, 6deg); translate:0 calc(var(--wob, 24px) * .5); } }
 /* Static (and reduced motion): the same layered scene, at rest: no overscan, no animation, no pointer response */
 html.repv-depth-static #repovibe-depth > .repv-l { inset:0; }
 html.repv-depth-static :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth-still :is(#repovibe-depth, #repovibe-popout) * { animation:none !important; }
