@@ -82,3 +82,28 @@ Everything is software-composited here (CPU ≈ 1.1 cores in Ambient), which is 
 (transform/opacity/translate/rotate/scale) and 50–60 fps is *expected* but **not measured**. Weak devices fall down the one-way Auto ladder
 (Full ≥ 40 fps, Lite 25–40, Minimal < 25) once per page; wind animation is also dropped in Lite. Memory: layered WebP total ≈ 0.4–1.5 MB per world on disk,
 all sprites decode once; no per-frame JS (no requestAnimationFrame loop for the worlds). Full data: `docs/perf-profile-worlds.json`.
+
+## 7. Premium-artwork upgrade attempt (status: PARTIAL — the visual requirement is **NOT** met)
+**Tooling reality.** This environment has no Blender/Maya, no DCC or path tracer, no asset downloads (outbound hosts are blocked) and no GPU; the only available way
+to produce genuine 3D-rendered images is the project's own GLSL raymarcher run in software (SwiftShader). I therefore did not (and cannot) deliver
+cinematic game-environment quality. What was actually done:
+
+| Asset | Before | After |
+|---|---|---|
+| Ocean Depths: sea turtle, whale, manta, jellyfish, two reef fish | 2D signed-distance silhouettes | **real raymarched 3D models** (`lib3d.glsl`): modelled turtle with hex scutes, flippers and head; whale with ventral pleats; manta; jellyfish with bell, arms, tentacles; scaled fish; subsurface, caustic key light, ambient occlusion, rim light |
+| Sakura Dreams: blossom boughs, falling petals, koi | flat vector blobs / 2D shapes | **real raymarched 3D**: individually modelled five-petal flowers (cupped, notched petals, stamens), bark twigs, curved translucent petals, a shaded koi |
+| Everything else in these two worlds (kelp, coral, seabed, sky, Fuji, torii, bridge, pond, tree heads, trunks, grass) | procedural 2D painting | **unchanged — still procedural 2D**, now visibly lower fidelity than the new 3D sprites |
+| Arctic Frost, Aurora, Synthwave, Dark Academia, Pixel Paradise, Sunset Boulevard | procedural 2D painting | **unchanged** |
+
+Visual assessment of the result (1920×1080 and 3840×2160 evidence in `docs/screenshots/worlds/quality/`, before/after, plus `*-ambient-before.webm` vs `*-ambient.webm`):
+* The turtle, koi, flowers and petals now read as lit 3D objects; the manta and jellyfish are only moderately convincing; the whale is plausible but low detail.
+* The 2D environment layers are the weak point and now clash with the 3D sprites; coral and kelp look like flat vector art.
+* **4K:** layers and tree-head sprites are rendered at 2560×1440 / ~1.2× density, so at 3840×2160 they are visibly soft; the new 3D sprites are sharp at 1440p but only ≈1.2× oversampled for 4K. Requirement "foreground detailed on 4K" is **not met**.
+* Performance and behaviour safeguards are unchanged (same sprite names and sizes, same motion data, same tests).
+
+### Assets needed to actually reach the target (replacement pipeline)
+Drop WebP files (RGBA for sprites/foreground layers) into `wallpapers/depth/<slug>/` using the existing names, then `npm run wallpapers:catalog`; no code changes.
+* All worlds: far/mid/near/front layers at **3840×2160** (render at 2× supersampling from a real DCC/path tracer scene with PBR materials, volumetric fog and global illumination), plus `rays`.
+* Ocean: coral colonies (branching, brain, fan) with displaced geometry, kelp ribbons, rock/seabed with sediment, ruins; Sakura: modelled cherry trunks and canopy clusters (heads as separate RGBA at ≥2× density), stone lantern, koi pond water with refraction; Arctic: ice formations with refraction/caustics, snow pines; Aurora: volumetric curtains; Synthwave: modelled car, palms; Dark Academia: modelled shelves/books, candle with volumetric flame; Pixel Paradise: true voxel scene (e.g. MagicaVoxel renders); Sunset: modelled palms, car, cliff road.
+* Sprites should be rendered at ≥2× their display size (≥3× for foreground/pop-outs) so they stay sharp at 4K.
+Until such assets exist, the eight worlds must be regarded as stylised, with only the items listed above upgraded.

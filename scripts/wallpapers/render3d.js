@@ -14,7 +14,7 @@ const opt = (name, def) => { const i = args.indexOf(name); return i >= 0 ? args[
 const preview = opt('--preview', null);
 const outDir = path.resolve(opt('--out', path.join(__dirname, '../../wallpapers')));
 const slugs = args.filter((a, i) => !a.startsWith('--') && !(i > 0 && ['--preview', '--out', '--only'].includes(args[i - 1])));
-const all = fs.readdirSync(DIR).filter(f => f.endsWith('.glsl') && !['common.glsl', 'lib2d.glsl'].includes(f)).map(f => f.replace('.glsl', ''));
+const all = fs.readdirSync(DIR).filter(f => f.endsWith('.glsl') && !['common.glsl', 'lib2d.glsl', 'lib3d.glsl'].includes(f)).map(f => f.replace('.glsl', ''));
 const list = slugs.length ? slugs : all;
 const [W, H] = preview ? preview.split('x').map(Number) : [2560, 1440];
 const common = fs.readFileSync(path.join(DIR, 'common.glsl'), 'utf8');
@@ -29,7 +29,7 @@ const only = opt('--only', null); // e.g. --only front,rays (implies --layers, s
   page.on('console', m => { if (m.type() === 'error') console.error(m.text()); });
   for (const slug of list) {
     const body = fs.readFileSync(path.join(DIR, `${slug}.glsl`), 'utf8');
-    const src = `#version 300 es\n${common}\n${/\/\/ @lib2d/.test(body) ? fs.readFileSync(path.join(DIR, 'lib2d.glsl'), 'utf8') : ''}\n${body}`; // '// @lib2d' pulls in the painter helpers
+    const src = `#version 300 es\n${common}\n${/\/\/ @lib2d/.test(body) ? fs.readFileSync(path.join(DIR, 'lib2d.glsl'), 'utf8') : ''}\n${/\/\/ @lib3d/.test(body) ? fs.readFileSync(path.join(DIR, 'lib3d.glsl'), 'utf8') : ''}\n${body}`; // '// @lib2d' pulls in the painter helpers
     const t0 = Date.now();
    // Sprites: '// @sprites name:WxH, ...' in the shader header; rendered with uLayer = 10 + index (--sprites, or --only s-<name>)
    const spriteDecl = /\/\/ @sprites ([^\n]+)/.exec(fs.readFileSync(path.join(DIR, `${slug}.glsl`), 'utf8'));

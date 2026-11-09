@@ -1,7 +1,9 @@
 // @lib2d
+// @lib3d
 // @sprites kelpA:520x1200, kelpB:420x1000, fan:640x700, jelly:520x720, fishA:320x160, fishB:300x150, turtle:760x520, manta:1200x700, whale:1500x560, bubble:128x128
-// Ocean Depths — a living underwater kingdom (RepoVibe immersive world). Painted with signed-distance shapes, volumetric light and
-// caustics (honest label: layered 2.5D art, not real-time 3D). uLayer: 1 far (water column, seabed, sunken ruins) · 2 mid (reef,
+// Ocean Depths — a living underwater kingdom (RepoVibe immersive world). The sea life sprites (jellyfish, fish, turtle, manta, whale) are
+// real raymarched 3D geometry (signed-distance models with materials, subsurface, caustic lighting and ambient occlusion) rendered to
+// transparent sprites; the environment layers are painted 2.5D art. Honest label: not real-time 3D. uLayer: 1 far (water column, seabed, sunken ruins) · 2 mid (reef,
 // kelp forest) · 3 near (rock and coral frame) · 4 front (sharp foreground kelp/fan coral) · 5 god rays · 10+ sprites.
 const float SEA = -0.30; // seabed horizon
 
@@ -244,10 +246,148 @@ vec4 bubble(vec2 uv) {
   return vec4(vec3(0.8, 0.97, 1.0) * (0.55 + 0.45 * hi + rim * 0.4), SAT(rim * 0.8 + hi + 0.1 * smoothstep(0.4, 0.0, r)) * cov(r - 0.43));
 }
 
+
+// ================= raymarched 3D sea life (uLayer 13..18) =================
+float hash3(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
+float scales(vec2 q) { vec2 g = q * vec2(1.0, 1.4); vec2 i = floor(g), f = fract(g); float d = 1.0; for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) { vec2 o = vec2(float(x), float(y)); vec2 r = o + hash22(i + o) * 0.6 + 0.2 - f; d = min(d, dot(r, r)); } return sqrt(d); }
+float hexEdge(vec2 q) { vec2 r = vec2(1.0, 1.732); vec2 a = mod(q, r) - r * 0.5, b = mod(q - r * 0.5, r) - r * 0.5; vec2 gv = dot(a, a) < dot(b, b) ? a : b; return max(dot(abs(gv), normalize(vec2(1.0, 1.732))), abs(gv.x)); }
+float mapTurtle(vec3 p) {
+  p = rotX(0.55) * (rotY(-0.25) * p); gP = p; float d;
+  float he = hexEdge(p.xz * 6.5); float groove = smoothstep(0.38, 0.5, he);
+  float shell = sdE(p - vec3(0.0, 0.07, 0.0), vec3(0.56, 0.2, 0.44)); shell = max(shell, -(p.y + 0.02)); shell += groove * 0.012 - 0.006;
+  d = shell; gM = 1.0;
+  float skirt = sdE(p - vec3(0.0, 0.0, 0.0), vec3(0.58, 0.05, 0.46)); if (skirt < d) { d = skirt; gM = 4.0; }
+  float head = sdE(p - vec3(0.7, 0.03, 0.0), vec3(0.19, 0.11, 0.11)); head = smin(head, sdCap3(p, vec3(0.5, 0.03, 0.0), vec3(0.62, 0.04, 0.0), 0.09, 0.08), 0.05);
+  head = max(head, -sdE(p - vec3(0.78, 0.02, 0.0), vec3(0.08, 0.025, 0.12)) + 0.0 * 0.0) ; if (head < d) { d = head; gM = 2.0; }
+  float eye = sdSph(p - vec3(0.72, 0.09, 0.085), 0.026); float eye2 = sdSph(p - vec3(0.72, 0.09, -0.085), 0.026); eye = min(eye, eye2); if (eye < d) { d = eye; gM = 3.0; }
+  for (int s = 0; s < 2; s++) { float sg = s == 0 ? 1.0 : -1.0;
+    vec3 q = p; q.z *= sg;
+    float fl = sdCap3(vec3(q.x, q.y * 2.6, q.z), vec3(0.3, -0.02, 0.32), vec3(0.62, -0.18, 0.88), 0.11, 0.028);
+    float rf = sdCap3(vec3(q.x, q.y * 2.6, q.z), vec3(-0.34, -0.02, 0.28), vec3(-0.5, -0.06, 0.5), 0.07, 0.025);
+    fl = min(fl, rf); if (fl < d) { d = fl; gM = 2.0; } }
+  float tl = sdCap3(p, vec3(-0.55, 0.0, 0.0), vec3(-0.72, -0.02, 0.0), 0.04, 0.01); if (tl < d) { d = tl; gM = 2.0; }
+  return d * 0.8;
+}
+float mapManta(vec3 p) {
+  p = vec3(p.x, -p.y, p.z); p = rotX(-0.25) * (rotY(0.0) * p);   // seen from below: pale belly toward the viewer
+  float ax = abs(p.z); gP = p;
+  float zle = 0.30 - 0.42 * pow(ax / 0.95, 2.2), zte = -0.12 - 0.26 * pow(ax / 0.95, 1.3); // heading is +x; span is z
+  float outline = max(max(p.x - zle, zte - p.x), ax - 0.95);
+  float th = (0.085 * (1.0 - pow(ax / 0.95, 1.4)) * (1.0 - 0.4 * smoothstep(zte, zle, p.x)) + 0.006) * pow(SAT(-outline / 0.16), 0.6) + 0.003;
+  float droop = -0.22 * pow(ax, 1.6) + 0.04 * sin(ax * 5.0);
+  float d = max(outline * 0.7, abs(p.y - droop) - th); gM = 1.0;
+  float body = sdE(p - vec3(0.0, droop * 0.2, 0.0), vec3(0.42, 0.09, 0.18)); d = smin(d, body, 0.06);
+  float lobes = min(sdCap3(p, vec3(0.34, -0.02, 0.07), vec3(0.62, -0.06, 0.1), 0.035, 0.018), sdCap3(p, vec3(0.34, -0.02, -0.07), vec3(0.62, -0.06, -0.1), 0.035, 0.018)); d = smin(d, lobes, 0.03);
+  float tail = sdCap3(p, vec3(-0.4, 0.0, 0.0), vec3(-1.35, -0.03, 0.0), 0.028, 0.004); d = smin(d, tail, 0.04);
+  float gill = abs(p.z) - 0.0; return d * 0.8;
+}
+float mapWhale(vec3 p) {
+  p = rotX(0.28) * (rotY(0.12) * p); gP = p;
+  float d = sdCap3(p, vec3(-0.62, 0.02, 0.0), vec3(-0.3, 0.0, 0.0), 0.04, 0.15);
+  d = smin(d, sdCap3(p, vec3(-0.3, 0.0, 0.0), vec3(0.15, -0.02, 0.0), 0.15, 0.235), 0.1);
+  d = smin(d, sdCap3(p, vec3(0.15, -0.02, 0.0), vec3(0.62, -0.03, 0.0), 0.235, 0.15), 0.1);
+  d = smin(d, sdE(p - vec3(0.62, -0.06, 0.0), vec3(0.2, 0.12, 0.16)), 0.06); gM = 1.0;
+  float belly = sin(p.z * 70.0) * 0.005 * smoothstep(-0.02, -0.14, p.y) * step(p.x, 0.55); d += belly;
+  d = smin(d, sdE(p - vec3(-0.12, 0.215, 0.0), vec3(0.06, 0.04, 0.02)), 0.04);
+  for (int s = 0; s < 2; s++) { float sg = s == 0 ? 1.0 : -1.0; vec3 q = p; q.z *= sg;
+    float fin = sdCap3(vec3(q.x, q.y * 3.0, q.z), vec3(0.25, -0.35, 0.16), vec3(-0.12, -0.9, 0.78), 0.07, 0.022); if (fin < d) { d = fin; gM = 2.0; }
+    float fl = sdE(rotZ(0.0) * (q - vec3(-0.84, 0.05, 0.18)) * vec3(1.0, 3.5, 1.0), vec3(0.09, 0.2, 0.27)); if (fl < d) { d = fl; gM = 2.0; } }
+  float stalk = sdCap3(p, vec3(-0.7, 0.03, 0.0), vec3(-0.84, 0.05, 0.0), 0.03, 0.015); d = smin(d, stalk, 0.03);
+  return d * 0.75;
+}
+float mapJelly(vec3 p) {
+  p = rotX(0.12) * p; gP = p;
+  vec3 b = p - vec3(0.0, 0.2, 0.0);
+  float rim = 1.0 + 0.04 * sin(atan(b.z, b.x) * 16.0);
+  float bell = sdE(b, vec3(0.36 * rim, 0.27, 0.36 * rim)); float inner = sdE(b - vec3(0.0, -0.03, 0.0), vec3(0.31, 0.235, 0.31));
+  float shell = max(max(bell, -inner), -(b.y + 0.02) - 0.0);
+  float d = shell; gM = 1.0;
+  float core = sdE(b - vec3(0.0, 0.03, 0.0), vec3(0.11, 0.08, 0.11)); if (core < d) { d = core; gM = 3.0; }
+  for (int i = 0; i < 4; i++) { float a = float(i) * 1.5708 + 0.4; float yy = p.y + 0.05;
+    vec2 off = vec2(cos(a), sin(a)) * 0.07 + vec2(sin(yy * 9.0 + a), cos(yy * 8.0 + a)) * 0.03 * (-yy);
+    float arm = sdCap3(p, vec3(off.x, 0.04, off.y), vec3(off.x * 1.4, -0.6, off.y * 1.4 + 0.05), 0.045, 0.012); if (arm < d) { d = arm; gM = 2.0; } }
+  for (int i = 0; i < 9; i++) { float a = float(i) * 0.698 + 0.2; vec3 s0 = vec3(cos(a), 0.0, sin(a)) * 0.3 + vec3(0.0, 0.06, 0.0);
+    float yy = -(p.y - 0.06);
+    vec3 s1 = s0 + vec3(sin(a * 3.0 + yy * 7.0) * 0.04, -0.62 - 0.14 * hash11(float(i)), cos(a * 2.0 + yy * 6.0) * 0.04);
+    float t = sdCap3(p, s0, s1, 0.01, 0.003); if (t < d) { d = t; gM = 2.0; } }
+  return d * 0.8;
+}
+float mapFish(vec3 p, float k) {
+  p = rotX(0.18) * rotY(-0.2) * p; gP = p;
+  float tailx = -0.32;
+  float body = sdE(p, vec3(0.34, 0.15 + 0.04 * k, 0.085));
+  float tail = sdE(rotZ(0.0) * (p - vec3(-0.42, 0.0, 0.0)) * vec3(1.0, 1.0, 5.0), vec3(0.14, 0.2 + 0.05 * k, 0.12)); tail = max(tail, -(p.x + 0.6));
+  float peduncle = sdCap3(p, vec3(-0.22, 0.0, 0.0), vec3(-0.34, 0.0, 0.0), 0.07, 0.04); body = smin(body, peduncle, 0.05);
+  float dorsal = sdE((p - vec3(-0.02, 0.17 + 0.03 * k, 0.0)) * vec3(1.0, 1.0, 5.0), vec3(0.22, 0.09, 0.14));
+  float pect = sdE(rotZ(-0.5) * (p - vec3(0.06, -0.06, 0.08)) * vec3(1.0, 1.0, 4.0), vec3(0.1, 0.04, 0.1));
+  float d = smin(body, dorsal, 0.03); gM = 1.0; if (tail < d) { d = tail; gM = 2.0; } float pf = pect; if (pf < d) { d = pf; gM = 2.0; }
+  float eye = sdSph(p - vec3(0.24, 0.05, 0.072), 0.032); if (eye < d) { d = eye; gM = 3.0; }
+  d += (gM == 1.0 ? 0.0022 * (1.0 - smoothstep(0.0, 0.5, scales(p.xy * 22.0))) : 0.0);
+  return d * 0.8;
+}
+float map3(vec3 p) {
+  int k = uLayer - 10;
+  if (k == 3) return mapJelly(p); if (k == 4) return mapFish(p, 0.0); if (k == 5) return mapFish(p, 1.0);
+  if (k == 6) return mapTurtle(p); if (k == 7) return mapManta(p); return mapWhale(p);
+}
+vec3 underLight(vec3 p, vec3 n, vec3 rd, vec3 alb, float rough, float sss, float ao, vec3 amb) {
+  vec3 L = normalize(vec3(0.25, 0.9, -0.45));
+  float diff = SAT(dot(n, L) * 0.7 + 0.3); float cs = 0.75 + 0.5 * caustic(p.xz * 1.4 + p.y * 0.5);
+  float fr = pow(1.0 - SAT(dot(n, -rd)), 3.0);
+  vec3 H = normalize(L - rd); float spec = pow(SAT(dot(n, H)), mix(64.0, 8.0, rough)) * (1.0 - rough) * 0.5;
+  vec3 c = alb * (amb * (0.22 + 0.3 * (n.y * 0.5 + 0.5)) + vec3(0.9, 1.0, 0.85) * diff * cs * 0.9) * ao;
+  c += vec3(0.55, 0.9, 1.0) * fr * (0.12 + sss * 0.2) + vec3(0.8, 1.0, 0.95) * spec;
+  c += alb * sss * pow(SAT(dot(rd, L) * 0.5 + 0.5), 2.0) * 0.4;
+  return c;
+}
+vec3 shade3(vec3 pw, vec3 n, vec3 rd, float m, float ao, out float alpha) {
+  int k = uLayer - 10; alpha = 1.0; vec3 p = gP; vec3 amb = vec3(0.34, 0.62, 0.78);
+  if (k == 6) { // turtle
+    if (m == 1.0) { float he = hexEdge(p.xz * 6.5); float g = smoothstep(0.38, 0.5, he);
+      vec3 base = mix(vec3(0.62, 0.42, 0.14), vec3(0.2, 0.17, 0.07), g); base = mix(base, vec3(0.28, 0.42, 0.2), 0.45 * SAT(fbm(p.xz * 14.0, 4) + 0.2) * (1.0 - g * 0.0));
+      base *= 0.8 + 0.35 * noise(p.xz * 60.0); return underLight(pw, n, rd, base, 0.4, 0.3, ao * (0.55 + 0.45 * (1.0 - g)), amb); }
+    if (m == 3.0) return vec3(0.02);
+    if (m == 4.0) return underLight(pw, n, rd, vec3(0.5, 0.52, 0.3), 0.7, 0.4, ao, amb);
+    vec3 sk = mix(vec3(0.38, 0.5, 0.27), vec3(0.62, 0.62, 0.38), SAT(0.5 - p.y * 4.0)); sk *= 0.85 + 0.25 * noise(p.xz * 40.0); sk = mix(sk, vec3(0.8, 0.7, 0.35), step(0.78, noise(p.xz * 30.0 + 5.0) * 0.5 + 0.5) * 0.7);
+    return underLight(pw, n, rd, sk, 0.6, 0.5, ao, amb); }
+  if (k == 7) { // manta (seen from below): pale belly with dark gill slits and spots, dark rim
+    float ax = abs(p.z);
+    vec3 belly = mix(vec3(0.82, 0.88, 0.92), vec3(0.28, 0.36, 0.46), SAT(ax / 0.8 + 0.4 * smoothstep(0.0, 0.5, p.x - 0.1)) * 0.9);
+    belly = mix(belly, vec3(0.06, 0.09, 0.14), smoothstep(0.012, 0.0, abs(fract(p.x * 14.0) - 0.5) - 0.42) * step(abs(p.z), 0.2) * step(p.x, 0.3) * step(-0.2, p.x) * 0.9);
+    belly = mix(belly, vec3(0.05, 0.08, 0.12), smoothstep(0.03, 0.0, length(vec2(fract(p.x * 9.0 + 0.3) - 0.5, fract(p.z * 9.0) - 0.5) * 0.11) - 0.012) * step(0.05, ax) * 0.8);
+    return underLight(pw, n, rd, belly, 0.45, 0.35, ao, amb); }
+  if (k == 8) { // whale
+    float up = SAT(n.y * 1.2 + 0.4); vec3 skin = mix(vec3(0.78, 0.84, 0.88), vec3(0.12, 0.19, 0.28), up);
+    if (m == 2.0) skin = mix(vec3(0.9, 0.93, 0.95), vec3(0.18, 0.25, 0.34), SAT(n.y + 0.5));
+    skin *= 0.88 + 0.2 * fbm(p.xz * 14.0 + p.y * 4.0, 4);
+    skin = mix(skin, vec3(0.8, 0.78, 0.7), smoothstep(0.62, 0.8, noise(p.xy * 38.0 + 2.0) * 0.5 + 0.5) * smoothstep(0.3, 0.9, p.x + 0.5) * up * 0.7);
+    return underLight(pw, n, rd, skin, 0.5, 0.45, ao, amb); }
+  if (k == 3) { // jelly: translucent bell with glowing canals
+    float fr = pow(1.0 - SAT(dot(n, -rd)), 2.0); float a = atan(p.z, p.x - 0.0);
+    vec3 col = mix(vec3(0.5, 0.25, 0.95), vec3(1.0, 0.55, 0.95), SAT((p.y + 0.1) * 2.0));
+    float canal = smoothstep(0.12, 0.0, abs(sin(a * 8.0)) - 0.88) * (0.4 + 0.6 * SAT(1.0 - length(p.xz) * 2.6));
+    vec3 glow = vec3(0.4, 0.95, 1.0) * canal * 0.9;
+    if (m == 3.0) { alpha = 0.95; return vec3(1.0, 0.75, 0.4) * (0.7 + 0.3 * ao); }
+    if (m == 2.0) { alpha = 0.7; return mix(vec3(0.8, 0.5, 1.0), vec3(1.0, 0.8, 1.0), SAT(-p.y)) * (0.7 + 0.5 * fr) + vec3(0.2, 0.4, 0.5) * 0.2; }
+    alpha = SAT(0.62 + fr * 0.3 + canal * 0.2);
+    return col * (0.7 + 0.4 * ao) * (0.8 + 0.4 * SAT(n.y)) + glow * 0.8 + vec3(0.8, 0.7, 1.0) * fr * 0.3; }
+  // fish
+  float kk = float(k - 4);
+  if (m == 3.0) return vec3(0.02, 0.02, 0.03) + 0.5 * pow(SAT(dot(n, normalize(vec3(0.3, 0.8, -0.5)))), 24.0);
+  vec3 body;
+  if (kk < 0.5) { body = vec3(1.0, 0.42, 0.06); float band = smoothstep(0.02, 0.0, abs(abs(p.x - 0.0) - 0.0 - 0.08) - 0.045) + smoothstep(0.02, 0.0, abs(p.x + 0.2) - 0.035) + smoothstep(0.02, 0.0, abs(p.x - 0.22) - 0.03);
+    body = mix(body, vec3(0.97, 0.96, 0.92), SAT(band)); body = mix(body, vec3(0.06, 0.03, 0.02), SAT(smoothstep(0.02, 0.0, abs(abs(p.x - 0.08) - 0.045 - 0.04 + 0.0) - 0.008) * 0.0)); }
+  else { body = mix(vec3(0.08, 0.28, 0.9), vec3(0.2, 0.55, 1.0), SAT(0.5 - p.y * 3.0)); body = mix(body, vec3(0.04, 0.05, 0.12), smoothstep(0.02, 0.0, length((p.xy - vec2(0.02, 0.02)) * vec2(1.0, 1.4)) - 0.1) * 0.0 + smoothstep(0.05, 0.0, abs(p.y - 0.03 + 0.15 * (p.x - 0.0) * 0.0) - 0.02 - 0.0) * step(p.x, 0.2) * 0.6); body = mix(body, vec3(1.0, 0.85, 0.1), step(p.x, -0.3) * 0.9); }
+  if (m == 2.0) body = kk < 0.5 ? vec3(1.0, 0.5, 0.1) : vec3(1.0, 0.85, 0.15);
+  float sc = scales(p.xy * 22.0); body *= 0.8 + 0.3 * smoothstep(0.1, 0.5, sc);
+  return underLight(pw, n, rd, body, 0.35, 0.3, ao, amb);
+}
+
 vec3 render(vec2 uv) {
   vec4 r;
   if (uLayer >= 10) {
     int k = uLayer - 10;
+    if (k >= 3 && k <= 8) { r = sprite3d(uv, vec3(0.0, 0.0, -3.0), vec3(0.0), (k == 4 || k == 5) ? 4.1 : (k == 3 ? 2.6 : 2.2)); gAlpha = r.a; return r.rgb; }
     if (k == 0) r = kelpStrand(uv, 1.0, 0.0);
     else if (k == 1) r = kelpStrand(uv, 7.0, 1.0);
     else if (k == 2) r = fanCoral(uv);

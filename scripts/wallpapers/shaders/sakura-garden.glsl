@@ -1,4 +1,5 @@
 // @lib2d
+// @lib3d
 // @sprites sprayA:1500x1000, sprayB:1200x860, treeL:2160x1080, treeR:1620x1080, petalA:256x256, petalB:256x256, petalC:256x256, koi:640x300
 // Sakura Dreams — a Japanese garden at sunrise (RepoVibe immersive world). Painted with signed-distance shapes and layered
 // shading (honest label: layered 2.5D art, not real-time 3D). uLayer: 1 far (sky, Fuji, ridges, pagoda hill, far shore, pond with
@@ -342,10 +343,94 @@ vec4 lantern(vec2 uv) {
   return vec4(mix(r.rgb, vec3(1.0, 0.8, 0.45), g * (1.0 - r.a)), max(r.a, g));
 }
 
+
+// ================= raymarched 3D sprites: blossom boughs (0,1), petals (4..6), koi (7) =================
+
+float sdPetal3(vec3 q, float L, float W) {
+  vec3 pq = q - vec3(0.5 * L, 0.0, 0.0);
+  float curl = 0.9 * pq.y * pq.y / W + 1.1 * q.x * q.x / L * 0.35;
+  float d = sdE(vec3(pq.x, pq.y, pq.z - curl), vec3(L * 0.56, W, 0.0105 * L / 0.13));
+  d = max(d, -(length(vec2(q.x - L * 1.04, q.y)) - 0.016 * L / 0.13) );          // the notch at the petal tip
+  return d * 0.7;
+}
+float flower3(vec3 p, vec3 c, float R, mat3 rot, out float mat) {
+  vec3 q = rot * (p - c); mat = 1.0; float bound = length(q) - R * 1.5; if (bound > 0.06) return bound;
+  float d = 1e9;
+  for (int i = 0; i < 5; i++) { float a = float(i) * 1.2566 + 0.2; d = min(d, sdPetal3(rotZ(-a) * q, 0.125 * R / 0.1, 0.052 * R / 0.1)); }
+  float stamens = 1e9;
+  for (int i = 0; i < 6; i++) { float a = float(i) * 1.047 + 0.5; vec3 e = vec3(cos(a), sin(a), 0.35) * 0.065 * R / 0.1; stamens = min(stamens, sdCap3(q, vec3(0.0, 0.0, 0.0), e, 0.004 * R / 0.1, 0.002 * R / 0.1)); stamens = min(stamens, sdSph(q - e, 0.0065 * R / 0.1)); }
+  float ctr = sdSph(q - vec3(0.0, 0.0, 0.01), 0.018 * R / 0.1);
+  float ds = min(stamens, ctr); if (ds < d) { d = ds; mat = 2.0; }
+  return d;
+}
+vec2 boughPt(float t, float seed) { return mix(vec2(0.78, 0.06), vec2(-0.66, -0.16), t) + vec2(0.0, 0.1 * sin(PI * t) + 0.03 * sin(t * 17.0 + seed)); }
+vec3 gC = vec3(0.0);
+float mapBough(vec3 p, float seed) {
+  float d = 1e9; gM = 3.0; vec2 prev = boughPt(0.0, seed);
+  for (int i = 1; i <= 14; i++) { float t = float(i) / 14.0; vec2 q = boughPt(t, seed); float r0 = mix(0.026, 0.006, float(i - 1) / 14.0), r1 = mix(0.026, 0.006, t);
+    d = min(d, sdCap3(p, vec3(prev, 0.0), vec3(q, 0.0), r0, r1)); prev = q; }
+  d += 0.004 * noise(p.xy * 90.0);
+  float mt;
+  for (int i = 0; i < 12; i++) { float fi = float(i); float t = 0.06 + 0.078 * fi; float sg = (i % 2 == 0) ? 1.0 : -1.0; float h = hash11(seed + fi * 3.7);
+    vec2 a = boughPt(t, seed); vec2 off = vec2(-0.03 + 0.05 * h, sg * (0.05 + 0.07 * h));
+    // twig to the flower
+    d = min(d, sdCap3(p, vec3(a, 0.0), vec3(a + off, 0.02), 0.006, 0.003));
+    vec3 c = vec3(a + off, 0.03 + 0.04 * hash11(seed + fi));
+    mat3 rot = rotZ(h * 6.28) * rotX((hash11(seed + fi * 1.3) - 0.5) * 1.0) * rotY((hash11(seed + fi * 2.1) - 0.5) * 0.9);
+    float R = 0.85 + 0.5 * hash11(seed + fi * 5.0);
+    float fd = flower3(p, c, R * 0.1, rot, mt); if (fd < d) { d = fd; gM = mt; gC = c; } }
+  return d * 0.8;
+}
+vec2 koiPt(float t) { return vec2(0.42 - 0.95 * t, 0.06 * sin(t * 6.0)); }
+float mapKoi(vec3 p) {
+  p = rotX(-0.9) * p; gP = p; float d = 1e9; vec2 prev = koiPt(0.0); gM = 1.0;
+  for (int i = 1; i <= 10; i++) { float t = float(i) / 10.0; vec2 q = koiPt(t); float r0 = 0.075 * sin(PI * (0.12 + 0.82 * (t - 0.1))) + 0.012, r1 = 0.075 * sin(PI * (0.12 + 0.82 * t)) + 0.012; if (t < 0.12) { r0 = 0.045; r1 = 0.06; }
+    d = min(d, sdCap3(vec3(p.x, p.y * 1.15, p.z), vec3(prev, 0.0), vec3(q, 0.0), max(r0, 0.01), max(r1, 0.01))); prev = q; }
+  float tail = sdE(vec3(p.x + 0.58, p.y * 0.9 - 0.06 * sin(-0.58 * 6.0 * 0.0), p.z * 5.0), vec3(0.2, 0.17, 0.12)) ; tail = max(tail, -(p.x + 0.38)); if (tail < d) { d = tail; gM = 2.0; }
+  for (int s2 = 0; s2 < 2; s2++) { float sg = s2 == 0 ? 1.0 : -1.0; vec3 q = vec3(p.x, p.y * sg, p.z * 6.0);
+    float fin = sdE(rotZ(0.7) * (q - vec3(0.2, sg * 0.1 * 6.0 / 6.0, 0.0) * 1.0 * vec3(1.0, 1.0, 1.0)) , vec3(0.11, 0.04, 0.1)); fin = sdE(rotZ(sg * 0.7) * (vec3(p.x, p.y, p.z * 6.0) - vec3(0.2, sg * 0.1, 0.0)), vec3(0.11, 0.035, 0.1)); if (fin < d) { d = fin; gM = 2.0; } }
+  float eyeS = min(sdSph(p - vec3(0.4, 0.045, 0.045), 0.014), sdSph(p - vec3(0.4, -0.045, 0.045), 0.014)); if (eyeS < d) { d = eyeS; gM = 4.0; }
+  return d * 0.7;
+}
+float map3(vec3 p) {
+  int k = uLayer - 10;
+  if (k == 0) return mapBough(p, 3.0); if (k == 1) return mapBough(vec3(p.x * 1.15, p.yz), 11.0);
+  if (k == 7) return mapKoi(p);
+  // petals 4..6: a single curved shell
+  float kk = float(k - 4); vec3 q = rotX(0.5 + kk * 0.4) * rotY(0.3 - kk * 0.5) * p; gP = q; gM = 1.0;
+  float curl = 0.7 * q.y * q.y + 0.35 * q.x * q.x * (1.0 + kk * 0.3);
+  float d = sdE(vec3(q.x, q.y, q.z - curl), vec3(0.17 - 0.015 * kk, 0.3, 0.012)); d = max(d, -(length(vec2(q.x, q.y - 0.32)) - 0.045)); return d * 0.7;
+}
+vec3 shade3(vec3 p, vec3 n, vec3 rd, float m, float ao, out float alpha) {
+  alpha = 1.0; int k = uLayer - 10; vec3 L = normalize(vec3(-0.5, 0.75, -0.6));
+  float diff = SAT(dot(n, L) * 0.5 + 0.5); float back = SAT(dot(-n, L)); float fr = pow(1.0 - SAT(abs(dot(n, rd))), 3.0);
+  vec3 sky = mix(vec3(0.6, 0.45, 0.65), vec3(1.0, 0.85, 0.8), n.y * 0.5 + 0.5);
+  if (k == 7) { vec3 q = gP;
+    if (m == 4.0) return vec3(0.02);
+    float patch1 = smoothstep(-0.05, 0.1, fbm(q.xy * vec2(5.0, 9.0) + 2.0, 4)); float sumi = step(0.62, noise(q.xy * vec2(7.0, 12.0) + 9.0) * 0.5 + 0.5);
+    vec3 base = mix(vec3(0.98, 0.96, 0.93), vec3(0.95, 0.32, 0.06), patch1); base = mix(base, vec3(0.05, 0.04, 0.05), sumi * 0.8 * step(q.x, 0.25));
+    if (m == 2.0) { base = mix(vec3(1.0, 0.7, 0.4), vec3(1.0, 0.95, 0.9), 0.5); alpha = 0.8; }
+    base *= 0.92 + 0.12 * noise(q.xy * 120.0);
+    vec3 H = normalize(L - rd); float sp = pow(SAT(dot(n, H)), 60.0) * 0.6;
+    return base * (sky * 0.5 + vec3(1.0, 0.95, 0.85) * diff * 0.8) * ao + vec3(1.0) * sp + vec3(1.0, 0.6, 0.5) * back * 0.1; }
+  if (k >= 4) { vec3 q = gP; float tip = SAT((q.y + 0.3) / 0.6);
+    vec3 base = mix(vec3(1.0, 0.55, 0.72), vec3(1.0, 0.93, 0.95), smoothstep(0.0, 1.0, tip));
+    base *= 0.93 + 0.07 * sin(q.x * 90.0 * (1.0 - tip * 0.5));
+    vec3 sss = vec3(1.0, 0.45, 0.6) * back * 0.6;
+    return base * (sky * 0.55 + vec3(1.0, 0.92, 0.85) * diff * 0.75) * (0.75 + 0.25 * ao) + sss + vec3(1.0, 0.9, 0.9) * fr * 0.15; }
+  // bough
+  if (m == 3.0) { vec3 bark = mix(vec3(0.13, 0.07, 0.06), vec3(0.45, 0.28, 0.24), SAT(noise(p.xy * 160.0) * 0.5 + 0.5)); bark = mix(bark, vec3(0.62, 0.5, 0.46), step(0.9, noise(p.xy * vec2(240.0, 60.0)) * 0.5 + 0.5) * 0.4);
+    return bark * (sky * 0.45 + vec3(1.0, 0.9, 0.8) * diff * 0.9) * ao; }
+  if (m == 2.0) return mix(vec3(1.0, 0.8, 0.2), vec3(0.9, 0.2, 0.5), 0.35) * (0.6 + 0.6 * diff) * ao;
+  float rad = SAT(length(p.xy - gC.xy) / 0.16); vec3 base = mix(vec3(0.92, 0.22, 0.46), vec3(1.0, 0.82, 0.88), smoothstep(0.1, 0.9, rad) * (0.7 + 0.3 * noise(p.xy * 80.0)));
+  return base * (sky * 0.32 + vec3(1.0, 0.9, 0.82) * diff * 0.85) * (0.3 + 0.7 * pow(ao, 1.6)) + vec3(1.0, 0.4, 0.55) * back * 0.45 + vec3(1.0) * fr * 0.08;
+}
+
 vec3 render(vec2 uv) {
   vec4 r;
   if (uLayer >= 10) {
     int k = uLayer - 10;
+    if (k == 0 || k == 1 || k >= 4) { r = sprite3d(uv, vec3(0.0, 0.0, -3.0), vec3(0.0), (k == 0 || k == 1) ? 2.2 : (k == 7 ? 3.6 : 2.6)); gAlpha = r.a; return r.rgb; }
     if (k == 0) r = bough(uv, 3.0, 1.0);
     else if (k == 1) r = bough(uv * 1.15, 11.0, 1.0);
     else if (k == 2) r = treeHead(uv, vec2(-0.345, 0.1925), 0.625, 0);

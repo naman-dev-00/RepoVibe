@@ -487,7 +487,7 @@
       "category": "Nature",
       "style": "3d",
       "tone": [
-        "#ede4e3",
+        "#ede2e3",
         "#4b4a41"
       ],
       "toneSoft": [
@@ -518,7 +518,7 @@
       "category": "Nature",
       "style": "3d",
       "tone": [
-        "#e9e5ea",
+        "#f0ebf2",
         "#1e6853"
       ],
       "toneSoft": [
