@@ -205,41 +205,31 @@ test('true defaults: pop-out layer on, Auto quality decides once and never oscil
   } finally { await close(); }
 });
 
-test('idle butterfly: appears after 15 s of stillness beside the cursor, never takes clicks, flies away on movement; not in Static', async () => {
+test('no idle creature or cursor interaction remains: nothing appears after a long rest, nothing follows the cursor, old saved preference is ignored', async () => {
   const { context, errors, close } = await launch();
   try {
     context.setDefaultTimeout(30000);
-    await setConfig(context, { version: 2, enabled: true, autoAssign: false, seededMappings: true, defaultThemeId: 'preset-8' }); // defaults: Ambient, butterfly on
+    // a config saved by an earlier build still carries the removed idleButterfly flag
+    await setConfig(context, { version: 2, enabled: true, autoAssign: false, seededMappings: true, defaultThemeId: 'preset-8', idleButterfly: true });
     const page = await context.newPage(); await page.setViewportSize({ width: 1366, height: 800 });
     await page.goto('https://github.com/acme/project/layout');
     await page.waitForFunction(() => document.documentElement.classList.contains('repv-active'));
     await page.mouse.move(600, 380); await page.mouse.move(620, 400);
-    await page.waitForTimeout(10000);
-    assert.equal(await page.evaluate(() => !!document.getElementById('repovibe-butterfly')), false, 'no butterfly before 15 s');
-    await page.waitForSelector('#repovibe-butterfly', { state: 'attached', timeout: 9000 });
-    await page.waitForFunction(() => document.getElementById('repovibe-butterfly')?.dataset.state === 'resting', null, { timeout: 8000 });
-    const b = await page.evaluate(() => { const e = document.getElementById('repovibe-butterfly'); const r = e.getBoundingClientRect(); const s = getComputedStyle(e);
-      return { cx: r.x + r.width / 2, cy: r.y + r.height / 2, covers: r.left <= 620 && r.right >= 620 && r.top <= 400 && r.bottom >= 400, pe: s.pointerEvents, aria: e.getAttribute('aria-hidden'), hit: document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('#repovibe-butterfly') ? 'butterfly' : 'page' }; });
-    assert.ok(Math.hypot(b.cx - 620, b.cy - 400) < 40, `rests beside the cursor (${Math.round(b.cx)},${Math.round(b.cy)})`);
-    assert.ok(b.cx - 620 >= 8 && b.cx - 620 <= 32, `immediately to the right of the pointer (dx ${Math.round(b.cx - 620)})`);
-    assert.ok(b.cy - 400 >= -6 && b.cy - 400 <= 26, `level with the pointer, not above it (dy ${Math.round(b.cy - 400)})`);
-    assert.equal(b.covers, false, 'does not cover the cursor tip');
-    // one creature: the body parts keep moving on the wings' clock (body, abdomen, head, wings, whole svg all change over a cycle)
-    const parts = async () => page.evaluate(() => Object.fromEntries(['.bf-w', '.bf-b', '.bf-ab', '.bf-hd', 'svg'].map(s => [s, getComputedStyle(document.querySelector(`#repovibe-butterfly ${s}`)).transform])));
-    const seen = Object.fromEntries(['.bf-w', '.bf-b', '.bf-ab', '.bf-hd', 'svg'].map(s => [s, new Set()]));
-    for (let i = 0; i < 30; i++) { const p = await parts(); for (const k of Object.keys(seen)) seen[k].add(p[k]); await page.waitForTimeout(120); }
-    for (const [k, v] of Object.entries(seen)) assert.ok(v.size >= 4, `${k} moves while resting (${v.size} distinct poses): the body follows the wings`);
-    assert.deepEqual([b.pe, b.aria, b.hit], ['none', 'true', 'page'], 'never takes clicks, hidden from assistive tech');
-    await page.mouse.move(700, 420);
-    await page.waitForFunction(() => !document.getElementById('repovibe-butterfly'), null, { timeout: 4000 });
-    // Static: no butterfly even after a long rest
-    await updateConfig(context, "c.motionMode = 'static';");
-    await page.mouse.move(640, 420); await page.waitForTimeout(16500);
-    assert.equal(await page.evaluate(() => !!document.getElementById('repovibe-butterfly')), false, 'Static: no butterfly');
+    await page.waitForTimeout(17000); // longer than the old 15 s idle trigger
+    const extra = await page.evaluate(() => [...document.documentElement.children].filter(e => e.id && /^repovibe-/.test(e.id)).map(e => e.id).sort());
+    assert.deepEqual(extra.filter(id => !['repovibe-depth', 'repovibe-popout', 'repovibe-style', 'repovibe-wallpaper', 'repovibe-cards-v1'].includes(id) && !/^repovibe-(style|wallpaper|cards)/.test(id)), [], `only the scene planes exist: ${extra}`);
+    assert.equal(await page.evaluate(() => !!document.querySelector('[id*="butterfly" i], [class*="butterfly" i], .bf-w')), false, 'no butterfly element');
+    // moving the cursor moves nothing (no parallax, no follower)
+    const before = await page.evaluate(() => [...document.querySelectorAll('#repovibe-depth .repv-l')].map(l => getComputedStyle(l).transform).join('|'));
+    await page.mouse.move(40, 40); await page.mouse.move(1300, 700, { steps: 6 }); await page.waitForTimeout(500);
+    assert.equal(await page.evaluate(() => [...document.querySelectorAll('#repovibe-depth .repv-l')].map(l => getComputedStyle(l).transform).join('|')), before, 'layers do not react to the cursor');
+    // saving an unrelated setting keeps the user's other settings and drops the dead flag
+    await updateConfig(context, "c.sceneHeight = 'tall';");
+    const cfg = await extPage(context).then(async p => { await p.waitForFunction(() => !!globalThis.RepoVibeCore); const v = await p.evaluate(() => RepoVibeCore.loadConfig()); await p.close(); return v; });
+    assert.equal(cfg.sceneHeight, 'tall'); assert.equal(cfg.defaultThemeId, 'preset-8'); assert.equal('idleButterfly' in cfg, false);
     assert.deepEqual(errors, []);
   } finally { await close(); }
 });
-
 
 test('Enchanted Forest falling leaves: bright natural colours, wind-driven organic motion (drift + sway + flutter + turn), at rest in Static', async () => {
   const { context, errors, close } = await launch();
@@ -262,7 +252,7 @@ test('Enchanted Forest falling leaves: bright natural colours, wind-driven organ
     for (const [k, c] of Object.entries(colours)) { assert.ok(c.opaque > 5000, `leaf${k} has a body (${c.opaque} px)`); assert.ok(c.luma >= 105, `leaf${k} is bright enough to read in the glade (mean luma ${Math.round(c.luma)}; the old dark leaf was ~45)`); }
     assert.ok(colours.Y.rgb[0] > colours.Y.rgb[2] + 60 && colours.O.rgb[0] > colours.O.rgb[1] + 40 && colours.G.rgb[1] > colours.G.rgb[0] + 30, `distinct natural tones ${JSON.stringify(colours)}`);
     // 2. motion
-    await setConfig(context, { version: 2, enabled: true, autoAssign: false, seededMappings: true, defaultThemeId: 'preset-8', idleButterfly: false, depthQuality: 'full' });
+    await setConfig(context, { version: 2, enabled: true, autoAssign: false, seededMappings: true, defaultThemeId: 'preset-8', depthQuality: 'full' });
     const page = await context.newPage(); await page.setViewportSize({ width: 1366, height: 800 });
     await page.goto('https://github.com/acme/project/layout');
     await page.waitForFunction(() => document.querySelectorAll('#repovibe-depth img[data-fall]').length >= 5);

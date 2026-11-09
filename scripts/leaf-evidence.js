@@ -13,7 +13,7 @@ const SNAP = R.available().includes('actions-checkout-code') ? 'actions-checkout
   const { context, close } = await launch({ colorScheme: 'dark' });
   try {
     if (SNAP) await R.serve(context, R.load(SNAP));
-    await setConfig(context, { version: 2, enabled: true, autoAssign: false, seededMappings: true, defaultThemeId: 'preset-8', idleButterfly: false });
+    await setConfig(context, { version: 2, enabled: true, autoAssign: false, seededMappings: true, defaultThemeId: 'preset-8' });
     const page = await context.newPage(); await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto(SNAP ? R.load(SNAP).main : 'https://github.com/acme/project/layout'); await page.waitForTimeout(1500);
     const shot = await page.screenshot();

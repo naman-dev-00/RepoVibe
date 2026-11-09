@@ -469,7 +469,7 @@ L.liveTest('LIVE 8: four flagship worlds with live wallpapers on real pages; def
     }
     // 2. Each world on the same real public repository (overview + issues) — visible art, live layer, readable, links clickable.
     for (const [, id, slug, motion, label] of FLAGSHIPS) {
-      await setConfig(context, { version: 2, idleButterfly: false, enabled: true, autoAssign: false, motionMode: 'ambient', seededMappings: true, defaultThemeId: 'native', repoAssignments: { [A.toLowerCase()]: id } });
+      await setConfig(context, { version: 2, enabled: true, autoAssign: false, motionMode: 'ambient', seededMappings: true, defaultThemeId: 'native', repoAssignments: { [A.toLowerCase()]: id } });
       for (const [pageName, url] of [['overview', `https://github.com/${A}`], ['issues', `https://github.com/${A}/issues`]]) {
         const response = await L.gotoLive(page, url);
         const ev = await L.liveEvidence(page, response, new URL(url).pathname, A);
@@ -493,7 +493,7 @@ L.liveTest('LIVE 8: four flagship worlds with live wallpapers on real pages; def
     const rm = await page.evaluate(() => ({ cls: [...document.documentElement.classList].filter(c => c.startsWith('repv-motion')), anims: document.getAnimations().map(a => a.animationName).filter(n => /^repv-/.test(n || '')) }));
     c.check(rm.cls.length === 0 && rm.anims.length === 0, 'Reduced motion', `prefers-reduced-motion: RepoVibe motion classes [${rm.cls}] and animations [${rm.anims}] (both must be empty)`);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
-    await setConfig(context, { version: 2, idleButterfly: false, enabled: true, autoAssign: false, motionMode: 'static', seededMappings: true, defaultThemeId: 'native', repoAssignments: { [A.toLowerCase()]: 'preset-1' } });
+    await setConfig(context, { version: 2, enabled: true, autoAssign: false, motionMode: 'static', seededMappings: true, defaultThemeId: 'native', repoAssignments: { [A.toLowerCase()]: 'preset-1' } });
     await page.waitForTimeout(500);
     c.check(await page.evaluate(() => !document.documentElement.className.includes('repv-motion') && getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('neon-city-3d')), 'Static mode', 'Static: wallpaper kept, motion removed');
     // 4. Logged-out Home (marketing page): the Top repositories feature must be a safe no-op.

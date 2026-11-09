@@ -85,7 +85,7 @@ async function extPage(context, file = 'popup.html') {
 async function setConfig(context, config) {
   // Legacy-style configs (baseline tests) get Static motion and no pop-out layer (its placement is deferred until images
   // load, which would make pixel baselines timing-dependent); depth tests set these explicitly.
-  if (config && config.version === undefined) config = { version: 2, autoAssign: false, motionMode: 'static', depthTuning: { parallax: 100, motion: 100, particles: 100, foreground: 0 }, idleButterfly: false, ...config };
+  if (config && config.version === undefined) config = { version: 2, autoAssign: false, motionMode: 'static', depthTuning: { parallax: 100, motion: 100, particles: 100, foreground: 0 }, ...config };
   const page = await extPage(context);
   // The service worker seeds the default repository mappings once at install; wait for it so it cannot race
   // (and overwrite) the configuration a test writes. Tests that want the seeded mappings read them before this.
@@ -236,7 +236,7 @@ async function visualContrast(context, page, limit = 150, retry = 1) {
       const cs = getComputedStyle(el);
       if (cs.visibility !== 'visible' || Number(cs.opacity) < 0.4) continue;
       // Occluded text (e.g. a file row scrolled underneath GitHub's pinned sticky header) is not visible: not a target.
-      // RepoVibe's own overlays (pop-out objects, butterfly) are pointer-events:none, so text beneath them IS measured.
+      // RepoVibe's own overlays (pop-out objects) are pointer-events:none, so text beneath them IS measured.
       // Only an element that actually paints over the text counts (GitHub's code view lays a TRANSPARENT read-only
       // textarea over the code lines: that text is visible and must be measured).
       const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);

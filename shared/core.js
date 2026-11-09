@@ -109,7 +109,7 @@
   const CONFIG_VERSION = 2;
   const DEFAULT = {
     version: CONFIG_VERSION, enabled: true, defaultThemeId: 'native',
-    autoAssign: true, autoAssignments: {}, motionMode: 'ambient', seededMappings: false, appearance: 'crisp', sceneWindow: true, sceneHeight: 'standard', depthEffects: true, depthQuality: 'auto', readingBacking: 'text', idleButterfly: true, depthTuning: { parallax: 100, motion: 100, particles: 100, foreground: 100 },
+    autoAssign: true, autoAssignments: {}, motionMode: 'ambient', seededMappings: false, appearance: 'crisp', sceneWindow: true, sceneHeight: 'standard', depthEffects: true, depthQuality: 'auto', readingBacking: 'text', depthTuning: { parallax: 100, motion: 100, particles: 100, foreground: 100 },
     repoAssignments: {}, ownerAssignments: {}, customThemes: {}
   };
   const colorKeys = ['bg', 'surface', 'surface2', 'text', 'muted', 'accent', 'border', 'gradientTo', 'gradientThird', 'codeBg'];
@@ -180,7 +180,6 @@
     config.sceneHeight = SCENE_HEIGHTS.includes(raw.sceneHeight) ? raw.sceneHeight : 'standard';
     config.depthEffects = raw.depthEffects !== false;
     config.readingBacking = raw.readingBacking === 'panels' ? 'panels' : 'text';
-    config.idleButterfly = raw.idleButterfly !== false;
     const tune = raw.depthTuning && typeof raw.depthTuning === 'object' ? raw.depthTuning : {};
     const clampInt = (v, lo, hi, d) => Number.isFinite(+v) ? Math.min(hi, Math.max(lo, Math.round(+v))) : d;
     config.depthTuning = { parallax: clampInt(tune.parallax, 0, 200, 100), motion: clampInt(tune.motion, 0, 200, 100), particles: clampInt(tune.particles, 0, 100, 100), foreground: clampInt(tune.foreground, 0, 150, 100) };

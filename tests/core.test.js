@@ -333,3 +333,10 @@ test('every sprite referenced by the depth engine exists on disk and in the cata
     assert.ok(w, slug);
   }
 });
+
+test('removed idle-butterfly preference: ignored on load, other settings preserved, no trace in the shipped sources', () => {
+  const path = require('node:path');
+  const c = C.normalizeConfig({ version: 2, idleButterfly: true, sceneHeight: 'tall', depthQuality: 'lite', defaultThemeId: 'preset-8', repoAssignments: { 'a/b': 'preset-1' } });
+  assert.equal('idleButterfly' in c, false); assert.equal(c.sceneHeight, 'tall'); assert.equal(c.depthQuality, 'lite'); assert.equal(c.repoAssignments['a/b'], 'preset-1');
+  for (const f of ['content.js', 'shared/core.js', 'studio.js', 'studio.html', 'popup.js', 'popup.html', 'background.js']) assert.doesNotMatch(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'), /butterfly/i, `${f} has no butterfly code`);
+});

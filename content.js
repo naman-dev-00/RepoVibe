@@ -548,76 +548,6 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
   }
   let popTimer = 0;
   function queuePlacePop() { clearTimeout(popTimer); popTimer = setTimeout(() => requestAnimationFrame(placePop), 150); }
-  /* ---- Idle butterfly: after 15 s without any input, a small themed butterfly flies in and settles just beside the
-     cursor; any pointer movement, click, key, wheel or scroll sends it fluttering away. Inline SVG, pointer-events:none,
-     aria-hidden; motion via the Web Animations API (compositor transforms). Off in Static / reduced motion. */
-  const BF_ID = 'repovibe-butterfly', BF_IDLE_MS = 15000;
-  const BF_COLORS = { 'enchanted-forest': ['#9dffe0', '#22c3b0', '#e8fff8'], 'cosmic-galaxy': ['#d2b8ff', '#6f6bff', '#f3ecff'], 'neon-city-3d': ['#ff5ad9', '#38eaff', '#ffe3fb'], 'scifi-ai': ['#bff6ff', '#3fb4ff', '#ffffff'] };
-  const bf = { on: false, x: -1, y: -1, last: 0, timer: 0, el: null, anim: null, colors: null };
-  function bfSvg([a, b, c]) {
-    const wing = (side) => `<g class="bf-w bf-${side}"><path d="M0,0 C${side === 'l' ? '-6,-16 -22,-19 -21,-6 C-20,1 -9,2 0,1' : '6,-16 22,-19 21,-6 C20,1 9,2 0,1'}" fill="url(#repv-bfg)" stroke="${c}" stroke-opacity=".55" stroke-width=".6"/>
-      <path d="M0,1 C${side === 'l' ? '-5,3 -16,6 -14,13 C-11,17 -4,11 0,3' : '5,3 16,6 14,13 C11,17 4,11 0,3'}" fill="url(#repv-bfg2)" stroke="${c}" stroke-opacity=".5" stroke-width=".6"/>
-      <circle cx="${side === 'l' ? -13 : 13}" cy="-8" r="1.7" fill="${c}" fill-opacity=".85"/><circle cx="${side === 'l' ? -8 : 8}" cy="9" r="1.1" fill="${c}" fill-opacity=".7"/></g>`;
-    return `<svg viewBox="-24 -22 48 40" width="34" height="28" aria-hidden="true"><defs>
-      <radialGradient id="repv-bfg" cx="0" cy="0" r="22" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${c}"/><stop offset=".35" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></radialGradient>
-      <radialGradient id="repv-bfg2" cx="0" cy="0" r="16" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></radialGradient></defs>
-      ${wing('l')}${wing('r')}
-      <g class="bf-b"><g class="bf-ab"><ellipse cx="0" cy="4.2" rx="1.35" ry="6.3" fill="#1b1a22"/><path d="M-1.1,1 L1.1,1 M-1.2,3.4 L1.2,3.4 M-1,5.8 L1,5.8" stroke="${c}" stroke-opacity=".35" stroke-width=".45"/></g>
-        <ellipse cx="0" cy="-1.2" rx="1.9" ry="3" fill="#1b1a22"/>
-        <g class="bf-hd"><circle cx="0" cy="-5.6" r="1.7" fill="#1b1a22"/><path d="M-.5,-6.6 C-2,-11 -4,-13 -6,-14 M.5,-6.6 C2,-11 4,-13 6,-14" stroke="#1b1a22" stroke-width=".7" fill="none"/></g></g></svg>`;
-  }
-  function bfAllowed() {
-    return bf.on && document.visibilityState === 'visible' && !reducedQuery?.matches && config.motionMode !== 'static' && config.idleButterfly !== false && bf.x >= 0;
-  }
-  function bfSpawn() {
-    const el = document.createElement('div');
-    el.id = BF_ID; el.setAttribute('aria-hidden', 'true'); el.innerHTML = bfSvg(bf.colors);
-    (document.documentElement).appendChild(el); bf.el = el;
-    // settle immediately beside the pointer, level with its body (not above it); the tip itself stays clear. Arrive from
-    // the nearer side along a wavering path, swoop a little above the spot, then drop onto it.
-    const tx = Math.min(innerWidth - 24, Math.max(24, bf.x + 19)), ty = Math.min(innerHeight - 20, Math.max(16, bf.y + 5));
-    const fromLeft = bf.x > innerWidth / 2 ? false : true;
-    const sx = fromLeft ? -50 : innerWidth + 50, sy = Math.max(30, ty - 160 - Math.random() * 120);
-    const path = [0, 0.25, 0.5, 0.75].map(t => [sx + (tx - sx) * t + Math.sin(t * Math.PI * 3) * 26 * (1 - t), sy + (ty - sy) * t + Math.cos(t * Math.PI * 4) * 22 * (1 - t)]);
-    const dir = fromLeft ? 1 : -1;
-    const frames = [...path.map(([x, y], i) => ({ x, y, r: dir * 14 * Math.sin(i * 1.7) })),
-      { x: tx - dir * 10, y: ty - 12, r: -dir * 9 },      // flutters in just above and short of the spot, nose up
-      { x: tx, y: ty, r: 0 }];                              // and drops onto it
-    el.dataset.state = 'arriving';
-    bf.anim = el.animate(frames.map((f, i) => ({ transform: `translate3d(${f.x}px, ${f.y}px, 0) rotate(${f.r}deg)`, opacity: i === 0 ? 0 : 1, offset: [0, 0.22, 0.44, 0.66, 0.86, 1][i] })), { duration: 3500, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' });
-    // slower, softer flapping for the last approach, then the landing flourish (CSS) and the resting loop
-    const slow = setTimeout(() => { if (bf.el === el && el.dataset.state === 'arriving') el.dataset.state = 'landing'; }, 2750);
-    bf.anim.onfinish = () => { clearTimeout(slow); if (bf.el === el && el.dataset.state !== 'leaving') el.dataset.state = 'resting'; };
-  }
-  function bfFlyAway() {
-    const el = bf.el; if (!el || el.dataset.state === 'leaving') return;
-    el.dataset.state = 'leaving'; bf.el = null;
-    const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
-    bf.anim?.cancel();
-    const dx = (Math.random() < 0.5 ? -1 : 1) * (140 + Math.random() * 160), dy = -(260 + Math.random() * 160);
-    const a = el.animate([
-      { transform: `translate3d(${m.m41}px, ${m.m42}px, 0)`, opacity: 1 },
-      { transform: `translate3d(${m.m41 + dx * 0.3}px, ${m.m42 + dy * 0.25 + 18}px, 0) rotate(${dx > 0 ? 10 : -10}deg)`, opacity: 1, offset: 0.3 },
-      { transform: `translate3d(${m.m41 + dx}px, ${m.m42 + dy}px, 0) rotate(${dx > 0 ? 22 : -22}deg)`, opacity: 0 }
-    ], { duration: 1500, easing: 'ease-in', fill: 'forwards' });
-    a.onfinish = () => el.remove();
-    setTimeout(() => el.remove(), 2200); // safety net
-  }
-  function bfActivity(e) {
-    if (e && e.type === 'pointermove') { bf.x = e.clientX; bf.y = e.clientY; }
-    bf.last = performance.now();
-    if (bf.el) bfFlyAway();
-  }
-  function bfTick() { if (!bf.el && bfAllowed() && performance.now() - bf.last >= BF_IDLE_MS) bfSpawn(); if (bf.el && !bfAllowed()) bfFlyAway(); }
-  function setButterfly(on, theme) {
-    if (on) { const slug = (/^builtin:([a-z0-9-]+)$/.exec(C.normalizeTheme(theme).wallpaperRef || '') || [])[1]; const ac = C.normalizeTheme(theme).accent; bf.colors = BF_COLORS[slug] || [ac, ac, '#ffffff']; }
-    if (on === bf.on) return;
-    bf.on = on;
-    const m = on ? 'addEventListener' : 'removeEventListener';
-    for (const t of ['pointermove', 'pointerdown', 'keydown', 'wheel', 'scroll']) window[m](t, bfActivity, { passive: true, capture: true });
-    if (on) { bf.last = performance.now(); bf.timer = setInterval(bfTick, 1000); }
-    else { clearInterval(bf.timer); bf.timer = 0; if (bf.el) bfFlyAway(); document.getElementById(BF_ID)?.remove(); bf.el = null; }
-  }
   let depthState = { key: '', listening: false, probing: false, decided: false, autoLite: false, fps: null, decisions: 0 };
   /* No pointer parallax (removed by request): the scene never reacts to the mouse. Depth comes from the layered art,
      the moving objects at different depths and their own autonomous motion. */
@@ -820,39 +750,6 @@ html.repv-depth-static #repovibe-depth > .repv-l { inset:0; }
 html.repv-depth-static :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth-still :is(#repovibe-depth, #repovibe-popout) * { animation:none !important; }
 html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth-paused #repovibe-depth { animation-play-state:paused !important; }
 @media (prefers-reduced-motion:reduce) { :is(#repovibe-depth, #repovibe-popout) * { animation:none !important; } }
-/* idle butterfly */
-#repovibe-butterfly { position:fixed; left:0; top:0; margin:-14px 0 0 -17px; z-index:60; pointer-events:none; will-change:transform; filter:drop-shadow(0 0 6px rgba(255, 255, 255, .35)) drop-shadow(0 3px 4px rgba(0, 0, 0, .4)); }
-/* One creature: every part runs on the wings' clock (flap cycle .34 s in flight, .5 s when landing, 3.2 s at rest). When the
-   wings close the thorax lifts and lunges, the abdomen trails a beat behind, the head nods and the whole body rocks. */
-#repovibe-butterfly .bf-w { transform-box:view-box; transform-origin:50% 55%; animation:repv-flap .17s ease-in-out infinite alternate; }
-#repovibe-butterfly svg, #repovibe-butterfly .bf-b, #repovibe-butterfly .bf-ab, #repovibe-butterfly .bf-hd { transform-box:fill-box; }
-#repovibe-butterfly svg { transform-box:view-box; transform-origin:50% 55%; animation:repv-flybob .34s ease-in-out infinite; }
-#repovibe-butterfly .bf-b { transform-origin:50% 45%; animation:repv-bflap .34s ease-in-out infinite; }
-#repovibe-butterfly .bf-ab { transform-origin:50% 0%; animation:repv-babd .34s ease-in-out -.07s infinite; }
-#repovibe-butterfly .bf-hd { transform-origin:50% 100%; animation:repv-bhead .34s ease-in-out -.04s infinite; }
-#repovibe-butterfly[data-state="landing"] .bf-w { animation-duration:.26s; }
-#repovibe-butterfly[data-state="landing"] svg, #repovibe-butterfly[data-state="landing"] .bf-b { animation-duration:.52s; }
-#repovibe-butterfly[data-state="landing"] .bf-ab { animation-duration:.52s; animation-delay:-.1s; }
-#repovibe-butterfly[data-state="landing"] .bf-hd { animation-duration:.52s; animation-delay:-.06s; }
-#repovibe-butterfly[data-state="resting"] .bf-w { animation:repv-landflap .7s ease-in-out, repv-rest 3.2s ease-in-out .7s infinite; }
-#repovibe-butterfly[data-state="resting"] svg { animation:repv-land .7s ease-out, repv-bob 4s ease-in-out .7s infinite alternate; }
-#repovibe-butterfly[data-state="resting"] .bf-b { animation:repv-landbody .7s ease-in-out, repv-brest 3.2s ease-in-out .7s infinite; }
-#repovibe-butterfly[data-state="resting"] .bf-ab { animation:repv-landabd .7s ease-in-out, repv-arest 3.2s ease-in-out .7s infinite; }
-#repovibe-butterfly[data-state="resting"] .bf-hd { animation:repv-bhead-rest 3.2s ease-in-out infinite; }
-@keyframes repv-flap { from { transform:scaleX(1); } to { transform:scaleX(.22); } }
-@keyframes repv-flybob { 0%, 100% { transform:translateY(.9px) rotate(1.5deg); } 50% { transform:translateY(-1.3px) rotate(-1.5deg); } }
-@keyframes repv-bflap { 0%, 100% { transform:translateY(.7px) scaleY(.97); } 50% { transform:translateY(-1.5px) scaleY(1.05); } }
-@keyframes repv-babd { 0%, 100% { transform:rotate(6deg) scaleY(.96); } 50% { transform:rotate(-6deg) scaleY(1.04); } }
-@keyframes repv-bhead { 0%, 100% { transform:rotate(-4deg); } 50% { transform:rotate(4deg) translateY(-.3px); } }
-@keyframes repv-rest { 0%, 62%, 100% { transform:scaleX(1); } 70% { transform:scaleX(.35); } 78% { transform:scaleX(1); } 86% { transform:scaleX(.5); } }
-@keyframes repv-brest { 0%, 62%, 100% { transform:translateY(0) scaleY(1); } 70% { transform:translateY(-.9px) scaleY(1.03); } 78% { transform:translateY(0); } 86% { transform:translateY(-.5px) scaleY(1.02); } }
-@keyframes repv-arest { 0%, 100% { transform:rotate(0deg); } 36% { transform:rotate(2.5deg); } 68% { transform:rotate(-2deg); } 72% { transform:rotate(-4deg); } 80% { transform:rotate(1.5deg); } 88% { transform:rotate(-2.5deg); } }
-@keyframes repv-bhead-rest { 0%, 62%, 100% { transform:rotate(0deg); } 70% { transform:rotate(3deg); } 78% { transform:rotate(-2deg); } 90% { transform:rotate(1.5deg); } }
-@keyframes repv-landflap { 0% { transform:scaleX(1); } 15% { transform:scaleX(.25); } 30% { transform:scaleX(1); } 45% { transform:scaleX(.35); } 62% { transform:scaleX(1); } 80% { transform:scaleX(.6); } 100% { transform:scaleX(1); } }
-@keyframes repv-landbody { 0% { transform:translateY(-1px); } 15% { transform:translateY(-1.8px) scaleY(1.05); } 30% { transform:translateY(.6px); } 45% { transform:translateY(-1px); } 62% { transform:translateY(.3px); } 100% { transform:translateY(0); } }
-@keyframes repv-landabd { 0% { transform:rotate(6deg); } 25% { transform:rotate(-7deg); } 50% { transform:rotate(5deg); } 75% { transform:rotate(-3deg); } 100% { transform:rotate(0deg); } }
-@keyframes repv-land { 0% { transform:translateY(-3px) rotate(-5deg) scale(1.05); } 55% { transform:translateY(.8px) rotate(2deg) scale(.99); } 100% { transform:translateY(0) rotate(0deg) scale(1); } }
-@keyframes repv-bob { from { transform:translateY(0) rotate(-2deg); } to { transform:translateY(-1.6px) rotate(2deg); } }
 `;
 
   /* ---- Wallpaper resolution: bundled assets, IndexedDB assets (via service worker), legacy inline data. */
@@ -1108,7 +1005,7 @@ html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth
     let style = document.getElementById(STYLE_ID);
     if (!theme) {
       root.classList.remove('repv-active', 'repv-scene-window', 'repv-scene-compact', 'repv-scene-tall', 'repv-open', ...MOTION_CLASSES);
-      removeDepth(); setButterfly(false); setHeartbeat(false);
+      removeDepth(); setHeartbeat(false);
       registerInstance(false);
       lastMotion = '';
       clearPanels();
@@ -1138,7 +1035,7 @@ html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth
     if (root.classList.contains('repv-open') !== wantOpen) root.classList.toggle('repv-open', wantOpen);
     for (const h of ['compact', 'tall']) if (root.classList.contains(`repv-scene-${h}`) !== (wantWindow && config.sceneHeight === h)) root.classList.toggle(`repv-scene-${h}`, wantWindow && config.sceneHeight === h);
     renderDepth(theme, resolution.repository ? url : null); // one depth scene, repository pages only (never on Home)
-    setButterfly(Boolean(url), theme); setHeartbeat(Boolean(url));
+    setHeartbeat(Boolean(url));
     applyColorMode(root, lastMode);
     if (url) queuePanelScan(); else clearPanels();
     renderCards();
@@ -1181,7 +1078,7 @@ html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth
     document.getElementById(WALLPAPER_STYLE_ID)?.remove();
     clearCards();
     clearPanels();
-    removeDepth(); setButterfly(false); setHeartbeat(false);
+    removeDepth(); setHeartbeat(false);
     registerInstance(false);
     reducedQuery?.removeEventListener?.('change', onReducedMotionChange);
     if (document.documentElement) { document.documentElement.classList.remove('repv-active', 'repv-scene-window', 'repv-scene-compact', 'repv-scene-tall', 'repv-open', ...MOTION_CLASSES); applyColorMode(document.documentElement, null); }
