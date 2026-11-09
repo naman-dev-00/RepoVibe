@@ -1,5 +1,8 @@
 # Focused Phase 1B: four flagship worlds, live wallpapers, themed Top repositories
 
+> **Update (Phase 1B world expansion):** the idle butterfly described in §0g/§0h was later **removed completely**, together with its settings, assets and tests; see `docs/WORLDS_REPORT.md`. Those sections are kept only as history of the leaf-motion work that remains (Enchanted Forest leaves).
+
+
 Branch `feature/phase1b-immersive-themes` (PR #2, stacked on PR #1). Not merged.
 
 ## 0h. Butterfly polish and natural falling leaves — latest

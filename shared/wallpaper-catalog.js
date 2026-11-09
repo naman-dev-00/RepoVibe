@@ -641,11 +641,11 @@
       "style": "3d",
       "tone": [
         "#eae8e8",
-        "#1d512c"
+        "#04322b"
       ],
       "toneSoft": [
-        "#dfdfe1",
-        "#2b6639"
+        "#dfdedb",
+        "#0b4138"
       ],
       "depth": [
         "far",

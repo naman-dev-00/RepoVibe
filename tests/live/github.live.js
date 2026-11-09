@@ -324,7 +324,8 @@ L.liveTest('LIVE 6: wallpapers are visibly rendered on real GitHub pages (bundle
       await L.logShot(context, page, `after-sunset-${name}`);
     }
     // Screenshot evidence of the 3D cinematic themes on the real site (logged to the job log, 1600px desktop width).
-    for (const [id, slug, label] of [['preset-1', 'neon-city-3d', 'cyberpunk-3d'], ['preset-19', 'cosmic-galaxy', 'galaxy-3d'], ['preset-17', 'aurora-borealis', 'aurora-3d']]) {
+    for (const [id, slug, label] of [['preset-1', 'neon-city-3d', 'cyberpunk-3d'], ['preset-19', 'cosmic-galaxy', 'galaxy-3d'], ['preset-3', 'sakura-garden', 'sakura-world'], ['preset-7', 'ocean-kingdom', 'ocean-world'], ['preset-12', 'arctic-frost-3d', 'arctic-world'], ['preset-17', 'aurora-borealis', 'aurora-world'],
+      ['preset-20', 'synthwave-highway', 'synthwave-world'], ['preset-14', 'dark-library', 'library-world'], ['preset-10', 'pixel-paradise-3d', 'pixel-world'], ['preset-18', 'sunset-coast', 'sunset-world']]) {
       await setConfig(context, { enabled: true, defaultThemeId: id });
       for (const [pageName, url] of [['overview', `https://github.com/${A}`], ['issues', `https://github.com/${A}/issues`]]) {
         const response = await L.gotoLive(page, url);

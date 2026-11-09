@@ -20,9 +20,9 @@ vec3 skyP(vec2 uv) {
 }
 vec3 seaP(vec2 uv) {
   vec2 c = q(uv); float d = SEA - c.y; float t = d / 0.4;
-  vec3 col = band(vec3(0.2, 0.75, 0.9), vec3(0.04, 0.26, 0.62), t, 6.0);
+  vec3 col = band(vec3(0.03, 0.26, 0.56), vec3(0.015, 0.11, 0.4), t, 6.0);
   float wave = step(0.72, noise(vec2(c.x * 28.0 + floor(c.y * N) * 1.7, floor(c.y * N) * 0.9)) * 0.5 + 0.5);
-  col += vec3(0.35, 0.5, 0.45) * wave * step(c.y, SEA - 0.01) * 0.55;
+  col += vec3(0.35, 0.5, 0.45) * wave * step(c.y, SEA - 0.01) * 0.3;
   col = mix(col, vec3(1.0, 0.9, 0.6), step(abs(c.x - 0.45), 0.03 + d * 0.15) * step(0.5, hash11(floor(c.y * N) * 5.0 + floor(c.x * N))) * 0.45 * step(d, 0.25));
   return col;
 }
@@ -51,7 +51,7 @@ vec4 midLayer(vec2 uv) {
 vec4 nearLayer(vec2 uv) {
   vec2 c = q(uv); vec4 r = vec4(0.0);
   float sandTop = -0.5 + 0.09 + 0.05 * floor(noise(vec2(floor(c.x * N * 0.3), 1.0)) * 3.0) / 3.0 + 0.03 * smoothstep(0.2, 0.9, abs(c.x));
-  if (c.y < sandTop) { float d = (sandTop - c.y) * N; r = vec4(mix(vec3(0.97, 0.86, 0.55), vec3(0.8, 0.62, 0.35), SAT(d / 6.0)) * (0.92 + 0.08 * hash12(floor(c * N))), 1.0); }
+  if (c.y < sandTop) { float d = (sandTop - c.y) * N; r = vec4(mix(vec3(0.74, 0.56, 0.3), vec3(0.5, 0.36, 0.2), SAT(d / 6.0)) * (0.92 + 0.08 * hash12(floor(c * N))), 1.0); }
   // voxel rocks at the corners
   for (int i = 0; i < 2; i++) { float side = i == 0 ? -1.0 : 1.0; vec2 p = c - vec2(side * 0.72, -0.4); float rock = min(sdBox(p, vec2(0.1, 0.06)), sdBox(p - vec2(0.02 * side, 0.07), vec2(0.06, 0.04)));
     if (rock < 0.0) { vec3 rc = mix(vec3(0.55, 0.58, 0.62), vec3(0.3, 0.32, 0.4), step(0.5, hash12(floor(c * N)))); rc *= 0.8 + 0.3 * step(p.y, 0.02) * 0.0 + 0.25 * step(0.05, p.y); r = vec4(rc, 1.0); } }

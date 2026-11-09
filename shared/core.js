@@ -14,7 +14,7 @@
     // name, tagline, primary background, panel, brighter panel, foreground, muted, accent, border, gradient 2, gradient 3, code, vibe
     ['Cyberpunk Neon', 'Neon rain canyon', '#100c25', '#1b1538', '#292044', '#f3edff', '#c4bbe3', '#c6a8ff', '#49337e', '#25104c', '#051f31', '#15122a', 'neon'],
     ['Midnight Developer', 'Deep focus', '#0b1220', '#151e30', '#1e2b40', '#ebf1ff', '#9aabc6', '#6eacff', '#34445e', '#132b47', '#0b1828', '#101c30', 'minimal'],
-    ['Sakura Dreams', 'Soft blossom light', '#fff1f6', '#fff8fb', '#ffe7ef', '#4b2540', '#7a5669', '#a8366d', '#e9bed3', '#ffe2f0', '#f8e9ff', '#fff0f8', 'soft'],
+    ['Sakura Dreams', 'Soft blossom light', '#fff1f6', '#fff8fb', '#ffe7ef', '#4b2540', '#5e3a50', '#a8366d', '#e9bed3', '#ffe2f0', '#f8e9ff', '#fff0f8', 'soft'],
     ['Cozy Coding', 'Warm and familiar', '#241c1b', '#342926', '#47352e', '#fff1dc', '#c4a998', '#f1ac72', '#725345', '#4a2e24', '#261d2b', '#28201f', 'soft'],
     ['Matrix', 'Into the source', '#071008', '#0d1c10', '#15291a', '#b9f9bd', '#76aa7c', '#4ad66d', '#265637', '#081e0f', '#04110b', '#0a160c', 'neon'],
     ['Dracula', 'Legendary dark', '#191a2a', '#292a40', '#343650', '#f6f5ff', '#b3b2cd', '#bd93f9', '#55506c', '#34233c', '#1b2640', '#202134', 'soft'],

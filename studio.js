@@ -195,9 +195,9 @@
     art.style.setProperty('--border', theme.border);
     art.style.setProperty('--text', theme.text);
     const style = (C.WALLPAPERS.find(w => w.ref === theme.wallpaperRef) || {}).style;
-    if (style) { const badge = document.createElement('span'); badge.className = `style-badge ${style === '3d' ? 'is-3d' : ''}`; badge.textContent = style === '3d' ? '3D CINEMATIC' : 'ILLUSTRATED'; art.appendChild(badge); }
+    if (style) { const badge = document.createElement('span'); badge.className = `style-badge ${style === '3d' ? 'is-3d' : ''}`; badge.textContent = style === '3d' ? (theme.world ? '2.5D LAYERED' : '3D CINEMATIC') : 'ILLUSTRATED'; art.appendChild(badge); }
     if (theme.flagship) { card.classList.add('is-flagship'); const live = document.createElement('span'); live.className = 'live-badge'; live.textContent = `◉ LIVE · ${theme.motion.toUpperCase()}`; art.appendChild(live); }
-    if (theme.world) { card.classList.add('is-flagship'); const live = document.createElement('span'); live.className = 'live-badge'; live.textContent = '◉ LIVE WORLD · 2.5D'; art.appendChild(live); }
+    if (theme.world) { card.classList.add('is-flagship'); const live = document.createElement('span'); live.className = 'live-badge'; live.textContent = '◉ LIVE WORLD'; art.appendChild(live); }
     const mock = document.createElement('div'); mock.className = 'art-mock';
     mock.innerHTML = '<div class="art-bar"><i></i><i></i><i></i></div><div class="art-panel"><b></b><i></i><i></i><i></i></div><div class="art-panel secondary"><i></i><i></i></div>';
     art.appendChild(mock);

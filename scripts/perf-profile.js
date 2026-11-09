@@ -8,7 +8,9 @@ const path = require('node:path');
 const { launch, setConfig } = require('../tests/e2e/helpers');
 const R = require('../tests/e2e/real-snapshot');
 
-const NAMES = { 'preset-19': 'cosmic-galaxy', 'preset-8': 'enchanted-forest', 'preset-1': 'cyberpunk-neon', 'preset-15': 'futuristic-scifi' };
+const NAMES = { 'preset-19': 'cosmic-galaxy', 'preset-8': 'enchanted-forest', 'preset-1': 'cyberpunk-neon', 'preset-15': 'futuristic-scifi',
+  'preset-3': 'sakura-garden', 'preset-7': 'ocean-kingdom', 'preset-12': 'arctic-frost-3d', 'preset-17': 'aurora-borealis', 'preset-20': 'synthwave-highway', 'preset-14': 'dark-library', 'preset-10': 'pixel-paradise-3d', 'preset-18': 'sunset-coast' };
+const OUT_FILE = process.env.PERF_OUT || 'docs/perf-profile.json';
 const MODES = [
   ['static', { motionMode: 'static' }],
   ['depth off', { motionMode: 'ambient', depthEffects: false }],
@@ -65,6 +67,7 @@ async function profile(context, page, ms) {
   const [w, h] = size.split('x').map(Number);
   const out = { source: SNAP ? `real github.com page replay (${SNAP}, logged out; local snapshot, not committed)` : 'offline fixture', viewport: size, worlds: {} };
   for (const id of ids.length ? ids : Object.keys(NAMES)) {
+    if (!NAMES[id]) continue;
     out.worlds[NAMES[id]] = {};
     for (const [label, cfg] of MODES) {
       const { context, close } = await launch({ colorScheme: 'dark' });
@@ -81,5 +84,5 @@ async function profile(context, page, ms) {
     }
   }
   console.log('GPU:', out.gpu);
-  fs.writeFileSync(path.join(__dirname, '../docs/perf-profile.json'), JSON.stringify(out, null, 2) + '\n');
+  fs.writeFileSync(path.join(__dirname, '..', OUT_FILE), JSON.stringify(out, null, 2) + '\n');
 })();
