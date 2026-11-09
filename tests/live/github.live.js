@@ -312,7 +312,7 @@ L.liveTest('LIVE 6: wallpapers are visibly rendered on real GitHub pages (bundle
       await waitTheme(page, VIVID.surface); await L.settleAnimations(page);
       const flat = await page.screenshot();
       await setConfig(context, { enabled: true, defaultThemeId: VIVID.id });
-      await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('sunset-village.webp'), null, { timeout: 8000 }).catch(() => {});
+      await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('sunset-coast.webp'), null, { timeout: 8000 }).catch(() => {});
       await page.waitForFunction(() => { const u = getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').match(/url\("([^"]+)"\)/); if (!u) return false; const i = new Image(); i.src = u[1]; return i.complete && i.naturalWidth > 0; }, null, { timeout: 8000 }).catch(() => {});
       await L.settleAnimations(page); await page.waitForTimeout(300);
       const art = await page.screenshot();
@@ -324,7 +324,7 @@ L.liveTest('LIVE 6: wallpapers are visibly rendered on real GitHub pages (bundle
       await L.logShot(context, page, `after-sunset-${name}`);
     }
     // Screenshot evidence of the 3D cinematic themes on the real site (logged to the job log, 1600px desktop width).
-    for (const [id, slug, label] of [['preset-1', 'neon-city-3d', 'cyberpunk-3d'], ['preset-19', 'cosmic-galaxy', 'galaxy-3d'], ['preset-17', 'aurora-fjord', 'aurora-3d']]) {
+    for (const [id, slug, label] of [['preset-1', 'neon-city-3d', 'cyberpunk-3d'], ['preset-19', 'cosmic-galaxy', 'galaxy-3d'], ['preset-17', 'aurora-borealis', 'aurora-3d']]) {
       await setConfig(context, { enabled: true, defaultThemeId: id });
       for (const [pageName, url] of [['overview', `https://github.com/${A}`], ['issues', `https://github.com/${A}/issues`]]) {
         const response = await L.gotoLive(page, url);

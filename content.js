@@ -90,7 +90,9 @@
     const frosted = glass && v.glass >= 8;
     // Themed border & glow: an edge colour and a soft emitted glow per world (flagships get their own pair, other themes
     // derive both from the accent), strength by the theme's character. Borders read ~1.5 px (1 px border + 0.5 px ring).
-    const WORLD_EDGE = { 'enchanted-forest': ['#5fe0b9', '#9dffd8', 0.34], 'cosmic-galaxy': ['#a98bff', '#6f9bff', 0.38], 'neon-city-3d': ['#ff4fd8', '#3ff0ff', 0.5], 'scifi-ai': ['#7fe6ff', '#e8fbff', 0.4] };
+    const WORLD_EDGE = { 'enchanted-forest': ['#5fe0b9', '#9dffd8', 0.34], 'cosmic-galaxy': ['#a98bff', '#6f9bff', 0.38], 'neon-city-3d': ['#ff4fd8', '#3ff0ff', 0.5], 'scifi-ai': ['#7fe6ff', '#e8fbff', 0.4],
+      'sakura-garden': ['#ff8fb8', '#ffd0e0', 0.34], 'ocean-kingdom': ['#4fd5e8', '#9af0ff', 0.36], 'arctic-frost-3d': ['#4a9fe6', '#bfe4ff', 0.3], 'aurora-borealis': ['#5fe8b0', '#9a8cff', 0.38],
+      'synthwave-highway': ['#ff4fd8', '#3ff0ff', 0.5], 'dark-library': ['#d9a441', '#ffd27a', 0.3], 'pixel-paradise-3d': ['#ffcf3f', '#5fd0ff', 0.3], 'sunset-coast': ['#ff9a4d', '#ffd08a', 0.34] };
     const wslug = (/^builtin:([a-z0-9-]+)$/.exec(v.wallpaperRef || '') || [])[1];
     const [edgeC, glowC, glowS] = WORLD_EDGE[wslug] || [v.accent, v.accent, { neon: 0.45, glass: 0.3, soft: 0.24, minimal: 0.14, pixel: 0.2 }[v.vibe] ?? 0.24];
     const edgeLine = rgba(edgeC, light ? 0.6 : 0.7), edgeRing = rgba(edgeC, light ? 0.32 : 0.4); // border 1 px + ring 1 px: a ~2 px themed edge (box-shadow ring: no layout change)
@@ -399,6 +401,15 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     return svgUrl(w, h, body, defs);
   }
   const WORLDS = globalThis.RepoVibeWorlds || {};
+  const worldTiles = new Map();
+  function worldParticles(slug) {   // declarative tiles → { plane: [url, size, motion] }, built once per world
+    if (!worldTiles.has(slug)) {
+      const out = {};
+      for (const t of WORLDS[slug]?.tiles || []) out[t.plane] = [shapeTile(t.shape, t.seed, t.w, t.h, t.n, t.colors, t.r[0], t.r[1]), `${t.w}px ${t.h}px`, t.still ? undefined : { w: t.w, h: t.h, sx: t.sx, sy: t.sy, t: t.t, gust: t.gust }];   // still: the default twinkle/flicker plane (stars, motes)
+      worldTiles.set(slug, out);
+    }
+    return worldTiles.get(slug);
+  }
   // Per-scene particle planes and atmosphere (only scenes with rendered depth layers use the engine).
   const DEPTH_PARTICLES = {
     'enchanted-forest': { pfar: [glowTile(31, 700, 520, 22, ['#ffe27a', '#b6ff9a'], 2, 4), '700px 520px'], pmid: [glowTile(37, 900, 700, 10, ['#ffe27a', '#9dffd0', '#fff1a8'], 5, 9), '900px 700px'],
@@ -478,6 +489,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     wrap.className = 'repv-s'; if (s.plane === 'pop') wrap.dataset.k = String(s.k); wrap.dataset.sprite = s.n; wrap.dataset.depth = String(s.k);
     const img = document.createElement('img');
     img.src = spriteUrl(slug, s.src || s.n); img.alt = '';
+    if (s.noShadow) wrap.dataset.ns = '';   // soft pink boughs and similar: no dark contact shadow
     if (s.flip) wrap.style.scale = '-1 1'; // mirror on the wrapper: the image's own `scale` may be animated (leaf turn)
     img.decoding = 'async'; img.draggable = false;
     const m = cinematic ? 1.8 : 1;
@@ -505,6 +517,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
       img.style.setProperty('--gd', `${(-(GUST_S) + (s.x ?? 50) * 0.035).toFixed(2)}s`); img.style.setProperty('--fl', `${(s.fl || 4.2) / (cinematic ? 1.3 : 1)}s`);
     }
     if (s.gust) { wrap.dataset.gust = ''; wrap.style.setProperty('--gx', `${s.gust * (cinematic ? 1.5 : 1)}px`); wrap.style.setProperty('--gd', `${(-(GUST_S) + (s.x ?? 50) * 0.035).toFixed(2)}s`); }
+    if (s.gl) img.style.setProperty('--gl', `${s.gl}s`);
     if (s.jp) img.style.setProperty('--jp', `${s.jp / (cinematic ? 1.25 : 1)}s`);
     img.style.setProperty('--dx', `${(s.dx || 0) * m}px`); img.style.setProperty('--dy', `${(s.dy || 0) * m}px`); img.style.setProperty('--rot', `${(s.rot || 0) * (cinematic ? 1.4 : 1)}deg`);
     if (!s.wind) img.style.animationDelay = s.delay !== undefined ? `${s.delay}s` : `${-((s.n.charCodeAt(0) * 7 + s.n.charCodeAt(s.n.length - 1) * 3 + s.n.length * 13) % 20)}s`; // desynchronised loops
@@ -546,7 +559,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     for (let x = innerWidth - 1; x > innerWidth / 2; x -= 8) if (probeY.some(y => blockedAt(x, y))) { colRight = x; break; }
     const amp = 0; // no pointer parallax: an object's reach is its own drift only
     for (const w of pop.querySelectorAll('.repv-s')) {
-      const s = spritesOf(pop.dataset.scene).find(x => x.n === w.dataset.sprite);
+      const s = spritesOf(pop.dataset.scene).find(x => x.plane === 'pop' && x.n === w.dataset.sprite);
       const img = w.firstChild; const ratio = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1;
       let ok = false;
       if (s && t.foreground > 0 && innerWidth >= 768) {
@@ -628,9 +641,8 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     if (!el || depthState.key !== key) {
       el?.remove();
       el = document.createElement('div');
-      el.id = DEPTH_ID; el.setAttribute('aria-hidden', 'true'); el.dataset.scene = d.slug; el.dataset.mode = d.mode;
-      const P = DEPTH_PARTICLES[d.slug] || WORLDS[d.slug]?.particles || {};
-      if (WORLDS[d.slug]?.mist && !P.mist) P.mist = WORLDS[d.slug].mist;
+      el.id = DEPTH_ID; el.setAttribute('aria-hidden', 'true'); el.dataset.scene = d.slug; el.dataset.mode = d.mode; if (WORLDS[d.slug]) el.dataset.world = '';
+      const P = DEPTH_PARTICLES[d.slug] || worldParticles(d.slug);
       const order = ['far', 'pfar', 'mist', 'mid', 'pmid', 'near', 'rays', 'front', 'pnear'];
       const SP = spritesOf(d.slug);
       // scene sprites share a few depth buckets (one parallax mover each) instead of one mover per object
@@ -639,7 +651,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
         const buckets = new Map();
         for (const s of SP.filter(x => x.plane === 'scene' && (near ? x.k >= 1 : x.k < 1))) {
           const bk = bucketK(s.k);
-          if (!buckets.has(bk)) { const b = document.createElement('div'); b.className = 'repv-b'; b.dataset.k = String(bk); buckets.set(bk, b); el.appendChild(b); }
+          if (!buckets.has(bk)) { const b = document.createElement('div'); b.className = 'repv-b'; b.dataset.k = String(bk); buckets.set(bk, b); el.appendChild(b); if (WORLDS[d.slug]) b.dataset.stage = ''; }
           buckets.get(bk).appendChild(buildSprite(d.slug, s, d.mode === 'cinematic'));
         }
       };
@@ -727,6 +739,10 @@ html.repv-depth #${'repovibe-depth'} { position:fixed; inset:0; z-index:-1; poin
 html.repv-depth-cinematic #repovibe-depth { --amp:30px; }
 #repovibe-depth > .repv-l { position:absolute; inset:calc(-1 * (var(--k) * 24px + 8px)); will-change:transform; transform:translate3d(0, 0, 0); } /* overscan sized to this layer's own travel (Cinematic camera drift), not a blanket 6 % */
 #repovibe-depth > .repv-b { position:absolute; inset:0; will-change:transform; }
+/* Data-driven worlds: sprites live in a 16:9 "stage" that has exactly the baked layers' cover geometry, so a sprite that continues a baked
+   object (a swaying tree head on its trunk) stays registered at every aspect ratio; layers carry no overscan or camera drift here. */
+#repovibe-depth[data-world] > .repv-b[data-stage] { inset:auto; left:50%; top:50%; width:max(100vw, 177.78vh); height:max(56.25vw, 100vh); margin-left:calc(max(100vw, 177.78vh) / -2); margin-top:calc(max(56.25vw, 100vh) / -2); }
+#repovibe-depth[data-world] > .repv-l { inset:0; }
 #repovibe-depth > .repv-l > i { position:absolute; inset:0; background-position:center; background-size:cover; background-repeat:no-repeat; }
 #repovibe-depth > .repv-l[data-tile] > i { background-position:0 0; background-repeat:repeat; }
 #repovibe-depth > .repv-l[data-tw] > i { inset:calc(-1 * var(--th)) calc(-1 * var(--tw)); } /* one tile of spare area each side: a whole-period slide never shows an edge */
@@ -767,6 +783,7 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
 #repovibe-popout > .repv-s > img { height:100%; width:auto; position:relative; }
 /* contact shadow under each pop-out object: a cheap gradient on the (non-animated) wrapper, not a per-frame filter */
 #repovibe-popout > .repv-s::before { content:""; position:absolute; left:8%; right:8%; top:30%; bottom:-14%; border-radius:50%; background:radial-gradient(closest-side, rgba(0, 0, 0, .5), rgba(0, 0, 0, .22) 60%, transparent); transform:translateY(12%); }
+#repovibe-popout > .repv-s[data-ns]::before { display:none; }
 #repovibe-popout > .repv-s[hidden], #repovibe-depth .repv-s[hidden] { display:none; }
 #repovibe-depth > [data-l="front"] { opacity:var(--fg, 1); }
 #repovibe-depth > :is([data-l="pfar"], [data-l="pmid"], [data-l="pnear"], [data-l="mist"]) { opacity:var(--particles, 1); }
@@ -776,13 +793,14 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-cross="rev"] { animation-name:repv-cross-rev; }
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fall] { animation:repv-fall var(--dur, 30s) linear infinite, repv-leaf-sway var(--sway, 4.5s) ease-in-out infinite alternate, repv-leaf-flutter var(--flut, 2.5s) ease-in-out infinite alternate, repv-leaf-turn var(--turn, 3.2s) ease-in-out infinite alternate; }
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="flicker"] { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate, repv-flick 4.3s steps(1, end) infinite; }
- :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="pulse"] { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate, repv-glow 3.2s ease-in-out infinite alternate; }
+ :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="pulse"] { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate, repv-glow var(--gl, 3.2s) ease-in-out infinite alternate; }
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="spin"] { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate, repv-spin 40s linear infinite; }
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="spinY"] { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate, repv-spin-y 9s ease-in-out infinite alternate; }
  html.repv-depth-cinematic :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="spin"] { animation-duration:var(--dur, 30s), 22s; }
 }
 #repovibe-depth .repv-s:has(> img[data-fall]) { top:0 !important; }
-html.repv-depth-static #repovibe-depth .repv-s:has(> img[data-fall]), html.repv-depth-still #repovibe-depth .repv-s:has(> img[data-fall]) { top:var(--sy, 40%) !important; } /* at rest: a leaf lies in the scene instead of hiding above it */
+#repovibe-depth .repv-s:has(> img[data-rise]) { top:0 !important; }
+html.repv-depth-static #repovibe-depth .repv-s:has(> img:is([data-fall], [data-rise], [data-approach])), html.repv-depth-still #repovibe-depth .repv-s:has(> img:is([data-fall], [data-rise], [data-approach])) { top:var(--sy, 40%) !important; } /* at rest: a leaf lies in the scene instead of hiding above it */
 @keyframes repv-cross-rev { from { transform:translate3d(60vw, -3vh, 0); } to { transform:translate3d(-80vw, 5vh, 0); } }
 /* A leaf in a breeze: net descent and drift with a gust (faster fall and push at 45–70 %), a slow overall spin, plus three independent,
    desynchronised oscillations (individual transform properties compose): sideways sway, pendulum flutter, turning edge-on. */
@@ -805,20 +823,24 @@ html.repv-depth-static #repovibe-depth .repv-s:has(> img[data-fall]), html.repv-
  #repovibe-depth .repv-s > img[data-approach] { animation:repv-approach var(--dur, 60s) linear infinite; }
  #repovibe-depth .repv-s > img[data-swim] { animation-name:repv-drift, repv-swim; animation-duration:var(--dur, 30s), var(--wp, 5s); animation-timing-function:ease-in-out; animation-iteration-count:infinite; animation-direction:alternate; }
  #repovibe-depth .repv-s > img[data-swim][data-cross] { animation-name:repv-cross, repv-swim; animation-timing-function:linear, ease-in-out; animation-direction:normal, alternate; }
+ #repovibe-depth .repv-s > img[data-swim][data-cross="rev"] { animation-name:repv-cross-rev, repv-swim; }
  #repovibe-depth .repv-s > img[data-jp] { animation-duration:var(--dur, 30s), var(--jp, 4s); }
  #repovibe-depth > .repv-l[data-tw] > i { animation:repv-tile var(--tp, 40s) linear infinite; }
  #repovibe-depth > .repv-l[data-tw][data-gustpush] > i { animation:repv-tile var(--tp, 40s) linear infinite, repv-tile-gust 23s ease-in-out infinite; }
 }
 html.repv-depth-lite #repovibe-depth .repv-s > img[data-wind] { animation:none !important; }
+html.repv-depth-static #repovibe-depth .repv-s:has(> img[data-approach]), html.repv-depth-still #repovibe-depth .repv-s:has(> img[data-approach]) { visibility:hidden; } /* scanning lines / arriving traffic only exist while moving; the baked scene is complete at rest */
+#repovibe-depth .repv-s > img[data-approach] { animation-timing-function:cubic-bezier(.62, 0, .95, .55) !important; }
 @keyframes repv-gust-r { 0%, 100% { rotate:calc(var(--wa) * -.15); } 12% { rotate:calc(var(--wa) * .25); } 22% { rotate:calc(var(--wa) * .9); } 31% { rotate:calc(var(--wa) * .35); } 47% { rotate:calc(var(--wa) * -.1); } 58% { rotate:calc(var(--wa) * .55); } 66% { rotate:calc(var(--wa) * 1.15); } 78% { rotate:calc(var(--wa) * .2); } 90% { rotate:calc(var(--wa) * -.2); } }
 @keyframes repv-flutter { from { transform:rotate(-.8deg); } to { transform:rotate(.8deg); } }
-@keyframes repv-gust-x { 0%, 100% { translate:0 0; } 22% { translate:calc(var(--gx) * .8) 0; } 31% { translate:calc(var(--gx) * .3) 0; } 47% { translate:calc(var(--gx) * -.1) 0; } 66% { translate:var(--gx) 0; } 78% { translate:calc(var(--gx) * .15) 0; } }
+@keyframes repv-gust-x { 0%, 100% { translate:-50% -50%; } 22% { translate:calc(-50% + var(--gx) * .8) -50%; } 31% { translate:calc(-50% + var(--gx) * .3) -50%; } 47% { translate:calc(-50% + var(--gx) * -.1) -50%; } 66% { translate:calc(-50% + var(--gx)) -50%; } 78% { translate:calc(-50% + var(--gx) * .15) -50%; } }
 @keyframes repv-tile-gust { 0%, 100% { translate:0 0; } 22% { translate:60px 8px; } 31% { translate:25px 2px; } 66% { translate:80px 10px; } 78% { translate:12px 0; } }
 @keyframes repv-tile { from { transform:translate3d(0, 0, 0); } to { transform:translate3d(calc(var(--tw) * var(--sx)), calc(var(--th) * var(--sy2)), 0); } }
-@keyframes repv-rise { 0% { transform:translate3d(0, 12vh, 0); opacity:0; } 8% { opacity:1; } 90% { opacity:1; } 100% { transform:translate3d(0, -112vh, 0); opacity:0; } }
+@keyframes repv-rise { 0% { transform:translate3d(0, 112vh, 0); opacity:0; } 8% { opacity:1; } 90% { opacity:1; } 100% { transform:translate3d(0, -12vh, 0); opacity:0; } }
 @keyframes repv-approach { 0% { transform:translate3d(0, 0, 0) scale(.05); opacity:0; } 10% { opacity:var(--a0, 1); } 100% { transform:translate3d(var(--ax), var(--ay), 0) scale(1); opacity:1; } }
 @keyframes repv-swim { from { rotate:calc(var(--tilt, 6deg) * -1); translate:0 calc(var(--wob, 24px) * -.5); } to { rotate:var(--tilt, 6deg); translate:0 calc(var(--wob, 24px) * .5); } }
 /* Static (and reduced motion): the same layered scene, at rest: no overscan, no animation, no pointer response */
+html.repv-depth-cinematic #repovibe-depth[data-world] > .repv-l:not([data-tile], [data-l="rays"]) > i { animation:none; }
 html.repv-depth-static #repovibe-depth > .repv-l { inset:0; }
 html.repv-depth-static :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth-still :is(#repovibe-depth, #repovibe-popout) * { animation:none !important; }
 html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth-paused #repovibe-depth { animation-play-state:paused !important; }

@@ -42,11 +42,13 @@
   const WALLPAPER_TONES = Object.fromEntries(WALLPAPERS.map(w => [w.slug, w.tone]));
   const WALLPAPER_TONES_SOFT = Object.fromEntries(WALLPAPERS.map(w => [w.slug, w.toneSoft]));
   // Preset N → wallpaper. 3D cinematic renders where available; the rest use the illustrated (2D) scenes.
-  const PRESET_WALLPAPERS = ['neon-city-3d', 'midnight-skyline', 'sakura-street', 'cozy-room', 'digital-rain', 'gothic-castle',
-    'ocean-twilight', 'enchanted-forest', 'pixel-dusk', 'pixel-island', 'desert-dunes', 'alpine-lake', 'lavender-fantasy',
-    'academia-library', 'scifi-ai', 'obsidian-shards', 'aurora-fjord', 'sunset-village', 'cosmic-galaxy', 'synthwave-3d'];
+  const PRESET_WALLPAPERS = ['neon-city-3d', 'midnight-skyline', 'sakura-garden', 'cozy-room', 'digital-rain', 'gothic-castle',
+    'ocean-kingdom', 'enchanted-forest', 'pixel-dusk', 'pixel-paradise-3d', 'desert-dunes', 'arctic-frost-3d', 'lavender-fantasy',
+    'dark-library', 'scifi-ai', 'obsidian-shards', 'aurora-borealis', 'sunset-coast', 'cosmic-galaxy', 'synthwave-highway'];
   // Flagship themes and their live-wallpaper ambience (lightweight CSS motion layered over the art).
   const MOTIONS = ['none', 'rain', 'fireflies', 'stars', 'holo'];
+  // The eight additional immersive worlds (layered 2.5D scenes with their own autonomous motion), on existing preset ids.
+  const WORLD_PRESETS = ['preset-3', 'preset-7', 'preset-12', 'preset-14', 'preset-10', 'preset-17', 'preset-18', 'preset-20'];
   const FLAGSHIP_MOTION = { 'preset-1': 'rain', 'preset-8': 'fireflies', 'preset-19': 'stars', 'preset-15': 'holo' };
   const MOTION_MODES = ['static', 'ambient', 'cinematic'];
   const SCENE_HEIGHTS = ['compact', 'standard', 'tall'];
@@ -104,6 +106,7 @@
     codeFontSize: 13,
     layout: 'standard',
     flagship: Object.hasOwn(FLAGSHIP_MOTION, `preset-${index + 1}`),
+    world: WORLD_PRESETS.includes(`preset-${index + 1}`),
     motion: FLAGSHIP_MOTION[`preset-${index + 1}`] || 'none'
   }));
   const CONFIG_VERSION = 2;
@@ -379,7 +382,7 @@
   root.RepoVibeCore = Object.freeze({
     STORAGE_KEY, PRESETS, DEFAULT, MAX_CUSTOM_THEMES, CONFIG_VERSION, WALLPAPERS, POSITIONS, SIZES,
     APPEARANCES, VISUAL_FIELDS, SCENE_HEIGHTS, DEPTH_QUALITIES, appearanceValues, restoreVisualDefaults,
-    MOTIONS, MOTION_MODES, FLAGSHIP_MOTION, DEFAULT_REPO_MAPPINGS, seedDefaultMappings, motionFor,
+    MOTIONS, MOTION_MODES, FLAGSHIP_MOTION, WORLD_PRESETS, DEFAULT_REPO_MAPPINGS, seedDefaultMappings, motionFor,
     safeWallpaperRef, fnv1a, pickAutoTheme, requiredGlass, wallpaperTone, panelOpacity, normalizeConfig, normalizeTheme, safeWallpaper,
     repositoryFromUrl, themeById, themeResolution, loadConfig, saveConfig, updateConfig, themeUsage, assignTheme, isPreset,
     contrastRatio, isLightColor

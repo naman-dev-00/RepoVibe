@@ -340,3 +340,41 @@ test('removed idle-butterfly preference: ignored on load, other settings preserv
   assert.equal('idleButterfly' in c, false); assert.equal(c.sceneHeight, 'tall'); assert.equal(c.depthQuality, 'lite'); assert.equal(c.repoAssignments['a/b'], 'preset-1');
   for (const f of ['content.js', 'shared/core.js', 'studio.js', 'studio.html', 'popup.js', 'popup.html', 'background.js']) assert.doesNotMatch(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'), /butterfly/i, `${f} has no butterfly code`);
 });
+
+/* ---- Eight additional immersive worlds (data-driven, shared/worlds.js). */
+const WORLD_IDS = { 'preset-3': 'sakura-garden', 'preset-7': 'ocean-kingdom', 'preset-12': 'arctic-frost-3d', 'preset-17': 'aurora-borealis', 'preset-20': 'synthwave-highway', 'preset-14': 'dark-library', 'preset-10': 'pixel-paradise-3d', 'preset-18': 'sunset-coast' };
+const loadWorlds = () => { const ctx = vm.createContext({ globalThis: {} }); ctx.globalThis = ctx; vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../shared/worlds.js'), 'utf8'), ctx); return ctx.RepoVibeWorlds; };
+
+test('the eight worlds keep their preset ids and are assigned their own layered artwork', () => {
+  const path = require('node:path');
+  assert.deepEqual(JSON.parse(JSON.stringify(C.WORLD_PRESETS)).sort(), Object.keys(WORLD_IDS).sort());
+  for (const [id, slug] of Object.entries(WORLD_IDS)) {
+    const p = C.PRESETS.find(t => t.id === id);
+    assert.equal(p.wallpaperRef, `builtin:${slug}`, `${id} uses ${slug}`); assert.equal(p.world, true); assert.equal(p.flagship, false, 'worlds are not the four flagships');
+    const w = C.WALLPAPERS.find(x => x.slug === slug);
+    assert.ok(w && w.depth.length >= 4 && w.depth[0].layer === 'far', `${slug} layered`);
+    for (const l of w.depth) assert.ok(fs.existsSync(path.join(__dirname, '..', l.path)), l.path);
+    assert.ok(fs.existsSync(path.join(__dirname, '..', w.path)) && fs.existsSync(path.join(__dirname, '..', w.thumb)), `${slug} flat image and thumbnail (Home cards use the thumbnail, not a renderer)`);
+  }
+  assert.equal(C.PRESETS.filter(t => t.flagship).length, 4, 'the four flagships are unchanged');
+  assert.ok(C.isLightColor(C.PRESETS.find(t => t.id === 'preset-12').bg), 'Arctic Frost remains the light theme');
+});
+
+test('every world sprite and pop-out declared in shared/worlds.js exists on disk and in the catalogue; data is well-formed', () => {
+  const path = require('node:path');
+  const W = loadWorlds();
+  assert.deepEqual(Object.keys(W).sort(), Object.values(WORLD_IDS).sort());
+  for (const [slug, def] of Object.entries(W)) {
+    const cat = context.RepoVibeWallpaperCatalog.find(x => x.slug === slug);
+    assert.ok(cat, slug); assert.ok(def.sprites.some(s => s.plane === 'pop'), `${slug} has pop-out elements`); assert.ok(def.sprites.some(s => s.wind), `${slug} has wind-driven sway`);
+    for (const s of def.sprites) {
+      const file = s.src || s.n;
+      assert.ok(fs.existsSync(path.join(__dirname, '..', 'wallpapers', 'depth', slug, `s-${file}.webp`)), `${slug}/s-${file}.webp`);
+      assert.ok((cat.sprites || []).includes(file), `${slug}: ${file} listed in the catalogue`);
+      assert.ok(['scene', 'pop'].includes(s.plane)); assert.ok(Number.isFinite(s.k), `${slug}/${s.n} depth`);
+      if (s.plane === 'scene') assert.ok(Number.isFinite(s.x) && Number.isFinite(s.y) && s.w > 0, `${slug}/${s.n} placement`);
+      if (s.plane === 'pop') assert.ok(s.noShadow && ['band', 'margin'].includes(s.at), `${slug}/${s.n} pop-out`);
+    }
+    for (const t of def.tiles) assert.ok(['petal', 'flake', 'dot', 'bubble', 'cube', 'ember', 'page'].includes(t.shape) && ['pfar', 'pmid', 'pnear'].includes(t.plane), `${slug} tile`);
+  }
+});

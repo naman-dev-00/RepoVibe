@@ -480,6 +480,249 @@
         "#fec9a0",
         "#0d021b"
       ]
+    },
+    {
+      "slug": "sakura-garden",
+      "name": "Sakura Dreams",
+      "category": "Nature",
+      "style": "3d",
+      "tone": [
+        "#ede4e3",
+        "#4b4a41"
+      ],
+      "toneSoft": [
+        "#ebdeda",
+        "#746057"
+      ],
+      "depth": [
+        "far",
+        "mid",
+        "near",
+        "front",
+        "rays"
+      ],
+      "sprites": [
+        "koi",
+        "petalA",
+        "petalB",
+        "petalC",
+        "sprayA",
+        "sprayB",
+        "treeL",
+        "treeR"
+      ]
+    },
+    {
+      "slug": "ocean-kingdom",
+      "name": "Ocean Depths",
+      "category": "Nature",
+      "style": "3d",
+      "tone": [
+        "#e9e5ea",
+        "#1e6853"
+      ],
+      "toneSoft": [
+        "#c4d7da",
+        "#267877"
+      ],
+      "depth": [
+        "far",
+        "mid",
+        "near",
+        "front",
+        "rays"
+      ],
+      "sprites": [
+        "bubble",
+        "fan",
+        "fishA",
+        "fishB",
+        "jelly",
+        "kelpA",
+        "kelpB",
+        "manta",
+        "turtle",
+        "whale"
+      ]
+    },
+    {
+      "slug": "arctic-frost-3d",
+      "name": "Arctic Frost",
+      "category": "Nature",
+      "style": "3d",
+      "tone": [
+        "#e7e8ea",
+        "#819aa1"
+      ],
+      "toneSoft": [
+        "#e0e3e6",
+        "#94acb6"
+      ],
+      "depth": [
+        "far",
+        "mid",
+        "near",
+        "front",
+        "rays"
+      ],
+      "sprites": [
+        "crystal",
+        "flake",
+        "fox",
+        "pineA",
+        "pineB",
+        "pineC",
+        "shard"
+      ]
+    },
+    {
+      "slug": "synthwave-highway",
+      "name": "Synthwave",
+      "category": "Futuristic",
+      "style": "3d",
+      "tone": [
+        "#eac1dd",
+        "#0d001e"
+      ],
+      "toneSoft": [
+        "#e5bbdc",
+        "#100322"
+      ],
+      "depth": [
+        "far",
+        "mid",
+        "near",
+        "front",
+        "rays"
+      ],
+      "sprites": [
+        "birdLine",
+        "car",
+        "gridLine",
+        "palmL",
+        "palmR",
+        "sunGlow"
+      ]
+    },
+    {
+      "slug": "dark-library",
+      "name": "Dark Academia",
+      "category": "Interior",
+      "style": "3d",
+      "tone": [
+        "#e8e6df",
+        "#18110e"
+      ],
+      "toneSoft": [
+        "#b3a6bd",
+        "#221a17"
+      ],
+      "depth": [
+        "far",
+        "mid",
+        "near",
+        "front",
+        "rays"
+      ],
+      "sprites": [
+        "bookStack",
+        "candle",
+        "chandelier",
+        "curtain",
+        "dust",
+        "flame",
+        "page"
+      ]
+    },
+    {
+      "slug": "pixel-paradise-3d",
+      "name": "Pixel Paradise",
+      "category": "Pixel art",
+      "style": "3d",
+      "tone": [
+        "#eae8e8",
+        "#1d512c"
+      ],
+      "toneSoft": [
+        "#dfdfe1",
+        "#2b6639"
+      ],
+      "depth": [
+        "far",
+        "mid",
+        "near",
+        "front",
+        "rays"
+      ],
+      "sprites": [
+        "cloudA",
+        "cloudB",
+        "crab",
+        "cube",
+        "gull",
+        "palmA",
+        "palmB"
+      ]
+    },
+    {
+      "slug": "sunset-coast",
+      "name": "Sunset Boulevard",
+      "category": "Nature",
+      "style": "3d",
+      "tone": [
+        "#f0e5d3",
+        "#47363d"
+      ],
+      "toneSoft": [
+        "#f0e5d1",
+        "#5b465e"
+      ],
+      "depth": [
+        "far",
+        "mid",
+        "near",
+        "front",
+        "rays"
+      ],
+      "sprites": [
+        "car",
+        "cloudA",
+        "cloudB",
+        "gull",
+        "palmL",
+        "palmR"
+      ]
+    },
+    {
+      "slug": "aurora-borealis",
+      "name": "Aurora",
+      "category": "Nature",
+      "style": "3d",
+      "tone": [
+        "#e5ede1",
+        "#121c3b"
+      ],
+      "toneSoft": [
+        "#9ae9e1",
+        "#172546"
+      ],
+      "depth": [
+        "far",
+        "mid",
+        "near",
+        "front",
+        "rays"
+      ],
+      "sprites": [
+        "bough",
+        "cabin",
+        "curtainA",
+        "curtainB",
+        "curtainC",
+        "meteor",
+        "pineL",
+        "pineR"
+      ]
     }
   ].map(Object.freeze));
 })(globalThis);

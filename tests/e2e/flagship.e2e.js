@@ -182,7 +182,7 @@ test('GitHub Home: Top repositories rows show their own themes; links, sync, dyn
     // 3. updating a theme updates its preview without reload
     await updateConfig(context, "c.repoAssignments['naman-dev-00/repovibe'] = 'preset-20';");
     await page.waitForFunction(() => document.querySelector('a[href="/naman-dev-00/RepoVibe"]').closest('li').getAttribute('data-repv-card') === 'preset-20');
-    assert.ok((await cards(page)).find(r => r.href === '/naman-dev-00/RepoVibe').image.includes('synthwave-3d'));
+    assert.ok((await cards(page)).find(r => r.href === '/naman-dev-00/RepoVibe').image.includes('synthwave-highway'));
     await updateConfig(context, "c.repoAssignments['naman-dev-00/repovibe'] = 'preset-8';");
     await page.waitForFunction(() => document.querySelector('a[href="/naman-dev-00/RepoVibe"]').closest('li').getAttribute('data-repv-card') === 'preset-8');
     // dynamic rows ("Show more") are themed too

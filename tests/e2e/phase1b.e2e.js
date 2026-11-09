@@ -42,7 +42,7 @@ test('bundled wallpaper is visible across the page, behind translucent panels, w
     await setConfig(context, { enabled: true, defaultThemeId: 'preset-18' }); // Sunset Boulevard: vivid village artwork
     const page = await openGitHub(context);
     await page.setViewportSize({ width: 1600, height: 900 }); // desktop width: artwork in margins + behind guarded glass
-    await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('sunset-village.webp'));
+    await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('sunset-coast.webp'));
     await page.waitForTimeout(400);
     const withArt = await page.screenshot();
     await setConfig(context, { enabled: true, defaultThemeId: 'custom-flat', customThemes: { 'custom-flat': { id: 'custom-flat', name: 'flat', bg: '#301b32', surface: '#4c294a', text: '#fff1f1', backgroundMode: 'solid' } } });
@@ -63,7 +63,7 @@ test('bundled wallpaper is visible across the page, behind translucent panels, w
         panelOpacity: Number(root.getPropertyValue('--repv-panel-opacity')) };
     });
     // v0.2.1 model: the scene is the ROOT background (on the canvas, under every element, no negative z-index).
-    assert.match(layer.image, /sunset-village\.webp/, 'scene painted as the root background');
+    assert.match(layer.image, /sunset-coast\.webp/, 'scene painted as the root background');
     assert.match(layer.attach, /fixed/, 'root scene layer is fixed to the viewport');
     assert.equal(layer.before, 'none', 'no extra layer without blur/cinematic');
     assert.equal(layer.box, `rgba(76, 41, 74, ${layer.panelOpacity})`, `panels are ONE layer of guarded glass: ${layer.box}`);

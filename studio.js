@@ -197,6 +197,7 @@
     const style = (C.WALLPAPERS.find(w => w.ref === theme.wallpaperRef) || {}).style;
     if (style) { const badge = document.createElement('span'); badge.className = `style-badge ${style === '3d' ? 'is-3d' : ''}`; badge.textContent = style === '3d' ? '3D CINEMATIC' : 'ILLUSTRATED'; art.appendChild(badge); }
     if (theme.flagship) { card.classList.add('is-flagship'); const live = document.createElement('span'); live.className = 'live-badge'; live.textContent = `◉ LIVE · ${theme.motion.toUpperCase()}`; art.appendChild(live); }
+    if (theme.world) { card.classList.add('is-flagship'); const live = document.createElement('span'); live.className = 'live-badge'; live.textContent = '◉ LIVE WORLD · 2.5D'; art.appendChild(live); }
     const mock = document.createElement('div'); mock.className = 'art-mock';
     mock.innerHTML = '<div class="art-bar"><i></i><i></i><i></i></div><div class="art-panel"><b></b><i></i><i></i><i></i></div><div class="art-panel secondary"><i></i><i></i></div>';
     art.appendChild(mock);
@@ -221,7 +222,7 @@
   }
   // Flagship live worlds first, then the other 3D cinematic themes, then illustrated ones (stable within each group).
   function paintGallery() {
-    const rank = t => t.flagship ? 2 : (C.WALLPAPERS.find(w => w.ref === t.wallpaperRef) || {}).style === '3d' ? 1 : 0;
+    const rank = t => t.flagship ? 3 : t.world ? 2 : (C.WALLPAPERS.find(w => w.ref === t.wallpaperRef) || {}).style === '3d' ? 1 : 0;
     $('themeGallery').replaceChildren(...[...C.PRESETS].sort((a, b) => rank(b) - rank(a)).map(makeGalleryCard));
   }
 
