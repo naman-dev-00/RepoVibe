@@ -1,0 +1,62 @@
+[
+  {
+    "leaf": 0,
+    "inView": 123,
+    "sidewaysReversals": 4,
+    "widthRangePx": [
+      12,
+      40
+    ],
+    "travelPx": 544
+  },
+  {
+    "leaf": 1,
+    "inView": 160,
+    "sidewaysReversals": 4,
+    "widthRangePx": [
+      14,
+      48
+    ],
+    "travelPx": 502
+  },
+  {
+    "leaf": 2,
+    "inView": 115,
+    "sidewaysReversals": 7,
+    "widthRangePx": [
+      21,
+      64
+    ],
+    "travelPx": 689
+  },
+  {
+    "leaf": 3,
+    "inView": 145,
+    "sidewaysReversals": 6,
+    "widthRangePx": [
+      19,
+      55
+    ],
+    "travelPx": 580
+  },
+  {
+    "leaf": 4,
+    "inView": 79,
+    "sidewaysReversals": 5,
+    "widthRangePx": [
+      32,
+      96
+    ],
+    "travelPx": 268
+  },
+  {
+    "leaf": 5,
+    "inView": 85,
+    "sidewaysReversals": 6,
+    "widthRangePx": [
+      26,
+      76
+    ],
+    "travelPx": 539
+  }
+]

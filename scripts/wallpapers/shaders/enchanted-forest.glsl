@@ -1,4 +1,4 @@
-// @sprites sprayA:1400x900, sprayB:1100x760, flowerA:640x760, flowerB:560x640, leaf:320x320, mush:640x560
+// @sprites sprayA:1400x900, sprayB:1100x760, flowerA:640x760, flowerB:560x640, leafG:384x384, mush:640x560, leafY:384x384, leafO:384x384, leafM:384x384
 // Enchanted forest at night — layered 3D scene (RepoVibe depth engine).
 // Raymarched SDF trees (trunks with root flare, branches, displaced canopy clumps), glowing mushrooms and flowers as
 // real geometry, a reflective stream, moonlit teal haze. uLayer selects a depth slab (see common.glsl):
@@ -275,6 +275,36 @@ vec4 mushCluster(vec2 uv, float sd) {
   float ha = SAT(glow) * 0.5 * (1.0 - acc.a);
   return vec4(acc.a > 0.0 ? acc.rgb : vec3(0.3, 0.95, 1.0) * 1.4, SAT(acc.a + ha));
 }
+// A single falling leaf, lit and coloured for visibility in the moonlit glade: asymmetric outline with a curled midrib and
+// a pointed tip, folded halves, branching veins, translucent glowing margins, speckle (autumn leaves) and a thin petiole.
+vec4 fallLeaf(vec2 uv, float sd, vec3 cLo, vec3 cHi, vec3 cVein, float spots) {
+  float aa = 1.5 / uRes.y;
+  float ang = 0.55 + 0.35 * (hash11(sd) - 0.5);
+  vec2 q = mat2(cos(ang), -sin(ang), sin(ang), cos(ang)) * uv;
+  float len = 0.40;
+  float x = q.x / len;                                         // -1 (base) .. 1 (tip)
+  q.y -= (0.16 + 0.1 * hash11(sd + 3.0)) * len * x * x;         // curled midrib
+  float side = q.y >= 0.0 ? 1.0 : -1.0;
+  float wid = len * (0.38 + 0.05 * hash11(sd + 1.0));
+  float halfW = wid * pow(max(1.0 - x * x, 0.0), 0.72) * (0.78 - 0.34 * x) * (1.0 + 0.1 * side * sin(sd * 3.0 + x * 2.0)) * (1.0 + 0.018 * sin(x * 38.0 + sd));
+  float inside = x > -1.0 && x < 1.0 ? smoothstep(aa, -aa, abs(q.y) - halfW) : 0.0;
+  // petiole: a short stem past the base
+  float stem = (x <= -0.98 && x > -1.2) ? smoothstep(aa * 1.5, 0.0, abs(q.y - 0.012 * (x + 0.98) * len) - 0.0075) : 0.0;
+  if (inside <= 0.0 && stem <= 0.0) return vec4(0.0);
+  if (inside <= 0.0) return vec4(vec3(0.24, 0.15, 0.06), SAT(stem));                    // petiole only
+  float w = abs(q.y) / max(halfW, 1e-4);                        // 0 midrib .. 1 margin
+  float t = x * 0.5 + 0.5;
+  float fold = mix(0.74, 1.06, smoothstep(-0.2, 0.2, q.y / wid));                 // the two halves catch the light differently
+  float tex = 0.86 + 0.28 * (noise(q * 110.0 + sd) * 0.6 + noise(q * 330.0 + sd) * 0.4);
+  float vein = smoothstep(aa * 1.4, 0.0, abs(q.y) - aa * 0.9 * (1.0 - 0.6 * t))                                  // midrib
+             + 0.7 * smoothstep(0.075, 0.015, abs(fract(t * 6.5 - w * 0.9) - 0.5) * 0.5) * step(w, 0.9) * step(0.06, t) * step(t, 0.93);
+  vec3 col = mix(cLo, cHi, SAT(fold * (0.55 + 0.45 * t) * tex - 0.1 * w));
+  col = mix(col, cVein, SAT(vein) * 0.3);
+  col += cHi * pow(w, 3.0) * 0.18;                                              // light glowing through the thin margin
+  col += vec3(0.5, 0.8, 0.95) * pow(w, 7.0) * 0.14;                              // cool moonlit rim
+  col *= 1.0 - spots * step(0.8, noise(q * 52.0 + sd * 3.0)) * 0.5 * smoothstep(0.1, 0.5, w);
+  return vec4(col, SAT(max(inside, stem)));
+}
 vec3 render(vec2 uv) {
   if (uLayer >= 10) {
     int k = uLayer - 10; vec4 r;
@@ -282,8 +312,11 @@ vec3 render(vec2 uv) {
     else if (k == 1) r = spray(uv * vec2(-1.0, 1.0), 9.0, 18, 1.1);
     else if (k == 2) r = flower(uv, 2.0, vec3(0.3, 0.9, 1.0));
     else if (k == 3) r = flower(uv, 5.0, vec3(1.0, 0.45, 0.85));
-    else if (k == 4) r = leafAt(uv, vec2(0.0), 0.6, 0.42, 3.0);
-    else r = mushCluster(uv, 4.0);
+    else if (k == 4) r = fallLeaf(uv, 3.0, vec3(0.025, 0.13, 0.045), vec3(0.2, 0.6, 0.085), vec3(0.55, 0.9, 0.3), 0.0);            // fresh green
+    else if (k == 5) r = mushCluster(uv, 4.0);
+    else if (k == 6) r = fallLeaf(uv, 8.0, vec3(0.24, 0.12, 0.01), vec3(0.8, 0.52, 0.05), vec3(1.0, 0.82, 0.35), 0.55);          // golden
+    else if (k == 7) r = fallLeaf(uv, 13.0, vec3(0.2, 0.05, 0.02), vec3(0.78, 0.27, 0.05), vec3(1.0, 0.6, 0.3), 0.9);           // amber / copper
+    else r = fallLeaf(uv, 21.0, vec3(0.03, 0.17, 0.13), vec3(0.17, 0.66, 0.48), vec3(0.65, 0.95, 0.8), 0.0);                     // soft mint-teal
     gAlpha = r.a; return r.rgb;
   }
   RO = vec3(pathX(0.0) + 0.3, 1.7, 0.0);

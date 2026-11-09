@@ -418,9 +418,15 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
       { n: 'flowerB', plane: 'scene', k: 0.6, x: 30, y: 90, w: 4.2, dx: 3, dy: 0, rot: 2, dur: 8, fx: 'pulse' },
       { n: 'mush', plane: 'scene', k: 0.72, x: 11, y: 86, w: 9, dx: 0, dy: 0, rot: 0, dur: 30, fx: 'pulse' },
       { n: 'flowerA', plane: 'scene', k: 0.86, x: 87, y: 84, w: 6.4, dx: 4, dy: 0, rot: 2.5, dur: 7, fx: 'pulse' },
-      { n: 'lf1', src: 'leaf', plane: 'scene', k: 0.9, x: 64, y: 0, w: 1.5, fall: 34, dx: 120, rot: 420, flip: 1 },
-      { n: 'lf2', src: 'leaf', plane: 'scene', k: 1.5, x: 22, y: 0, w: 2.3, fall: 25, dx: -160, rot: -380 },
-      { n: 'lf3', src: 'leaf', plane: 'scene', k: 2.1, x: 82, y: 0, w: 3.4, fall: 19, dx: 140, rot: 300, flip: 1 },
+      // Falling leaves, wind-driven: a shared breeze (net drift to the right, strength dx) plus, per leaf, its own sideways
+      // sway (sw px, every `sway` s), pendulum flutter (±fa deg, every `flut` s) and edge-on turn (every `turn` s), so no two
+      // leaves move alike. `sy` is where a leaf rests in Static / reduced motion.
+      { n: 'lf1', src: 'leafY', plane: 'scene', k: 0.9, x: 63, y: 0, w: 2.5, fall: 36, dx: 260, rot: 190, sw: 38, sway: 5.2, flut: 2.9, fa: 34, turn: 3.7, sy: 58 },
+      { n: 'lf2', src: 'leafG', plane: 'scene', k: 1.5, x: 21, y: 0, w: 3.5, fall: 27, dx: 340, rot: -150, sw: 62, sway: 4.4, flut: 2.3, fa: 42, turn: 2.9, sy: 36, flip: 1 },
+      { n: 'lf3', src: 'leafO', plane: 'scene', k: 2.1, x: 80, y: 0, w: 5.0, fall: 21, dx: 300, rot: 230, sw: 80, sway: 3.8, flut: 2.0, fa: 48, turn: 2.5, sy: 70 },
+      { n: 'lf4', src: 'leafM', plane: 'scene', k: 1.1, x: 44, y: 0, w: 2.9, fall: 32, dx: 220, rot: 120, sw: 46, sway: 4.9, flut: 2.6, fa: 38, turn: 3.3, sy: 28, flip: 1 },
+      { n: 'lf5', src: 'leafY', plane: 'scene', k: 0.7, x: 8, y: 0, w: 2.1, fall: 40, dx: 200, rot: -210, sw: 30, sway: 5.8, flut: 3.1, fa: 30, turn: 4.0, sy: 80 },
+      { n: 'lf6', src: 'leafG', plane: 'scene', k: 1.8, x: 91, y: 0, w: 4.0, fall: 24, dx: 280, rot: 170, sw: 70, sway: 4.1, flut: 2.2, fa: 44, turn: 2.7, sy: 48, flip: 1 },
       { n: 'sprayA', plane: 'pop', at: 'band', x: 0.97, y: 0.5, h: 1.1, k: 2.6, dx: -12, dy: 3, rot: 2.5, dur: 9 },     // wind sway
       { n: 'sprayB', plane: 'pop', at: 'band', x: 0.03, y: 0.45, h: 0.9, k: 2.8, dx: 12, dy: -3, rot: -3, dur: 11 },
       { n: 'mSpray', src: 'sprayA', plane: 'pop', at: 'margin', side: 'right', y: 0.55, h: 0.3, k: 2.3, dx: -10, dy: 4, rot: 3, dur: 10, flip: 1 }
@@ -449,10 +455,16 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     wrap.className = 'repv-s'; if (s.plane === 'pop') wrap.dataset.k = String(s.k); wrap.dataset.sprite = s.n; wrap.dataset.depth = String(s.k);
     const img = document.createElement('img');
     img.src = spriteUrl(slug, s.src || s.n); img.alt = '';
-    if (s.flip) img.style.scale = '-1 1'; img.decoding = 'async'; img.draggable = false;
+    if (s.flip) wrap.style.scale = '-1 1'; // mirror on the wrapper: the image's own `scale` may be animated (leaf turn)
+    img.decoding = 'async'; img.draggable = false;
     const m = cinematic ? 1.8 : 1;
     if (s.cross || s.crossRev) { img.dataset.cross = s.crossRev ? 'rev' : ''; img.style.setProperty('--dur', `${(s.cross || s.crossRev) / (cinematic ? 1.5 : 1)}s`); }
-    else if (s.fall) { img.dataset.fall = ''; img.style.setProperty('--dur', `${s.fall / (cinematic ? 1.4 : 1)}s`); }
+    else if (s.fall) {
+      img.dataset.fall = ''; const sp = cinematic ? 1.35 : 1;
+      img.style.setProperty('--dur', `${s.fall / sp}s`); img.style.setProperty('--sw', `${s.sw || 40}px`); img.style.setProperty('--sway', `${(s.sway || 4.5) / sp}s`);
+      img.style.setProperty('--flut', `${(s.flut || 2.5) / sp}s`); img.style.setProperty('--fa', `${s.fa || 38}deg`); img.style.setProperty('--turn', `${(s.turn || 3.2) / sp}s`);
+      wrap.style.setProperty('--sy', `${s.sy ?? 40}%`);
+    }
     else img.style.setProperty('--dur', `${s.dur / (cinematic ? 1.35 : 1)}s`);
     img.style.setProperty('--dx', `${(s.dx || 0) * m}px`); img.style.setProperty('--dy', `${(s.dy || 0) * m}px`); img.style.setProperty('--rot', `${(s.rot || 0) * (cinematic ? 1.4 : 1)}deg`);
     img.style.animationDelay = `${-((s.n.charCodeAt(0) * 7 + s.n.charCodeAt(s.n.length - 1) * 3 + s.n.length * 13) % 20)}s`; // desynchronised loops
@@ -549,8 +561,10 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     return `<svg viewBox="-24 -22 48 40" width="34" height="28" aria-hidden="true"><defs>
       <radialGradient id="repv-bfg" cx="0" cy="0" r="22" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${c}"/><stop offset=".35" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></radialGradient>
       <radialGradient id="repv-bfg2" cx="0" cy="0" r="16" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></radialGradient></defs>
-      ${wing('l')}${wing('r')}<ellipse cx="0" cy="2" rx="1.3" ry="7" fill="#1b1a22"/><circle cx="0" cy="-5.5" r="1.6" fill="#1b1a22"/>
-      <path d="M-.5,-6.5 C-2,-11 -4,-13 -6,-14 M.5,-6.5 C2,-11 4,-13 6,-14" stroke="#1b1a22" stroke-width=".7" fill="none"/></svg>`;
+      ${wing('l')}${wing('r')}
+      <g class="bf-b"><g class="bf-ab"><ellipse cx="0" cy="4.2" rx="1.35" ry="6.3" fill="#1b1a22"/><path d="M-1.1,1 L1.1,1 M-1.2,3.4 L1.2,3.4 M-1,5.8 L1,5.8" stroke="${c}" stroke-opacity=".35" stroke-width=".45"/></g>
+        <ellipse cx="0" cy="-1.2" rx="1.9" ry="3" fill="#1b1a22"/>
+        <g class="bf-hd"><circle cx="0" cy="-5.6" r="1.7" fill="#1b1a22"/><path d="M-.5,-6.6 C-2,-11 -4,-13 -6,-14 M.5,-6.6 C2,-11 4,-13 6,-14" stroke="#1b1a22" stroke-width=".7" fill="none"/></g></g></svg>`;
   }
   function bfAllowed() {
     return bf.on && document.visibilityState === 'visible' && !reducedQuery?.matches && config.motionMode !== 'static' && config.idleButterfly !== false && bf.x >= 0;
@@ -559,14 +573,21 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     const el = document.createElement('div');
     el.id = BF_ID; el.setAttribute('aria-hidden', 'true'); el.innerHTML = bfSvg(bf.colors);
     (document.documentElement).appendChild(el); bf.el = el;
-    // rest just above-right of the pointer tip (never covering it), arrive from the nearest side along a wavering path
-    const tx = Math.min(innerWidth - 24, bf.x + 16), ty = Math.max(14, bf.y - 22);
+    // settle immediately beside the pointer, level with its body (not above it); the tip itself stays clear. Arrive from
+    // the nearer side along a wavering path, swoop a little above the spot, then drop onto it.
+    const tx = Math.min(innerWidth - 24, Math.max(24, bf.x + 19)), ty = Math.min(innerHeight - 20, Math.max(16, bf.y + 5));
     const fromLeft = bf.x > innerWidth / 2 ? false : true;
     const sx = fromLeft ? -50 : innerWidth + 50, sy = Math.max(30, ty - 160 - Math.random() * 120);
-    const pts = [0, 0.25, 0.5, 0.75, 1].map(t => [sx + (tx - sx) * t + Math.sin(t * Math.PI * 3) * 26 * (1 - t), sy + (ty - sy) * t + Math.cos(t * Math.PI * 4) * 22 * (1 - t)]);
+    const path = [0, 0.25, 0.5, 0.75].map(t => [sx + (tx - sx) * t + Math.sin(t * Math.PI * 3) * 26 * (1 - t), sy + (ty - sy) * t + Math.cos(t * Math.PI * 4) * 22 * (1 - t)]);
+    const dir = fromLeft ? 1 : -1;
+    const frames = [...path.map(([x, y], i) => ({ x, y, r: dir * 14 * Math.sin(i * 1.7) })),
+      { x: tx - dir * 10, y: ty - 12, r: -dir * 9 },      // flutters in just above and short of the spot, nose up
+      { x: tx, y: ty, r: 0 }];                              // and drops onto it
     el.dataset.state = 'arriving';
-    bf.anim = el.animate(pts.map(([x, y], i) => ({ transform: `translate3d(${x}px, ${y}px, 0) rotate(${i < 4 ? (fromLeft ? 14 : -14) * Math.sin(i * 1.7) : 0}deg)`, opacity: i === 0 ? 0 : 1 })), { duration: 3400, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' });
-    bf.anim.onfinish = () => { if (bf.el === el && el.dataset.state === 'arriving') el.dataset.state = 'resting'; };
+    bf.anim = el.animate(frames.map((f, i) => ({ transform: `translate3d(${f.x}px, ${f.y}px, 0) rotate(${f.r}deg)`, opacity: i === 0 ? 0 : 1, offset: [0, 0.22, 0.44, 0.66, 0.86, 1][i] })), { duration: 3500, easing: 'cubic-bezier(.3,.7,.4,1)', fill: 'forwards' });
+    // slower, softer flapping for the last approach, then the landing flourish (CSS) and the resting loop
+    const slow = setTimeout(() => { if (bf.el === el && el.dataset.state === 'arriving') el.dataset.state = 'landing'; }, 2750);
+    bf.anim.onfinish = () => { clearTimeout(slow); if (bf.el === el && el.dataset.state !== 'leaving') el.dataset.state = 'resting'; };
   }
   function bfFlyAway() {
     const el = bf.el; if (!el || el.dataset.state === 'leaving') return;
@@ -772,7 +793,7 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate; }
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-cross] { animation:repv-cross var(--dur, 120s) linear infinite; }
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-cross="rev"] { animation-name:repv-cross-rev; }
- :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fall] { animation:repv-fall var(--dur, 30s) linear infinite; }
+ :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fall] { animation:repv-fall var(--dur, 30s) linear infinite, repv-leaf-sway var(--sway, 4.5s) ease-in-out infinite alternate, repv-leaf-flutter var(--flut, 2.5s) ease-in-out infinite alternate, repv-leaf-turn var(--turn, 3.2s) ease-in-out infinite alternate; }
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="flicker"] { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate, repv-flick 4.3s steps(1, end) infinite; }
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="pulse"] { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate, repv-glow 3.2s ease-in-out infinite alternate; }
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="spin"] { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate, repv-spin 40s linear infinite; }
@@ -780,8 +801,14 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
  html.repv-depth-cinematic :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="spin"] { animation-duration:var(--dur, 30s), 22s; }
 }
 #repovibe-depth .repv-s:has(> img[data-fall]) { top:0 !important; }
+html.repv-depth-static #repovibe-depth .repv-s:has(> img[data-fall]), html.repv-depth-still #repovibe-depth .repv-s:has(> img[data-fall]) { top:var(--sy, 40%) !important; } /* at rest: a leaf lies in the scene instead of hiding above it */
 @keyframes repv-cross-rev { from { transform:translate3d(60vw, -3vh, 0); } to { transform:translate3d(-80vw, 5vh, 0); } }
-@keyframes repv-fall { 0% { transform:translate3d(0, -12vh, 0) rotate(0deg); opacity:0; } 6% { opacity:1; } 50% { transform:translate3d(calc(var(--dx) * .5), 55vh, 0) rotate(calc(var(--rot) * .5)); } 94% { opacity:1; } 100% { transform:translate3d(var(--dx), 118vh, 0) rotate(var(--rot)); opacity:0; } }
+/* A leaf in a breeze: net descent and drift with a gust (faster fall and push at 45–70 %), a slow overall spin, plus three independent,
+   desynchronised oscillations (individual transform properties compose): sideways sway, pendulum flutter, turning edge-on. */
+@keyframes repv-fall { 0% { transform:translate3d(0, -14vh, 0) rotate(0deg); opacity:0; } 6% { opacity:1; } 45% { transform:translate3d(calc(var(--dx) * .3), 44vh, 0) rotate(calc(var(--rot) * .4)); } 70% { transform:translate3d(calc(var(--dx) * .72), 82vh, 0) rotate(calc(var(--rot) * .75)); } 94% { opacity:1; } 100% { transform:translate3d(var(--dx), 122vh, 0) rotate(var(--rot)); opacity:0; } }
+@keyframes repv-leaf-sway { from { translate:calc(var(--sw, 40px) * -1) 0; } to { translate:var(--sw, 40px) 0; } }
+@keyframes repv-leaf-flutter { from { rotate:calc(var(--fa, 38deg) * -1); } to { rotate:var(--fa, 38deg); } }
+@keyframes repv-leaf-turn { from { scale:1 1; } to { scale:.38 1; } }
 @keyframes repv-flick { 0%, 100% { opacity:1; } 31% { opacity:.55; } 33% { opacity:1; } 62% { opacity:.8; } 64% { opacity:1; } 66% { opacity:.4; } 67% { opacity:1; } }
 @keyframes repv-glow { from { opacity:.72; } to { opacity:1; } }
 @keyframes repv-spin { from { rotate:0deg; } to { rotate:360deg; } }
@@ -795,12 +822,37 @@ html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth
 @media (prefers-reduced-motion:reduce) { :is(#repovibe-depth, #repovibe-popout) * { animation:none !important; } }
 /* idle butterfly */
 #repovibe-butterfly { position:fixed; left:0; top:0; margin:-14px 0 0 -17px; z-index:60; pointer-events:none; will-change:transform; filter:drop-shadow(0 0 6px rgba(255, 255, 255, .35)) drop-shadow(0 3px 4px rgba(0, 0, 0, .4)); }
+/* One creature: every part runs on the wings' clock (flap cycle .34 s in flight, .5 s when landing, 3.2 s at rest). When the
+   wings close the thorax lifts and lunges, the abdomen trails a beat behind, the head nods and the whole body rocks. */
 #repovibe-butterfly .bf-w { transform-box:view-box; transform-origin:50% 55%; animation:repv-flap .17s ease-in-out infinite alternate; }
-#repovibe-butterfly[data-state="resting"] .bf-w { animation:repv-rest 3.2s ease-in-out infinite; }
-#repovibe-butterfly[data-state="resting"] svg { animation:repv-bob 4s ease-in-out infinite alternate; }
+#repovibe-butterfly svg, #repovibe-butterfly .bf-b, #repovibe-butterfly .bf-ab, #repovibe-butterfly .bf-hd { transform-box:fill-box; }
+#repovibe-butterfly svg { transform-box:view-box; transform-origin:50% 55%; animation:repv-flybob .34s ease-in-out infinite; }
+#repovibe-butterfly .bf-b { transform-origin:50% 45%; animation:repv-bflap .34s ease-in-out infinite; }
+#repovibe-butterfly .bf-ab { transform-origin:50% 0%; animation:repv-babd .34s ease-in-out -.07s infinite; }
+#repovibe-butterfly .bf-hd { transform-origin:50% 100%; animation:repv-bhead .34s ease-in-out -.04s infinite; }
+#repovibe-butterfly[data-state="landing"] .bf-w { animation-duration:.26s; }
+#repovibe-butterfly[data-state="landing"] svg, #repovibe-butterfly[data-state="landing"] .bf-b { animation-duration:.52s; }
+#repovibe-butterfly[data-state="landing"] .bf-ab { animation-duration:.52s; animation-delay:-.1s; }
+#repovibe-butterfly[data-state="landing"] .bf-hd { animation-duration:.52s; animation-delay:-.06s; }
+#repovibe-butterfly[data-state="resting"] .bf-w { animation:repv-landflap .7s ease-in-out, repv-rest 3.2s ease-in-out .7s infinite; }
+#repovibe-butterfly[data-state="resting"] svg { animation:repv-land .7s ease-out, repv-bob 4s ease-in-out .7s infinite alternate; }
+#repovibe-butterfly[data-state="resting"] .bf-b { animation:repv-landbody .7s ease-in-out, repv-brest 3.2s ease-in-out .7s infinite; }
+#repovibe-butterfly[data-state="resting"] .bf-ab { animation:repv-landabd .7s ease-in-out, repv-arest 3.2s ease-in-out .7s infinite; }
+#repovibe-butterfly[data-state="resting"] .bf-hd { animation:repv-bhead-rest 3.2s ease-in-out infinite; }
 @keyframes repv-flap { from { transform:scaleX(1); } to { transform:scaleX(.22); } }
+@keyframes repv-flybob { 0%, 100% { transform:translateY(.9px) rotate(1.5deg); } 50% { transform:translateY(-1.3px) rotate(-1.5deg); } }
+@keyframes repv-bflap { 0%, 100% { transform:translateY(.7px) scaleY(.97); } 50% { transform:translateY(-1.5px) scaleY(1.05); } }
+@keyframes repv-babd { 0%, 100% { transform:rotate(6deg) scaleY(.96); } 50% { transform:rotate(-6deg) scaleY(1.04); } }
+@keyframes repv-bhead { 0%, 100% { transform:rotate(-4deg); } 50% { transform:rotate(4deg) translateY(-.3px); } }
 @keyframes repv-rest { 0%, 62%, 100% { transform:scaleX(1); } 70% { transform:scaleX(.35); } 78% { transform:scaleX(1); } 86% { transform:scaleX(.5); } }
-@keyframes repv-bob { from { transform:translateY(0) rotate(-3deg); } to { transform:translateY(-2px) rotate(3deg); } }
+@keyframes repv-brest { 0%, 62%, 100% { transform:translateY(0) scaleY(1); } 70% { transform:translateY(-.9px) scaleY(1.03); } 78% { transform:translateY(0); } 86% { transform:translateY(-.5px) scaleY(1.02); } }
+@keyframes repv-arest { 0%, 100% { transform:rotate(0deg); } 36% { transform:rotate(2.5deg); } 68% { transform:rotate(-2deg); } 72% { transform:rotate(-4deg); } 80% { transform:rotate(1.5deg); } 88% { transform:rotate(-2.5deg); } }
+@keyframes repv-bhead-rest { 0%, 62%, 100% { transform:rotate(0deg); } 70% { transform:rotate(3deg); } 78% { transform:rotate(-2deg); } 90% { transform:rotate(1.5deg); } }
+@keyframes repv-landflap { 0% { transform:scaleX(1); } 15% { transform:scaleX(.25); } 30% { transform:scaleX(1); } 45% { transform:scaleX(.35); } 62% { transform:scaleX(1); } 80% { transform:scaleX(.6); } 100% { transform:scaleX(1); } }
+@keyframes repv-landbody { 0% { transform:translateY(-1px); } 15% { transform:translateY(-1.8px) scaleY(1.05); } 30% { transform:translateY(.6px); } 45% { transform:translateY(-1px); } 62% { transform:translateY(.3px); } 100% { transform:translateY(0); } }
+@keyframes repv-landabd { 0% { transform:rotate(6deg); } 25% { transform:rotate(-7deg); } 50% { transform:rotate(5deg); } 75% { transform:rotate(-3deg); } 100% { transform:rotate(0deg); } }
+@keyframes repv-land { 0% { transform:translateY(-3px) rotate(-5deg) scale(1.05); } 55% { transform:translateY(.8px) rotate(2deg) scale(.99); } 100% { transform:translateY(0) rotate(0deg) scale(1); } }
+@keyframes repv-bob { from { transform:translateY(0) rotate(-2deg); } to { transform:translateY(-1.6px) rotate(2deg); } }
 `;
 
   /* ---- Wallpaper resolution: bundled assets, IndexedDB assets (via service worker), legacy inline data. */

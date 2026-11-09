@@ -64,7 +64,7 @@
       "category": "Fantasy",
       "style": "3d",
       "tone": [
-        "#f6f5f7",
+        "#f3f3f5",
         "#14252a"
       ],
       "toneSoft": [
@@ -81,7 +81,10 @@
       "sprites": [
         "flowerA",
         "flowerB",
-        "leaf",
+        "leafG",
+        "leafM",
+        "leafO",
+        "leafY",
         "mush",
         "sprayA",
         "sprayB"

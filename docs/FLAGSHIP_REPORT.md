@@ -2,6 +2,95 @@
 
 Branch `feature/phase1b-immersive-themes` (PR #2, stacked on PR #1). Not merged.
 
+## 0h. Butterfly polish and natural falling leaves — latest
+
+### 1. Butterfly: one coherent creature, landing beside the cursor
+
+**Problem.** Only the wings animated. The body (a single static ellipse and head) stayed still, so the wings looked pasted on.
+
+**Fix.** The body is now built from separate parts that run on the wings' clock:
+
+| Part | Motion in flight (flap cycle .34 s) |
+|---|---|
+| Wings | open and close, as before |
+| Thorax and body | lift and stretch slightly when the wings close, settle when they open |
+| Abdomen | swings ±6° and stretches, **a beat behind** the thorax (-70 ms) |
+| Head and antennae | nod ±4° (-40 ms) |
+| Whole creature | rocks ±1.5° and bobs about 1 px with each flap |
+
+**Landing.**
+- **Approach.** The last metres slow the flapping (.26 s per wing stroke and .52 s per body cycle).
+- **Settling.** It swoops in nose-up just short of the spot, then drops onto it.
+- **Landing flourish.** A 0.7 s landing: a small drop and squash, three quick wing beats with the body and abdomen following, then the slow resting loop.
+- **Resting.** The thorax lifts and the abdomen sways with each slow wing-open (every 3.2 s), the head tilts, and the body breathes gently.
+- **Leaving.** Its fast flight cycle applies as it flies off.
+
+**Landing spot.**
+- **Before:** about 22 px above the cursor and 16 px to the right.
+- **Now:** **19 px right of and 7 px below the pointer tip, level with the pointer's body**. It sits immediately beside the cursor and never above it. The tip itself stays clear. The spot is clamped to the viewport.
+- **Measured:** in all four worlds, offset (+19, +7).
+
+**Evidence:**
+- `docs/screenshots/butterfly/enchanted-forest-flap-cycle.jpg`: one flap cycle frozen at seven exact phases (all animations scrubbed together, 3× device resolution).
+- `docs/screenshots/butterfly/<world>.jpg`: arriving, resting, leaving, gone.
+- `docs/recordings/butterfly-enchanted-forest.webm`.
+
+**Tests:** the idle-butterfly E2E now asserts:
+- rest position: 8–32 px right of and −6 to +26 px from the pointer;
+- the tip is uncovered;
+- wings, body, abdomen, head and the whole SVG all take at least 4 distinct poses over 3.6 s of resting.
+
+### 2. Enchanted Forest falling leaves
+
+**Problem.** The leaves were too dark and rigid:
+- one dark-green, matte silhouette sprite;
+- a straight, constant-speed fall with linear spin.
+
+**Colour.** Four new, much lighter leaf sprites, rendered from a new leaf model:
+- an asymmetric outline with a curled midrib and a pointed tip;
+- folded halves;
+- branching veins;
+- glowing translucent margins and a cool moonlit rim;
+- speckle on the autumn leaves;
+- a petiole.
+
+| Sprite | Tone |
+|---|---|
+| `leafG` | fresh green |
+| `leafY` | golden |
+| `leafO` | amber/copper |
+| `leafM` | soft mint-teal |
+
+The mean luminance is far above the old leaf's (about 45). A test requires at least 105 for each sprite and distinct hues. There are now **6 leaves** (was 3), mixing the four tones, and they are about 40 % larger so they register in the scene. Before/after: `docs/screenshots/leaves/leaf-sprites.jpg`.
+
+**Motion.** A shared breeze plus per-leaf personality, each as its own compositor animation on its own transform property:
+
+| Layer | What it does |
+|---|---|
+| Fall and drift (`transform`) | net descent with a gust (it speeds up and is pushed sideways between 45 % and 70 % of the fall), net drift to the right, slow overall spin, fade in and out |
+| Sway (`translate`) | sideways swing of ±30–80 px, period 3.8–5.8 s per leaf |
+| Flutter (`rotate`) | pendulum rocking of ±30–48°, period 2.0–3.1 s |
+| Turn (`scale`) | turns edge-on and back (width to 38 %), period 2.5–4.0 s |
+
+Cinematic runs about 35 % faster. In Static and reduced motion the leaves **lie in the scene** at fixed spots instead of hiding above it. Mirroring moved to the wrapper so it does not clash with the animated `scale`.
+
+**Measured.** The actual on-screen paths are in `docs/screenshots/leaves/leaf-paths.jpg` and `docs/leaf-motion.json`. Over 16 s, each leaf reverses sideways direction 4–6 times, and its apparent width varies by 2.5–3× as it turns. Four frames, 3.5 s apart, are in `docs/screenshots/leaves/forest-leaves-over-time.jpg`.
+
+**Tests:** the new E2E asserts:
+- leaf sprite brightness and hue;
+- the animated properties;
+- at least 3 leaves each showing sway, flutter and turn;
+- rest positions in Static.
+
+The older "only compositor-friendly properties animate" check now also accepts `translate`, `rotate` and `scale`.
+
+### 3. Verification
+
+- **Unit:** 30/30.
+- **Offline E2E:** run results in the PR description.
+- **Text contrast, Forest on real-page replays** (3 pages × Static and Ambient × 1366 and 1920 px): all 12 runs have no text below 4.5:1 (minimum 4.63, GitHub's header).
+- **Performance** (software rendering): Forest at 1366 px runs Ambient Full at 19.7 fps, Lite at 34.5 and Static at 57. Main-thread work is slightly lower than last round, so the extra leaves cost nothing there. GPU performance is **UNVERIFIED**.
+
 ## 0g. Broader themed borders, no mouse parallax, idle butterfly — latest
 
 **1. Broader themed borders.** The earlier 0.5 px outer ring is now a **1 px themed ring** (about 40 % of the edge colour) next to the 1 px border. Edges read about 2 px.

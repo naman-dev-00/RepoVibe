@@ -2,532 +2,136 @@
   "source": "real github.com page replay (actions-checkout-code, logged out; local snapshot, not committed)",
   "viewport": "1366x768",
   "worlds": {
-    "cosmic-galaxy": {
+    "enchanted-forest": {
       "static": {
-        "fps": 57.6,
-        "frameMs": {
-          "p50": 16.7,
-          "p95": 16.7,
-          "p99": 33.4,
-          "over33": 0.7
-        },
-        "mainMsPerS": {
-          "task": 88.5,
-          "script": 3.6,
-          "style": 2.2,
-          "layout": 0
-        },
-        "traceMsPerS": {
-          "paint": 15.6,
-          "raster": 135.8,
-          "composite": 73.6
-        },
-        "layers": {
-          "composited": 22,
-          "areaViewports": 27.4
-        },
-        "heapMB": 2.4,
-        "cpuCores": 0.25
-      },
-      "depth off": {
         "fps": 57.2,
         "frameMs": {
           "p50": 16.7,
           "p95": 16.8,
-          "p99": 50,
-          "over33": 1.7
+          "p99": 33.3,
+          "over33": 0.7
         },
         "mainMsPerS": {
-          "task": 99.2,
-          "script": 3.8,
-          "style": 11.2,
+          "task": 75.8,
+          "script": 2.1,
+          "style": 1.7,
           "layout": 0
         },
         "traceMsPerS": {
-          "paint": 16.1,
-          "raster": 288.8,
-          "composite": 852.6
+          "paint": 12.7,
+          "raster": 137.9,
+          "composite": 85.3
         },
         "layers": {
-          "composited": 12,
-          "areaViewports": 20.8
+          "composited": 24,
+          "areaViewports": 30.4
         },
-        "heapMB": 2,
-        "cpuCores": 1.06
-      },
-      "ambient full": {
-        "fps": 19.5,
-        "frameMs": {
-          "p50": 50,
-          "p95": 66.7,
-          "p99": 116.7,
-          "over33": 91.8
-        },
-        "mainMsPerS": {
-          "task": 106.1,
-          "script": 1.5,
-          "style": 22.3,
-          "layout": 0
-        },
-        "traceMsPerS": {
-          "paint": 11.6,
-          "raster": 122.7,
-          "composite": 993.2
-        },
-        "layers": {
-          "composited": 36,
-          "areaViewports": 27.3
-        },
-        "heapMB": 2,
-        "cpuCores": 1.17
-      },
-      "ambient lite": {
-        "fps": 36.1,
-        "frameMs": {
-          "p50": 33.3,
-          "p95": 50,
-          "p99": 50.1,
-          "over33": 15.6
-        },
-        "mainMsPerS": {
-          "task": 115.8,
-          "script": 2.3,
-          "style": 25.4,
-          "layout": 0
-        },
-        "traceMsPerS": {
-          "paint": 13.1,
-          "raster": 128.4,
-          "composite": 951.7
-        },
-        "layers": {
-          "composited": 26,
-          "areaViewports": 24.8
-        },
-        "heapMB": 2,
-        "cpuCores": 1.15
-      },
-      "cinematic full": {
-        "fps": 18.3,
-        "frameMs": {
-          "p50": 50,
-          "p95": 100.1,
-          "p99": 150,
-          "over33": 82.6
-        },
-        "mainMsPerS": {
-          "task": 107.4,
-          "script": 1.2,
-          "style": 24,
-          "layout": 0
-        },
-        "traceMsPerS": {
-          "paint": 14.3,
-          "raster": 126.4,
-          "composite": 980
-        },
-        "layers": {
-          "composited": 37,
-          "areaViewports": 28.4
-        },
-        "heapMB": 2,
-        "cpuCores": 1.17
-      }
-    },
-    "enchanted-forest": {
-      "static": {
-        "fps": 56.2,
-        "frameMs": {
-          "p50": 16.7,
-          "p95": 16.7,
-          "p99": 50,
-          "over33": 1.1
-        },
-        "mainMsPerS": {
-          "task": 97.6,
-          "script": 2.8,
-          "style": 2,
-          "layout": 0
-        },
-        "traceMsPerS": {
-          "paint": 16,
-          "raster": 165.7,
-          "composite": 99.2
-        },
-        "layers": {
-          "composited": 25,
-          "areaViewports": 28.4
-        },
-        "heapMB": 2.1,
-        "cpuCores": 0.29
+        "heapMB": 2.3,
+        "cpuCores": 0.23
       },
       "depth off": {
-        "fps": 58.4,
+        "fps": 60,
         "frameMs": {
           "p50": 16.7,
           "p95": 16.8,
-          "p99": 33.3,
+          "p99": 16.8,
           "over33": 0
         },
         "mainMsPerS": {
-          "task": 93.3,
-          "script": 4.2,
-          "style": 10.7,
+          "task": 51.2,
+          "script": 2.1,
+          "style": 5.9,
           "layout": 0
         },
         "traceMsPerS": {
-          "paint": 20.6,
-          "raster": 124.1,
-          "composite": 885.7
+          "paint": 13.4,
+          "raster": 99,
+          "composite": 655.2
         },
         "layers": {
           "composited": 12,
           "areaViewports": 20.7
         },
-        "heapMB": 2,
-        "cpuCores": 1.08
+        "heapMB": 2.4,
+        "cpuCores": 0.8
       },
       "ambient full": {
-        "fps": 15.3,
+        "fps": 19.7,
         "frameMs": {
-          "p50": 66.6,
-          "p95": 116.7,
-          "p99": 266.6,
-          "over33": 91
+          "p50": 50,
+          "p95": 83.3,
+          "p99": 316.6,
+          "over33": 83.8
         },
         "mainMsPerS": {
-          "task": 159.6,
-          "script": 1.2,
-          "style": 21.7,
-          "layout": 0
-        },
-        "traceMsPerS": {
-          "paint": 18.1,
-          "raster": 183.9,
-          "composite": 1000.9
-        },
-        "layers": {
-          "composited": 30,
-          "areaViewports": 29.5
-        },
-        "heapMB": 2,
-        "cpuCores": 1.17
-      },
-      "ambient lite": {
-        "fps": 28.5,
-        "frameMs": {
-          "p50": 33.3,
-          "p95": 50,
-          "p99": 66.7,
-          "over33": 19.7
-        },
-        "mainMsPerS": {
-          "task": 141.7,
-          "script": 1.9,
-          "style": 20.4,
-          "layout": 0
-        },
-        "traceMsPerS": {
-          "paint": 17.2,
-          "raster": 202.4,
-          "composite": 985.5
-        },
-        "layers": {
-          "composited": 25,
-          "areaViewports": 26
-        },
-        "heapMB": 2.4,
-        "cpuCores": 1.18
-      },
-      "cinematic full": {
-        "fps": 14,
-        "frameMs": {
-          "p50": 66.7,
-          "p95": 116.7,
-          "p99": 399.9,
-          "over33": 94.3
-        },
-        "mainMsPerS": {
-          "task": 171.6,
-          "script": 1.2,
-          "style": 17.8,
-          "layout": 0
-        },
-        "traceMsPerS": {
-          "paint": 11.7,
-          "raster": 197.5,
-          "composite": 1048.7
-        },
-        "layers": {
-          "composited": 31,
-          "areaViewports": 30.7
-        },
-        "heapMB": 2,
-        "cpuCores": 1.2
-      }
-    },
-    "cyberpunk-neon": {
-      "static": {
-        "fps": 52,
-        "frameMs": {
-          "p50": 16.7,
-          "p95": 16.8,
-          "p99": 66.6,
-          "over33": 1.5
-        },
-        "mainMsPerS": {
-          "task": 157.5,
-          "script": 5.2,
-          "style": 2.6,
-          "layout": 0
-        },
-        "traceMsPerS": {
-          "paint": 18.1,
-          "raster": 251.5,
-          "composite": 162.9
-        },
-        "layers": {
-          "composited": 23,
-          "areaViewports": 29.3
-        },
-        "heapMB": 2,
-        "cpuCores": 0.41
-      },
-      "depth off": {
-        "fps": 57.4,
-        "frameMs": {
-          "p50": 16.7,
-          "p95": 16.8,
-          "p99": 50,
-          "over33": 1.7
-        },
-        "mainMsPerS": {
-          "task": 89.1,
-          "script": 3.7,
-          "style": 9.5,
-          "layout": 0
-        },
-        "traceMsPerS": {
-          "paint": 25,
-          "raster": 106.6,
-          "composite": 916.6
-        },
-        "layers": {
-          "composited": 12,
-          "areaViewports": 22.1
-        },
-        "heapMB": 2.4,
-        "cpuCores": 1.11
-      },
-      "ambient full": {
-        "fps": 14.4,
-        "frameMs": {
-          "p50": 66.6,
-          "p95": 116.6,
-          "p99": 500,
-          "over33": 97.2
-        },
-        "mainMsPerS": {
-          "task": 118.2,
-          "script": 1.1,
-          "style": 12,
-          "layout": 0
-        },
-        "traceMsPerS": {
-          "paint": 11,
-          "raster": 156.7,
-          "composite": 975
-        },
-        "layers": {
-          "composited": 27,
-          "areaViewports": 29.5
-        },
-        "heapMB": 2.2,
-        "cpuCores": 1.12
-      },
-      "ambient lite": {
-        "fps": 54.2,
-        "frameMs": {
-          "p50": 16.7,
-          "p95": 16.8,
-          "p99": 50,
-          "over33": 1.8
-        },
-        "mainMsPerS": {
-          "task": 122.1,
-          "script": 3.1,
-          "style": 19.7,
-          "layout": 0
-        },
-        "traceMsPerS": {
-          "paint": 15.9,
-          "raster": 177.6,
-          "composite": 747
-        },
-        "layers": {
-          "composited": 22,
-          "areaViewports": 27
-        },
-        "heapMB": 2,
-        "cpuCores": 1.02
-      },
-      "cinematic full": {
-        "fps": 16.3,
-        "frameMs": {
-          "p50": 50.1,
-          "p95": 100,
-          "p99": 333.4,
-          "over33": 93.9
-        },
-        "mainMsPerS": {
-          "task": 134.6,
-          "script": 1.3,
-          "style": 17.4,
+          "task": 74.2,
+          "script": 0.7,
+          "style": 12.7,
           "layout": 0
         },
         "traceMsPerS": {
           "paint": 7.9,
-          "raster": 159,
-          "composite": 1031.7
+          "raster": 129.2,
+          "composite": 978.7
         },
         "layers": {
-          "composited": 28,
-          "areaViewports": 30.6
+          "composited": 33,
+          "areaViewports": 29.5
         },
         "heapMB": 2.4,
-        "cpuCores": 1.18
-      }
-    },
-    "futuristic-scifi": {
-      "static": {
-        "fps": 56.4,
-        "frameMs": {
-          "p50": 16.7,
-          "p95": 16.8,
-          "p99": 50,
-          "over33": 1.1
-        },
-        "mainMsPerS": {
-          "task": 95.4,
-          "script": 3.2,
-          "style": 2.3,
-          "layout": 0
-        },
-        "traceMsPerS": {
-          "paint": 16.4,
-          "raster": 176.1,
-          "composite": 93.7
-        },
-        "layers": {
-          "composited": 23,
-          "areaViewports": 29.3
-        },
-        "heapMB": 2.4,
-        "cpuCores": 0.29
-      },
-      "depth off": {
-        "fps": 59.6,
-        "frameMs": {
-          "p50": 16.7,
-          "p95": 16.8,
-          "p99": 16.8,
-          "over33": 0.3
-        },
-        "mainMsPerS": {
-          "task": 84.8,
-          "script": 3.5,
-          "style": 9.3,
-          "layout": 0
-        },
-        "traceMsPerS": {
-          "paint": 15.4,
-          "raster": 86.8,
-          "composite": 678.8
-        },
-        "layers": {
-          "composited": 12,
-          "areaViewports": 19.7
-        },
-        "heapMB": 2.3,
-        "cpuCores": 0.85
-      },
-      "ambient full": {
-        "fps": 14.8,
-        "frameMs": {
-          "p50": 66.6,
-          "p95": 116.7,
-          "p99": 300,
-          "over33": 91.9
-        },
-        "mainMsPerS": {
-          "task": 114.7,
-          "script": 1.4,
-          "style": 14.4,
-          "layout": 0
-        },
-        "traceMsPerS": {
-          "paint": 10.6,
-          "raster": 187.5,
-          "composite": 1019.4
-        },
-        "layers": {
-          "composited": 27,
-          "areaViewports": 29.4
-        },
-        "heapMB": 2,
-        "cpuCores": 1.17
+        "cpuCores": 1.13
       },
       "ambient lite": {
-        "fps": 30,
+        "fps": 34.5,
         "frameMs": {
           "p50": 33.3,
-          "p95": 50,
-          "p99": 66.6,
-          "over33": 19.2
+          "p95": 49.9,
+          "p99": 50.1,
+          "over33": 14.5
         },
         "mainMsPerS": {
-          "task": 140.7,
-          "script": 2.1,
-          "style": 23.9,
-          "layout": 0
-        },
-        "traceMsPerS": {
-          "paint": 14.2,
-          "raster": 148.6,
-          "composite": 979.8
-        },
-        "layers": {
-          "composited": 22,
-          "areaViewports": 26
-        },
-        "heapMB": 2.4,
-        "cpuCores": 1.19
-      },
-      "cinematic full": {
-        "fps": 13.7,
-        "frameMs": {
-          "p50": 66.7,
-          "p95": 133.4,
-          "p99": 200.1,
-          "over33": 87
-        },
-        "mainMsPerS": {
-          "task": 134.1,
-          "script": 1.6,
-          "style": 16.5,
+          "task": 108.1,
+          "script": 1.4,
+          "style": 17.2,
           "layout": 0
         },
         "traceMsPerS": {
           "paint": 12.5,
-          "raster": 168.9,
-          "composite": 999.9
+          "raster": 139.5,
+          "composite": 976.2
         },
         "layers": {
           "composited": 28,
-          "areaViewports": 30.6
+          "areaViewports": 26
         },
         "heapMB": 2,
-        "cpuCores": 1.14
+        "cpuCores": 1.16
+      },
+      "cinematic full": {
+        "fps": 18.9,
+        "frameMs": {
+          "p50": 50,
+          "p95": 83.3,
+          "p99": 266.7,
+          "over33": 90.5
+        },
+        "mainMsPerS": {
+          "task": 92.7,
+          "script": 0.8,
+          "style": 15.6,
+          "layout": 0
+        },
+        "traceMsPerS": {
+          "paint": 8,
+          "raster": 140.9,
+          "composite": 1008.4
+        },
+        "layers": {
+          "composited": 34,
+          "areaViewports": 30.7
+        },
+        "heapMB": 2,
+        "cpuCores": 1.16
       }
     }
   },

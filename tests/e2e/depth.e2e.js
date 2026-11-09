@@ -55,9 +55,9 @@ test('depth engine: layered scene, no mouse parallax, never intercepts input, mo
     const hit = await page.evaluate(() => { const a = document.querySelector('#toOther'); const r = a.getBoundingClientRect(); return document.elementFromPoint(r.left + 5, r.top + r.height / 2) === a; });
     assert.ok(hit, 'link is the hit target above the scene');
     assert.ok(await page.evaluate(() => document.scrollingElement.scrollWidth <= innerWidth), 'no horizontal scroll');
-    // only compositor-friendly properties animate
+    // only compositor-friendly properties animate (transform and its individual translate / rotate / scale, and opacity)
     const props = await page.evaluate(() => [...new Set(document.getAnimations().filter(a => a.animationName).flatMap(a => a.effect.getKeyframes().flatMap(k => Object.keys(k).filter(x => !['offset', 'easing', 'composite', 'computedOffset'].includes(x)))))].sort());
-    assert.ok(props.every(p => ['opacity', 'transform'].includes(p)), props.join());
+    assert.ok(props.every(p => ['opacity', 'transform', 'translate', 'rotate', 'scale'].includes(p)), props.join());
     // Cinematic: larger amplitude and a slow camera drift on the art layers
     await updateConfig(context, "c.motionMode = 'cinematic';");
     await page.waitForFunction(() => document.documentElement.classList.contains('repv-depth-cinematic'));
@@ -220,8 +220,15 @@ test('idle butterfly: appears after 15 s of stillness beside the cursor, never t
     await page.waitForFunction(() => document.getElementById('repovibe-butterfly')?.dataset.state === 'resting', null, { timeout: 8000 });
     const b = await page.evaluate(() => { const e = document.getElementById('repovibe-butterfly'); const r = e.getBoundingClientRect(); const s = getComputedStyle(e);
       return { cx: r.x + r.width / 2, cy: r.y + r.height / 2, covers: r.left <= 620 && r.right >= 620 && r.top <= 400 && r.bottom >= 400, pe: s.pointerEvents, aria: e.getAttribute('aria-hidden'), hit: document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('#repovibe-butterfly') ? 'butterfly' : 'page' }; });
-    assert.ok(Math.hypot(b.cx - 620, b.cy - 400) < 60, `rests beside the cursor (${Math.round(b.cx)},${Math.round(b.cy)})`);
+    assert.ok(Math.hypot(b.cx - 620, b.cy - 400) < 40, `rests beside the cursor (${Math.round(b.cx)},${Math.round(b.cy)})`);
+    assert.ok(b.cx - 620 >= 8 && b.cx - 620 <= 32, `immediately to the right of the pointer (dx ${Math.round(b.cx - 620)})`);
+    assert.ok(b.cy - 400 >= -6 && b.cy - 400 <= 26, `level with the pointer, not above it (dy ${Math.round(b.cy - 400)})`);
     assert.equal(b.covers, false, 'does not cover the cursor tip');
+    // one creature: the body parts keep moving on the wings' clock (body, abdomen, head, wings, whole svg all change over a cycle)
+    const parts = async () => page.evaluate(() => Object.fromEntries(['.bf-w', '.bf-b', '.bf-ab', '.bf-hd', 'svg'].map(s => [s, getComputedStyle(document.querySelector(`#repovibe-butterfly ${s}`)).transform])));
+    const seen = Object.fromEntries(['.bf-w', '.bf-b', '.bf-ab', '.bf-hd', 'svg'].map(s => [s, new Set()]));
+    for (let i = 0; i < 30; i++) { const p = await parts(); for (const k of Object.keys(seen)) seen[k].add(p[k]); await page.waitForTimeout(120); }
+    for (const [k, v] of Object.entries(seen)) assert.ok(v.size >= 4, `${k} moves while resting (${v.size} distinct poses): the body follows the wings`);
     assert.deepEqual([b.pe, b.aria, b.hit], ['none', 'true', 'page'], 'never takes clicks, hidden from assistive tech');
     await page.mouse.move(700, 420);
     await page.waitForFunction(() => !document.getElementById('repovibe-butterfly'), null, { timeout: 4000 });
@@ -229,6 +236,57 @@ test('idle butterfly: appears after 15 s of stillness beside the cursor, never t
     await updateConfig(context, "c.motionMode = 'static';");
     await page.mouse.move(640, 420); await page.waitForTimeout(16500);
     assert.equal(await page.evaluate(() => !!document.getElementById('repovibe-butterfly')), false, 'Static: no butterfly');
+    assert.deepEqual(errors, []);
+  } finally { await close(); }
+});
+
+
+test('Enchanted Forest falling leaves: bright natural colours, wind-driven organic motion (drift + sway + flutter + turn), at rest in Static', async () => {
+  const { context, errors, close } = await launch();
+  try {
+    context.setDefaultTimeout(30000);
+    // 1. colour: every leaf sprite is clearly lighter than the old dark-green leaf and has a distinct hue
+    const ext = await extPage(context); await ext.waitForFunction(() => !!globalThis.RepoVibeCore);
+    const colours = await ext.evaluate(async () => {
+      const out = {};
+      for (const k of ['G', 'Y', 'O', 'M']) {
+        const i = new Image(); i.src = chrome.runtime.getURL(`wallpapers/depth/enchanted-forest/s-leaf${k}.webp`); await i.decode();
+        const c = new OffscreenCanvas(i.width, i.height), g = c.getContext('2d'); g.drawImage(i, 0, 0); const d = g.getImageData(0, 0, i.width, i.height).data;
+        let n = 0, r = 0, gr = 0, b = 0, l = 0;
+        for (let p = 0; p < d.length; p += 4) if (d[p + 3] > 200) { n++; r += d[p]; gr += d[p + 1]; b += d[p + 2]; l += d[p] * .2126 + d[p + 1] * .7152 + d[p + 2] * .0722; }
+        out[k] = { luma: l / n, rgb: [r / n, gr / n, b / n].map(Math.round), opaque: n };
+      }
+      return out;
+    });
+    await ext.close();
+    for (const [k, c] of Object.entries(colours)) { assert.ok(c.opaque > 5000, `leaf${k} has a body (${c.opaque} px)`); assert.ok(c.luma >= 105, `leaf${k} is bright enough to read in the glade (mean luma ${Math.round(c.luma)}; the old dark leaf was ~45)`); }
+    assert.ok(colours.Y.rgb[0] > colours.Y.rgb[2] + 60 && colours.O.rgb[0] > colours.O.rgb[1] + 40 && colours.G.rgb[1] > colours.G.rgb[0] + 30, `distinct natural tones ${JSON.stringify(colours)}`);
+    // 2. motion
+    await setConfig(context, { version: 2, enabled: true, autoAssign: false, seededMappings: true, defaultThemeId: 'preset-8', idleButterfly: false, depthQuality: 'full' });
+    const page = await context.newPage(); await page.setViewportSize({ width: 1366, height: 800 });
+    await page.goto('https://github.com/acme/project/layout');
+    await page.waitForFunction(() => document.querySelectorAll('#repovibe-depth img[data-fall]').length >= 5);
+    const props = await page.evaluate(() => { const im = document.querySelector('#repovibe-depth img[data-fall]'); return [...new Set(im.getAnimations().flatMap(a => a.effect.getKeyframes().flatMap(k => Object.keys(k).filter(x => !['offset', 'easing', 'composite', 'computedOffset'].includes(x)))))].sort(); });
+    assert.deepEqual(props, ['opacity', 'rotate', 'scale', 'transform', 'translate'], 'drift/fall, sway, flutter and turn animate on their own properties');
+    const names = await page.evaluate(() => [...new Set([...document.querySelectorAll('#repovibe-depth img[data-fall]')].flatMap(i => i.getAnimations().map(a => a.animationName)))].sort());
+    assert.deepEqual(names, ['repv-fall', 'repv-leaf-flutter', 'repv-leaf-sway', 'repv-leaf-turn']);
+    // sample each leaf for ~9 s: it must drift mostly one way (wind) yet reverse sideways several times, rotate both ways and change width
+    const tr = await page.evaluate(() => new Promise(res => { const ims = [...document.querySelectorAll('#repovibe-depth img[data-fall]')], out = ims.map(() => []), t0 = performance.now();
+      const tick = () => { ims.forEach((im, i) => { const r = im.getBoundingClientRect(), m = new DOMMatrixReadOnly(getComputedStyle(im).transform); out[i].push([r.x + r.width / 2, r.y + r.height / 2, Math.atan2(m.b, m.a) * 180 / Math.PI, r.width]); }); if (performance.now() - t0 < 9000) setTimeout(tick, 100); else res(out); }; tick(); }));
+    let organic = 0;
+    for (const s of tr) {
+      const v = s.filter(p => p[1] > 0 && p[1] < 800 && p[0] > 0 && p[0] < 1366); if (v.length < 25) continue;
+      const dxs = v.slice(1).map((p, k) => p[0] - v[k][0]); let flips = 0; for (let k = 1; k < dxs.length; k++) if (Math.sign(dxs[k]) !== Math.sign(dxs[k - 1]) && Math.abs(dxs[k]) > 0.15) flips++;
+      const rots = v.map(p => p[2]), ws = v.map(p => p[3]);
+      const ok = flips >= 2 && Math.max(...rots) - Math.min(...rots) > 25 && Math.max(...ws) / Math.min(...ws) > 1.3;
+      if (ok) organic++;
+    }
+    assert.ok(organic >= 3, `at least 3 leaves visibly sway (sideways reversals), flutter (rotation range) and turn (width change): ${organic}`);
+    // 3. Static: leaves lie in the scene at rest instead of hiding above it
+    await updateConfig(context, "c.motionMode = 'static';");
+    await page.waitForFunction(() => document.documentElement.classList.contains('repv-depth-static'));
+    const rest = await page.evaluate(() => [...document.querySelectorAll('#repovibe-depth img[data-fall]')].map(i => { const r = i.getBoundingClientRect(); return [Math.round(r.y), i.getAnimations().length]; }));
+    assert.ok(rest.every(([y, a]) => y > 100 && y < 800 && a === 0), `Static: leaves rest in view without animating ${JSON.stringify(rest)}`);
     assert.deepEqual(errors, []);
   } finally { await close(); }
 });
