@@ -487,7 +487,8 @@ L.liveTest('LIVE 8: four flagship worlds with live wallpapers on real pages; def
     }
     // 3. Reduced motion and Static mode on the real page.
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.waitForTimeout(300);
+    // The extension reacts to the media query's change event (and re-checks every second): allow it a few seconds on a loaded runner.
+    await page.waitForFunction(() => ![...document.documentElement.classList].some(c => c.startsWith('repv-motion')), null, { timeout: 4000 }).catch(() => {});
     // Only RepoVibe's own keyframes count: GitHub runs its own CSS animations (e.g. prc-UnderlineNav-detect-overflow).
     const rm = await page.evaluate(() => ({ cls: [...document.documentElement.classList].filter(c => c.startsWith('repv-motion')), anims: document.getAnimations().map(a => a.animationName).filter(n => /^repv-/.test(n || '')) }));
     c.check(rm.cls.length === 0 && rm.anims.length === 0, 'Reduced motion', `prefers-reduced-motion: RepoVibe motion classes [${rm.cls}] and animations [${rm.anims}] (both must be empty)`);

@@ -84,10 +84,30 @@ Cinematic runs about 35 % faster. In Static and reduced motion the leaves **lie 
 
 The older "only compositor-friendly properties animate" check now also accepts `translate`, `rotate` and `scale`.
 
-### 3. Verification
+### 3. Live finding on `909ffbb` and its fix
+
+**Live: 14/15.** LIVE 8's reduced-motion check on the real page failed. RepoVibe's keyframe animations were gone, as required, but the `repv-motion-holo` class was still on the page.
+
+**Investigation.**
+- **Product behaviour.** The extension left motion mode only when the browser delivered the `prefers-reduced-motion` media-query `change` event. That event is delivered with a rendering update, so it is not guaranteed on a busy page. The live check also read the page after a fixed 300 ms.
+- **Reproduction.** It reproduced locally 2 times in about 75 loops of "switch to reduced motion, wait for the class to clear". It was not timing-correlated with CPU load (135 further runs under attached DevTools, and under three parallel browsers, were clean).
+  - In the failing runs, the class stayed for 5+ seconds and the page never switched to the still layout. A DOM mutation did not heal it either.
+  - Typical clear time is 120–170 ms; one run took 385 ms, already above the old 300 ms wait.
+
+**Fixes.**
+1. **Self-healing in the product.** The extension remembers which reduced-motion state it last rendered for. It re-checks that against the browser:
+   - on every DOM mutation, and
+   - on a 1 s heartbeat while a scene is active (one cheap timer, cleared when the theme goes away or RepoVibe is disabled).
+
+   A missed event now resolves within about a second.
+2. **Live test.** It waits up to 4 s for the class to clear instead of reading after a fixed 300 ms.
+
+**After the fix:** 28 repeats of the reproducing loop had no slow or failed run, and the offline E2E is 60/60. I could not reproduce the miss on demand, so the heartbeat is verified by reasoning and the stress loop, not by a deterministic test.
+
+### 4. Verification
 
 - **Unit:** 30/30.
-- **Offline E2E:** run results in the PR description.
+- **Offline E2E:** 60/60.
 - **Text contrast, Forest on real-page replays** (3 pages × Static and Ambient × 1366 and 1920 px): all 12 runs have no text below 4.5:1 (minimum 4.63, GitHub's header).
 - **Performance** (software rendering): Forest at 1366 px runs Ambient Full at 19.7 fps, Lite at 34.5 and Static at 57. Main-thread work is slightly lower than last round, so the extra leaves cost nothing there. GPU performance is **UNVERIFIED**.
 

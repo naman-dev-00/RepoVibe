@@ -1097,6 +1097,7 @@ html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth
   let lastMotion = '';
   function render() {
     if (tornDown) return;
+    lastReduced = reducedNow();
     const resolution = C.themeResolution(config, location.href);
     if (!activePreview && resolution.source === 'auto' && !resolution.persisted && resolution.repository) persistAutoAssignment(resolution.repository.key);
     const theme = activePreview || resolution.theme;
@@ -1107,7 +1108,7 @@ html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth
     let style = document.getElementById(STYLE_ID);
     if (!theme) {
       root.classList.remove('repv-active', 'repv-scene-window', 'repv-scene-compact', 'repv-scene-tall', 'repv-open', ...MOTION_CLASSES);
-      removeDepth(); setButterfly(false);
+      removeDepth(); setButterfly(false); setHeartbeat(false);
       registerInstance(false);
       lastMotion = '';
       clearPanels();
@@ -1137,15 +1138,26 @@ html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth
     if (root.classList.contains('repv-open') !== wantOpen) root.classList.toggle('repv-open', wantOpen);
     for (const h of ['compact', 'tall']) if (root.classList.contains(`repv-scene-${h}`) !== (wantWindow && config.sceneHeight === h)) root.classList.toggle(`repv-scene-${h}`, wantWindow && config.sceneHeight === h);
     renderDepth(theme, resolution.repository ? url : null); // one depth scene, repository pages only (never on Home)
-    setButterfly(Boolean(url), theme);
+    setButterfly(Boolean(url), theme); setHeartbeat(Boolean(url));
     applyColorMode(root, lastMode);
     if (url) queuePanelScan(); else clearPanels();
     renderCards();
   }
   // GitHub navigations can swap <head> or reset <html> attributes; restore our state if lost.
+  /* Reduced motion is applied from the media query's `change` event, but an event is not a guarantee (it is delivered with a
+     rendering update): the state each render was made for is remembered and reconciled on every DOM mutation and on a 1 s
+     heartbeat while a scene is active, so a missed event can never leave motion running (or stopped) against the setting. */
+  let lastReduced = null, heartbeat = 0;
+  const reducedNow = () => Boolean(reducedQuery?.matches);
+  function reconcileMotion() { if (!tornDown && lastTheme && lastReduced !== null && lastReduced !== reducedNow()) render(); }
+  function setHeartbeat(on) {
+    if (on && !heartbeat) heartbeat = setInterval(guard(reconcileMotion), 1000);
+    else if (!on && heartbeat) { clearInterval(heartbeat); heartbeat = 0; }
+  }
   function ensureApplied() {
     const root = document.documentElement;
     if (!lastTheme || !root) return;
+    if (lastReduced !== null && lastReduced !== reducedNow()) { render(); return; }
     if (!document.getElementById(STYLE_ID) || !root.classList.contains('repv-active') || (lastWallpaperUrl && !document.getElementById(WALLPAPER_STYLE_ID))
       || lastMotion.split(' ').some(c => c && !root.classList.contains(c)) || (depthState.key && !document.getElementById(DEPTH_ID))) render();
     else applyColorMode(root, lastMode);
@@ -1169,7 +1181,7 @@ html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth
     document.getElementById(WALLPAPER_STYLE_ID)?.remove();
     clearCards();
     clearPanels();
-    removeDepth(); setButterfly(false);
+    removeDepth(); setButterfly(false); setHeartbeat(false);
     registerInstance(false);
     reducedQuery?.removeEventListener?.('change', onReducedMotionChange);
     if (document.documentElement) { document.documentElement.classList.remove('repv-active', 'repv-scene-window', 'repv-scene-compact', 'repv-scene-tall', 'repv-open', ...MOTION_CLASSES); applyColorMode(document.documentElement, null); }
