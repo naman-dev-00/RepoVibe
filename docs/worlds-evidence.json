@@ -867,10 +867,10 @@
       "staticStopsMovement": true,
       "staticAnimating": 0,
       "errors": [
-        "https://github.com/actions/checkout: Failed to load resource: net::ERR_UNKNOWN_URL_SCHEME",
-        "https://github.com/actions/checkout: Failed to load resource: net::ERR_UNKNOWN_URL_SCHEME",
         "https://github.com/actions/checkout: Failed to load resource: net::ERR_FAILED",
         "https://github.com/actions/checkout: Failed to load resource: net::ERR_FAILED",
+        "https://github.com/actions/checkout: Failed to load resource: net::ERR_UNKNOWN_URL_SCHEME",
+        "https://github.com/actions/checkout: Failed to load resource: net::ERR_UNKNOWN_URL_SCHEME",
         "https://github.com/actions/checkout: Failed to load resource: net::ERR_FAILED",
         "https://github.com/actions/checkout: Failed to load resource: net::ERR_FAILED",
         "https://github.com/actions/checkout: Failed to load resource: net::ERR_FAILED",

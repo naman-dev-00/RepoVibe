@@ -65,3 +65,20 @@ None of the eight reaches the fidelity of rendered 3D; sprites are 1.2× the 144
 See the PR description's matrix for the final numbers. Evidence: `docs/screenshots/worlds/<slug>-{full,foreground,motion,cinematic,static,comparison}.jpg`,
 `docs/recordings/worlds/<slug>-{ambient,cinematic}.webm`, `docs/worlds-evidence.json`, `docs/perf-profile-worlds.json` (software-rendered Chromium,
 NOT a GPU measurement).
+
+## 6. Performance (software-rendered Chromium / SwiftShader, 1366×768, real-page replay — **GPU performance UNVERIFIED**)
+| World | Static fps | Ambient Full | Ambient Lite | Cinematic Full | JS heap (max) |
+|---|---|---|---|---|---|
+| Sakura Dreams | 57.2 | 19.9 | 29.7 | 18.9 | 2.4 MB |
+| Ocean Depths | 56.6 | 16.6 | 24.4 | 16.9 | 2.4 MB |
+| Arctic Frost | 56.2 | 18.9 | 32.0 | 20.1 | 2.4 MB |
+| Aurora | 58.2 | 17.1 | 55.4 | 16.8 | 2.5 MB |
+| Synthwave | 58.0 | 22.4 | 41.9 | 21.6 | 2.4 MB |
+| Dark Academia | 57.2 | 19.9 | 46.0 | 19.8 | 2.3 MB |
+| Pixel Paradise | 58.6 | 23.3 | 38.8 | 27.5 | 2.5 MB |
+| Sunset Boulevard | 57.4 | 22.9 | 56.4 | 22.8 | 2.2 MB |
+For comparison the existing Enchanted Forest measured 19.7 / 34.5 fps (Full / Lite) in the same setup, so the worlds cost about the same.
+Everything is software-composited here (CPU ≈ 1.1 cores in Ambient), which is the worst case; on a GPU all animation is compositor-only
+(transform/opacity/translate/rotate/scale) and 50–60 fps is *expected* but **not measured**. Weak devices fall down the one-way Auto ladder
+(Full ≥ 40 fps, Lite 25–40, Minimal < 25) once per page; wind animation is also dropped in Lite. Memory: layered WebP total ≈ 0.4–1.5 MB per world on disk,
+all sprites decode once; no per-frame JS (no requestAnimationFrame loop for the worlds). Full data: `docs/perf-profile-worlds.json`.
