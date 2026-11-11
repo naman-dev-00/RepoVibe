@@ -35,8 +35,18 @@
             <div class="repo-actions"><button id="resetRepoTheme" class="outline-button" type="button" title="Remove the manual choice for this repository; it returns to its automatic or owner/global theme">↺ Reset repository theme</button><button id="restoreGitHub" class="outline-button" type="button" title="Show original GitHub styling on this repository">◌ Restore GitHub appearance</button></div></div>
         </div>
         <section id="view-gallery" class="view active-view">
-          <div class="intro"><h2>Find your frequency.</h2><p>Every theme ships with original bundled artwork. <b>Apply</b> saves it to the current target; <b>Customize</b> opens it in the editor first.</p></div>
-          <div class="gallery-grid" id="themeGallery"></div>
+          <div class="intro"><h2 id="galleryHeading">Find your frequency.</h2><p>Every theme ships with original bundled artwork. <b>Apply</b> saves it to the current target; <b>Customize</b> opens it in the editor first.</p></div>
+          <div class="gallery-tools">
+            <input id="gallerySearch" type="search" placeholder="Search themes by name" aria-label="Search themes by name" autocomplete="off" />
+            <div class="gallery-filters" role="group" aria-label="Show collection">
+              <button type="button" class="filter-chip active" data-filter="all" aria-pressed="true">All <span class="chip-count"></span></button>
+              <button type="button" class="filter-chip" data-filter="approved" aria-pressed="false">Approved <span class="chip-count"></span></button>
+              <button type="button" class="filter-chip" data-filter="experimental" aria-pressed="false">Experimental <span class="chip-count"></span></button>
+              <button type="button" class="filter-chip" data-filter="custom" aria-pressed="false">My custom themes <span class="chip-count"></span></button>
+            </div>
+            <span id="galleryCount" class="gallery-count" role="status" aria-live="polite"></span>
+          </div>
+          <div id="themeGallery" class="gallery-groups"></div>
         </section>
         <section id="view-customize" class="view">
           <div class="intro"><h2>Make it yours.</h2><p>Fine-tune your palette, panels, typography, and the little details that give a theme personality.</p></div>
@@ -101,6 +111,6 @@
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </main>
   </div>
-  <script src="shared/wallpaper-catalog.js"></script><script src="shared/core.js"></script><script src="shared/wallpaper-store.js"></script><script src="studio.js"></script>
+  <script src="shared/wallpaper-catalog.js"></script><script src="shared/theme-review.js"></script><script src="shared/core.js"></script><script src="shared/wallpaper-store.js"></script><script src="studio.js"></script>
 </body>
 </html>

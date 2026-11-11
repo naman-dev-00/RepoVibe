@@ -31,6 +31,7 @@
       ],
       "js": [
         "shared/wallpaper-catalog.js",
+        "shared/theme-review.js",
         "shared/core.js",
         "shared/worlds.js",
         "content.js"

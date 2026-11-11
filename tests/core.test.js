@@ -382,3 +382,38 @@ test('every world sprite and pop-out declared in shared/worlds.js exists on disk
     }
   }
 });
+
+/* ---- Curated collection: approved / experimental / archived (owner-maintained shared/theme-review.js). */
+function coreWithReview(review) {
+  const ctx = vm.createContext({ URL, structuredClone, console, Date, Math, RepoVibeThemeReview: review });
+  vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../shared/wallpaper-catalog.js'), 'utf8'), ctx);
+  vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../shared/core.js'), 'utf8'), ctx);
+  return ctx.RepoVibeCore;
+}
+test('nothing is approved without the owner: every built-in theme starts experimental, the six popup picks are preserved', () => {
+  const K = coreWithReview(undefined);
+  const col = K.themeCollection(K.normalizeConfig({}));
+  assert.equal(col.approved.length, 0); assert.equal(col.archived.length, 0); assert.equal(col.experimental.length, K.PRESETS.length);
+  assert.deepEqual(JSON.parse(JSON.stringify(K.featuredThemes().map(t => t.id))), ['preset-1', 'preset-8', 'preset-19', 'preset-15', 'preset-9', 'preset-20']);
+  assert.equal(K.themeStatus('custom-x'), 'custom');
+  const shipped = fs.readFileSync(require('node:path').join(__dirname, '../shared/theme-review.js'), 'utf8');
+  assert.match(shipped, /globalThis\.RepoVibeThemeReview = \{\};/, 'the shipped review list is empty until the owner approves themes');
+});
+test('approved themes take the featured slots; archived themes leave discovery but saved assignments and custom themes keep working', () => {
+  const K = coreWithReview({ 'preset-8': 'approved', 'preset-3': 'approved', 'preset-5': 'archived', 'preset-9': 'archived' });
+  assert.equal(K.themeStatus('preset-8'), 'approved'); assert.equal(K.themeStatus('preset-5'), 'archived'); assert.equal(K.themeStatus('preset-2'), 'experimental');
+  const feat = K.featuredThemes().map(t => t.id);
+  assert.deepEqual(JSON.parse(JSON.stringify(feat.slice(0, 2))), ['preset-3', 'preset-8'], 'approved first (catalogue order)');
+  assert.ok(!feat.includes('preset-9') && !feat.includes('preset-5') && feat.length === 6, 'archived never featured');
+  const config = K.normalizeConfig({ autoAssign: true, repoAssignments: { 'acme/app': 'preset-5' }, ownerAssignments: { octo: 'preset-9' }, defaultThemeId: 'preset-5',
+    customThemes: { 'custom-a': { ...K.PRESETS[0], id: 'custom-a', name: 'Mine' } } });
+  // nothing is deleted or rewritten
+  assert.equal(config.repoAssignments['acme/app'], 'preset-5'); assert.equal(config.ownerAssignments.octo, 'preset-9'); assert.equal(config.defaultThemeId, 'preset-5');
+  assert.equal(K.themeResolution(config, 'https://github.com/acme/app').id, 'preset-5', 'archived theme still applies where it is assigned');
+  assert.equal(K.themeResolution(config, 'https://github.com/octo/x').id, 'preset-9');
+  const col = K.themeCollection(config);
+  assert.deepEqual(JSON.parse(JSON.stringify(col.inUseArchived.map(t => t.id).sort())), ['preset-5', 'preset-9'], 'archived-in-use stays reachable in the gallery');
+  assert.equal(col.custom.length, 1); assert.ok(!col.approved.concat(col.experimental).some(t => t.id === 'preset-5'));
+  // new automatic picks never land on an archived theme
+  for (let i = 0; i < 300; i++) assert.ok(!['preset-5', 'preset-9'].includes(K.pickAutoTheme(`owner${i}/repo${i}`, K.normalizeConfig({}))));
+});

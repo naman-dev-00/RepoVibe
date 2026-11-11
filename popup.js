@@ -35,8 +35,8 @@
   }
   /** Quick picks: the current theme first, then a fixed varied set. */
   function quickThemes(currentId) {
-    // The four flagship worlds first (Cyberpunk Neon, Enchanted Forest, Cosmic Galaxy, Futuristic Sci-Fi).
-    const picks = [C.PRESETS[0], C.PRESETS[7], C.PRESETS[18], C.PRESETS[14], C.PRESETS[8], C.PRESETS[19]];
+    // Approved themes take the six slots first; until the owner approves enough, the existing picks fill the rest (never archived themes).
+    const picks = C.featuredThemes();
     const current = C.PRESETS.find(t => t.id === currentId);
     return current && !picks.includes(current) ? [current, ...picks.slice(0, 5)] : picks;
   }
@@ -52,6 +52,10 @@
     $('resetRepo').disabled = !(repo && Object.hasOwn(config.repoAssignments, repo.key));
     $('openStudio').firstChild.textContent = repo ? '✦ Customize this repository ' : '✦ Open theme studio ';
     $('quickThemes').replaceChildren(...quickThemes(resolved.id).map(makeThemeButton));
+    const col = C.themeCollection(config), total = col.approved.length + col.experimental.length + col.custom.length;
+    $('viewAllSub').textContent = `Explore the full theme collection · ${total} background${total === 1 ? '' : 's'}`;
+    const accent = (C.themeById(config, resolved.id) || {}).accent || '#c6a8ff';
+    $('viewAllBackgrounds').style.setProperty('--glow', accent);
     for (const radio of document.querySelectorAll('input[name="motion"]')) radio.checked = radio.value === config.motionMode;
     for (const radio of document.querySelectorAll('input[name="appearance"]')) radio.checked = radio.value === config.appearance;
     $('sceneWindow').checked = config.sceneWindow;
@@ -98,6 +102,12 @@
     const enabled = event.target.checked;
     try { config = await C.updateConfig(latest => { latest.enabled = enabled; }); render(); announce(config.enabled ? 'RepoVibe enabled.' : 'RepoVibe paused.'); }
     catch (error) { announce(error.message, true); }
+  });
+  // Full collection: opens RepoVibe Studio directly on the gallery, keeping the repository context of this tab (when it is a GitHub tab).
+  $('viewAllBackgrounds').addEventListener('click', () => {
+    const params = new URLSearchParams({ view: 'gallery' });
+    if (tabIsGitHub && tabId !== null) params.set('target', String(tabId));
+    chrome.tabs.create({ url: chrome.runtime.getURL(`studio.html?${params}#gallery`) });
   });
   $('openStudio').addEventListener('click', () => {
     const params = tabIsGitHub && tabId !== null ? `?target=${tabId}&view=customize` : '';

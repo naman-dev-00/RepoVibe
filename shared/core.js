@@ -47,6 +47,17 @@
     'dark-library', 'scifi-ai', 'obsidian-shards', 'aurora-borealis', 'sunset-coast', 'cosmic-galaxy', 'synthwave-highway'];
   // Flagship themes and their live-wallpaper ambience (lightweight CSS motion layered over the art).
   const MOTIONS = ['none', 'rain', 'fireflies', 'stars', 'holo'];
+  /* Curation status of the built-in themes (project data, not a user setting):
+       approved     — visually reviewed and explicitly accepted by the project owner: primary gallery, eligible for the six popup slots
+       experimental — implemented, awaiting the owner's visual approval: shown in a clearly labelled Experimental section
+       archived     — not suitable for the primary collection: hidden from discovery and never picked automatically, but a theme
+                      that is already assigned (repository / owner / global / automatic) keeps working exactly as before.
+     Nothing is approved until the owner says so (see docs/THEME_AUDIT.md for the review and the proposed shortlist). */
+  const THEME_STATUSES = ['approved', 'experimental', 'archived'];
+  // id → 'approved' | 'archived' (shared/theme-review.js, owner-maintained); every built-in not listed there is 'experimental'
+  const THEME_REVIEW = Object.freeze({ ...(root.RepoVibeThemeReview || {}) });
+  // The six quick picks shown in the popup until enough themes are approved (approved themes take these slots first).
+  const FEATURED_FALLBACK = ['preset-1', 'preset-8', 'preset-19', 'preset-15', 'preset-9', 'preset-20'];
   // The eight additional immersive worlds (layered 2.5D scenes with their own autonomous motion), on existing preset ids.
   const WORLD_PRESETS = ['preset-3', 'preset-7', 'preset-12', 'preset-14', 'preset-10', 'preset-17', 'preset-18', 'preset-20'];
   const FLAGSHIP_MOTION = { 'preset-1': 'rain', 'preset-8': 'fireflies', 'preset-19': 'stars', 'preset-15': 'holo' };
@@ -300,7 +311,8 @@
       for (const [other, id] of Object.entries(config[type] || {})) if (other !== k && other.split('/')[0] === owner) used.add(id);
     }
     const start = fnv1a(k) % PRESETS.length;
-    for (let i = 0; i < PRESETS.length; i++) { const id = PRESETS[(start + i) % PRESETS.length].id; if (!used.has(id)) return id; }
+    // archived themes are never picked for a NEW automatic assignment (existing ones are kept as they are)
+    for (let i = 0; i < PRESETS.length; i++) { const id = PRESETS[(start + i) % PRESETS.length].id; if (!used.has(id) && themeStatus(id) !== 'archived') return id; }
     return PRESETS[start].id;
   }
   /** Precedence (first match wins): disabled → repository (manual) → owner → automatic (if enabled; persisted
@@ -374,6 +386,18 @@
     config.seededMappings = true;
     return config;
   }
+  function themeStatus(id) { const s = THEME_REVIEW[id]; return THEME_STATUSES.includes(s) ? s : (PRESETS.some(p => p.id === id) ? 'experimental' : 'custom'); }
+  /** Gallery groups. `inUseArchived` lists archived themes still referenced by a saved assignment, so they stay reachable. */
+  function themeCollection(config) {
+    const used = new Set([config?.defaultThemeId, ...Object.values(config?.repoAssignments || {}), ...Object.values(config?.ownerAssignments || {}), ...Object.values(config?.autoAssignments || {})]);
+    const by = s => PRESETS.filter(p => themeStatus(p.id) === s);
+    return { approved: by('approved'), experimental: by('experimental'), archived: by('archived'), inUseArchived: by('archived').filter(p => used.has(p.id)), custom: Object.values(config?.customThemes || {}) };
+  }
+  /** The six popup quick picks: approved themes first (in catalogue order), then the fallback picks; never archived ones. */
+  function featuredThemes() {
+    const ids = [...PRESETS.filter(p => themeStatus(p.id) === 'approved').map(p => p.id), ...FEATURED_FALLBACK].filter((id, i, a) => a.indexOf(id) === i && themeStatus(id) !== 'archived');
+    return ids.slice(0, 6).map(id => PRESETS.find(p => p.id === id));
+  }
   /** Effective live-wallpaper motion: 'none' | theme motion, at 'ambient' or 'cinematic' intensity. */
   function motionFor(theme, config, reducedMotion) {
     if (!theme || reducedMotion || config.motionMode === 'static' || !theme.motion || theme.motion === 'none') return { kind: 'none', mode: 'static' };
@@ -385,6 +409,6 @@
     MOTIONS, MOTION_MODES, FLAGSHIP_MOTION, WORLD_PRESETS, DEFAULT_REPO_MAPPINGS, seedDefaultMappings, motionFor,
     safeWallpaperRef, fnv1a, pickAutoTheme, requiredGlass, wallpaperTone, panelOpacity, normalizeConfig, normalizeTheme, safeWallpaper,
     repositoryFromUrl, themeById, themeResolution, loadConfig, saveConfig, updateConfig, themeUsage, assignTheme, isPreset,
-    contrastRatio, isLightColor
+    contrastRatio, isLightColor, THEME_STATUSES, themeStatus, themeCollection, featuredThemes
   });
 })(globalThis);

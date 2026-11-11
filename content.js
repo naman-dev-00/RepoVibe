@@ -40,13 +40,13 @@
      4. Loose text outside panels (repository title, About, toolbar labels) gets a theme-coloured halo.
      5. Menus, dialogs and popovers stay opaque; code stays ≥ 90 % opaque. */
   const SHELLS = 'body, .application-main, main, #js-repo-pjax-container, turbo-frame, .container-xl, .container-lg, .container-md, [class*="PageLayout-PageLayoutWrapper"], [class*="PageLayout-PageLayoutContent"], .PageLayout, [class*="PageLayout-Content"], .Layout, .Layout-main';
-  const PANELS = '.AppHeader, header.GlobalNav, .Header, .js-header-wrapper header, #repository-container-header, .Box, .markdown-body, .Layout-sidebar, aside[class*="sidebar"], [class*="sidebarSection"], .BorderGrid-row, .Flash, [class*="Flash-Flash"], .blob-wrapper, .file, [data-testid="code-viewer"], .timeline-comment, footer.footer, .footer, footer[role="contentinfo"], [role="contentinfo"], .paginate-container, nav[aria-label*="agination"], [data-repv-panel]';
+  const PANELS = '.AppHeader, header.GlobalNav, .Header, .js-header-wrapper header, #repository-container-header, .Box, .markdown-body, .Layout-sidebar, aside[class*="sidebar"], [class*="sidebarSection"], .BorderGrid-row, .Flash, [class*="Flash-Flash"], .blob-wrapper, .file, [data-testid="code-viewer"], .timeline-comment, footer.footer, .footer, footer[role="contentinfo"], [role="contentinfo"], .paginate-container, nav[aria-label*="agination"], [role="tree"]:not([role="tree"] *), nav[aria-label*="file tree" i], [data-testid*="file-tree" i]:not([data-testid*="file-tree" i] *), [data-repv-panel]'; // file-tree pane of the code view is dense UI (live finding: tree rows over a bright sky at 2.0:1)
   /* Open reading (default "Text only" readability backing): prose containers lose their broad surface and every text block
      gets its own compact backing instead, so empty space around/below text shows the scene. Dense UI (file tables,
      issue/PR lists, code viewers, comment boxes, menus) keeps its panel. */
   const SIDE = '.Layout-sidebar, aside[class*="sidebar"], [class*="sidebarSection"], .BorderGrid-row, .BorderGrid, footer.footer, .footer, footer[role="contentinfo"], [role="contentinfo"]';
   const LIST = '[class*="listContainer"]:has(> ul > li[class*="listItem"], > [role="list"] > li[class*="listItem"])';
-  const OPEN = `.markdown-body:not(.comment-body, .js-comment-body), #readme, ${SIDE}`;
+  const OPEN = `.markdown-body:not(.comment-body, .js-comment-body), #readme, [data-repv-frame], ${SIDE}`;
   const PROSE = '.markdown-body:not(.comment-body, .js-comment-body)';
   const PROSE_BLOCKS = 'h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote, details > summary, figcaption';
   const SIDE_TEXT = 'h1, h2, h3, h4, p, li, dt, dd, summary, a, .Label, [class*="prc-Label"], .Counter, [class*="CounterLabel"], [class*="Truncate"], relative-time';
@@ -95,9 +95,10 @@
       'synthwave-highway': ['#ff4fd8', '#3ff0ff', 0.5], 'dark-library': ['#d9a441', '#ffd27a', 0.3], 'pixel-paradise-3d': ['#ffcf3f', '#5fd0ff', 0.3], 'sunset-coast': ['#ff9a4d', '#ffd08a', 0.34] };
     const wslug = (/^builtin:([a-z0-9-]+)$/.exec(v.wallpaperRef || '') || [])[1];
     const [edgeC, glowC, glowS] = WORLD_EDGE[wslug] || [v.accent, v.accent, { neon: 0.45, glass: 0.3, soft: 0.24, minimal: 0.14, pixel: 0.2 }[v.vibe] ?? 0.24];
-    const edgeLine = rgba(edgeC, light ? 0.6 : 0.7), edgeRing = rgba(edgeC, light ? 0.32 : 0.4); // border 1 px + ring 1 px: a ~2 px themed edge (box-shadow ring: no layout change)
-    const glowNear = rgba(glowC, glowS * (light ? 0.5 : 0.75)), glowFar = rgba(edgeC, glowS * (light ? 0.25 : 0.4));
-    const panelGlow = `0 0 0 1px ${edgeRing}, 0 0 10px -2px ${glowNear}, 0 0 26px -6px ${glowFar}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.35 : 0.07)}, 0 10px 26px ${rgba('#000000', light ? 0.1 : 0.3)}`;
+    const edgeLine = rgba(edgeC, light ? 0.68 : 0.8), edgeRing = rgba(edgeC, light ? 0.42 : 0.5); // major surfaces: border 1 px + ring 2 px ≈ 3 px themed edge (box-shadow ring: no layout change)
+    const innerRim = rgba('#ffffff', light ? 0.24 : 0.07), topLight = rgba('#ffffff', light ? 0.4 : 0.1); // subtle inner highlight
+    const glowNear = rgba(glowC, glowS * (light ? 0.6 : 0.95)), glowFar = rgba(edgeC, glowS * (light ? 0.3 : 0.5));
+    const panelGlow = `0 0 0 2px ${edgeRing}, 0 0 14px -1px ${glowNear}, 0 0 34px -6px ${glowFar}, inset 0 0 0 1px ${innerRim}, inset 0 1px 0 ${topLight}, 0 10px 26px ${rgba('#000000', light ? 0.1 : 0.3)}`;
     const edge = frosted
       // Frosted Glass (opt-in): a milky sheen and bright rim make the glass itself visible, not just a darker panel.
       ? `background-image:linear-gradient(160deg, ${rgba('#ffffff', light ? 0.32 : 0.14)}, ${rgba('#ffffff', light ? 0.12 : 0.04)} 60%) !important; box-shadow:inset 0 1px 0 ${rgba('#ffffff', 0.22)}, 0 0 0 1px ${rgba('#ffffff', light ? 0.5 : 0.16)}, 0 10px 30px ${rgba('#000000', light ? 0.14 : 0.3)};`
@@ -111,8 +112,8 @@
 html.repv-open :where(${OPEN}) { background-color:transparent !important; background-image:none !important; box-shadow:none !important; border-color:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
 /* anchored, not floating: sidebar sections get a very light surface + themed frame + glow (text keeps its own backing),
    the README a themed frame + glow around an open interior */
-html.repv-open :is([class*="sidebarSection"], .BorderGrid-row):not(:where([class*="sidebarSection"], .BorderGrid-row) *):not(:empty) { background-color:${rgba(v.surface, light ? 0.86 : 0.26)} !important; border:1px solid ${edgeLine} !important; border-radius:var(--repv-radius); box-shadow:0 0 0 1px ${edgeRing}, 0 0 12px -3px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.05)} !important; padding-left:12px !important; padding-right:12px !important; margin-bottom:10px !important; }
-html.repv-open :is(#readme, .markdown-body:not(.comment-body, .js-comment-body)):not(:where(#readme) *):not(:where([data-repv-panel]) .markdown-body) { border:1px solid ${edgeLine} !important; border-radius:var(--repv-radius); box-shadow:0 0 0 1px ${edgeRing}, 0 0 16px -3px ${glowNear}, 0 0 34px -8px ${glowFar}, inset 0 0 26px -12px ${glowFar} !important; }
+html.repv-open :is([class*="sidebarSection"], .BorderGrid-row):not(:where([class*="sidebarSection"], .BorderGrid-row) *):not(:empty) { background-color:${rgba(v.surface, light ? 0.86 : 0.26)} !important; border:1px solid ${edgeLine} !important; border-radius:var(--repv-radius); box-shadow:0 0 0 2px ${edgeRing}, 0 0 16px -2px ${glowNear}, inset 0 0 0 1px ${innerRim}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.05)} !important; padding-left:12px !important; padding-right:12px !important; margin-bottom:10px !important; }
+html.repv-open :is(#readme, [data-repv-frame], .markdown-body:not(.comment-body, .js-comment-body)):not(:where(#readme, [data-repv-frame]) *):not(:where([data-repv-panel]) .markdown-body) { border-color:${edgeLine} !important; outline:1px solid ${edgeLine} !important; outline-offset:-1px; /* a 1 px themed line without changing the box (GitHub's card may or may not draw a border) */ border-radius:var(--repv-radius); box-shadow:0 0 0 2px ${edgeRing}, 0 0 18px -2px ${glowNear}, 0 0 38px -8px ${glowFar}, inset 0 0 0 1px ${innerRim}, inset 0 0 26px -12px ${glowFar} !important; }
 html.repv-open :is(${PROSE}) :is(${PROSE_BLOCKS}):not(:is(li, blockquote, td, th, p, dd, summary, table) *):not(:has(img, picture, video, svg:not(.octicon))) {
  background-color:${back} !important; box-shadow:0 0 0 6px ${back}, ${lift}; border-radius:6px; width:fit-content; max-width:100%; box-sizing:border-box; }
 html.repv-open :is(${PROSE}) :is([align="center"], [align="center"] > *, [style*="text-align: center"]):is(${PROSE_BLOCKS}) { margin-left:auto; margin-right:auto; }
@@ -190,11 +191,11 @@ html.repv-active:is(.repv-motion-cinematic${v.wallpaperBlur > 0 ? ', *' : ''}) b
 html.repv-active :is(.AppHeader, .Header, #repository-container-header, .UnderlineNav, .js-header-wrapper, header.GlobalNav) { color:${v.text} !important; border-color:${v.border} !important; }
 html.repv-active :is(.Box, .markdown-body, .blob-wrapper, .file, [data-repv-panel]) { border-color:${glass ? edgeLine : v.border} !important; }
 ${glass ? `/* themed border & glow on controls, inputs and floating UI */
-html.repv-active :is(.btn, .Button, [class*="ButtonBase"]):not(:where(${FLOATING}) *) { border-color:${rgba(edgeC, light ? 0.45 : 0.5)} !important; box-shadow:0 0 0 1px ${edgeRing}, 0 0 8px -3px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.06)}; }
-html.repv-active :is(.btn, .Button, [class*="ButtonBase"]):not(:where(${FLOATING}) *):hover { border-color:${edgeLine} !important; box-shadow:0 0 0 1px ${edgeLine}, 0 0 12px -2px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.35 : 0.08)}; }
+html.repv-active :is(.btn, .Button, [class*="ButtonBase"]):not(:where(${FLOATING}) *) { border-color:${rgba(edgeC, light ? 0.45 : 0.5)} !important; box-shadow:0 0 0 1.5px ${edgeRing}, 0 0 10px -3px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.06)}; }
+html.repv-active :is(.btn, .Button, [class*="ButtonBase"]):not(:where(${FLOATING}) *):hover { border-color:${edgeLine} !important; box-shadow:0 0 0 1.5px ${edgeLine}, 0 0 14px -2px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.35 : 0.08)}; }
 html.repv-active :is(input[type="text"], input[type="search"], textarea:not(#read-only-cursor-text-area, [data-testid="read-only-cursor-text-area"]), .form-control, .FormControl-input, [class*="TextInputWrapper"], .search-input) { border-color:${rgba(edgeC, light ? 0.45 : 0.5)} !important; box-shadow:0 0 0 1px ${edgeRing}, 0 0 10px -4px ${glowNear} !important; }
 html.repv-active :is(input[type="text"], input[type="search"], textarea:not(#read-only-cursor-text-area, [data-testid="read-only-cursor-text-area"]), .form-control, .FormControl-input):focus, html.repv-active [class*="TextInputWrapper"]:focus-within { box-shadow:0 0 0 1px ${edgeLine}, 0 0 14px -2px ${glowNear} !important; }
-html.repv-active :is(${FLOATING}) { border-color:${edgeLine} !important; box-shadow:0 0 0 1px ${edgeRing}, 0 0 18px -4px ${glowNear}, 0 16px 40px ${rgba('#000000', light ? 0.18 : 0.45)} !important; }` : ''}
+html.repv-active :is(${FLOATING}) { border-color:${edgeLine} !important; box-shadow:0 0 0 2px ${edgeRing}, 0 0 18px -4px ${glowNear}, 0 16px 40px ${rgba('#000000', light ? 0.18 : 0.45)} !important; }` : ''}
 html.repv-active :is(${FLOATING}) { background-color:${v.surface} !important; backdrop-filter:none !important; text-shadow:none; }
 html.repv-active :is(.btn, .Button, button:not([class]), input[type="text"], input[type="search"], textarea:not(#read-only-cursor-text-area, [data-testid="read-only-cursor-text-area"])) {
  border-radius:calc(var(--repv-radius) * .65) !important; }
@@ -224,6 +225,7 @@ ${glass ? openCss + MOTION_CSS + DEPTH_CSS : ''}
      the attribute is removed when RepoVibe is inactive or disabled. Throttled; scans only the main content. */
   const PANEL_ATTR = 'data-repv-panel';
   const STICKY_ATTR = 'data-repv-sticky';
+  const FRAME_ATTR = 'data-repv-frame'; // a bordered card whose content is mostly README prose: framed, but open (no broad surface)
   let panelScanQueued = false;
   let panelChecked = new WeakSet(); // each element's computed style is read once (reset when the theme changes)
   function isBoxed(el) {
@@ -253,7 +255,13 @@ ${glass ? openCss + MOTION_CSS + DEPTH_CSS : ''}
       // panels, where nested surfaces are otherwise transparent). Not inside floating UI (menus keep their own).
       if (getComputedStyle(el).position === 'sticky' && !el.closest(FLOATING) && el.textContent.trim() && el.getBoundingClientRect().height < 200) { el.setAttribute(STICKY_ATTR, ''); continue; }
       if (el.closest(`[${PANEL_ATTR}], ${FLOATING}`) || el.closest(PANELS.replace(', [data-repv-panel]', ''))) continue;
-      if (isBoxed(el)) el.setAttribute(PANEL_ATTR, '');
+      if (isBoxed(el)) {
+        // GitHub now wraps the README (tab bar + article) in one rounded, bordered card that has no #readme id. Treated as a dense-UI panel it
+        // painted a full-size tinted surface over the whole README; a card that mostly holds prose is an open frame instead.
+        const prose = document.documentElement.classList.contains('repv-open') && el.querySelector(PROSE);
+        if (prose && prose.getBoundingClientRect().height >= 0.5 * el.getBoundingClientRect().height) { el.setAttribute(FRAME_ATTR, ''); continue; }
+        el.setAttribute(PANEL_ATTR, '');
+      }
     }
     scanOpenText();
     if (document.getElementById(POP_ID)) queuePlacePop();
@@ -292,7 +300,7 @@ ${glass ? openCss + MOTION_CSS + DEPTH_CSS : ''}
     panelScanQueued = true;
     setTimeout(() => requestAnimationFrame(scanPanels), 120);
   }
-  function clearPanels() { panelChecked = new WeakSet(); for (const el of document.querySelectorAll(`[${PANEL_ATTR}], [${TEXT_ATTR}], [${STICKY_ATTR}]`)) { el.removeAttribute(PANEL_ATTR); el.removeAttribute(TEXT_ATTR); el.removeAttribute(STICKY_ATTR); } }
+  function clearPanels() { panelChecked = new WeakSet(); for (const el of document.querySelectorAll(`[${PANEL_ATTR}], [${TEXT_ATTR}], [${STICKY_ATTR}], [${FRAME_ATTR}]`)) { el.removeAttribute(FRAME_ATTR); el.removeAttribute(PANEL_ATTR); el.removeAttribute(TEXT_ATTR); el.removeAttribute(STICKY_ATTR); } }
 
   /* ---- Live wallpapers: lightweight ambient motion drawn with two fixed, pointer-events:none pseudo-element layers
      (html::after, body::after) between the wallpaper and the page. Only transform/opacity are animated (compositor
@@ -1143,7 +1151,7 @@ html.repv-depth-paused :is(#repovibe-depth, #repovibe-popout) *, html.repv-depth
     if (root.classList.contains('repv-scene-window') !== wantWindow) root.classList.toggle('repv-scene-window', wantWindow);
     if (wantWindow) lastMotion = `${lastMotion} repv-scene-window`.trim();
     const wantOpen = Boolean(url) && config.readingBacking === 'text';
-    if (root.classList.contains('repv-open') !== wantOpen) root.classList.toggle('repv-open', wantOpen);
+    if (root.classList.contains('repv-open') !== wantOpen) { root.classList.toggle('repv-open', wantOpen); clearPanels(); } // frames vs panels depend on the reading mode: classify again
     for (const h of ['compact', 'tall']) if (root.classList.contains(`repv-scene-${h}`) !== (wantWindow && config.sceneHeight === h)) root.classList.toggle(`repv-scene-${h}`, wantWindow && config.sceneHeight === h);
     renderDepth(theme, resolution.repository ? url : null); // one depth scene, repository pages only (never on Home)
     setHeartbeat(Boolean(url));

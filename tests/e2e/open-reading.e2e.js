@@ -111,3 +111,92 @@ test("GitHub's transparent read-only code overlay (textarea over the code lines)
     assert.deepEqual(errors, []);
   } finally { await close(); }
 });
+
+test('README inside GitHub\'s new bordered card (no #readme id) is an open frame, not a tinted panel (live regression)', async () => {
+  const { context, errors, close } = await launch();
+  try {
+    context.setDefaultTimeout(30000);
+    await setConfig(context, { enabled: true, defaultThemeId: 'preset-8', motionMode: 'static' });
+    const page = await context.newPage(); await page.setViewportSize({ width: 1366, height: 900 });
+    await page.goto('https://github.com/acme/project/layout');
+    await page.waitForFunction(() => document.documentElement.classList.contains('repv-open'));
+    // Markup as served by github.com in Nov 2026: one rounded, bordered card holding the README tab bar and the article
+    await page.evaluate(() => {
+      const paras = Array.from({ length: 6 }, (_, i) => `<h2>Section ${i + 1}</h2><p>Short paragraph ${i + 1}.</p><ul><li>Item A</li><li>Item B</li></ul>`).join('');
+      (document.querySelector('main, .application-main') || document.body).insertAdjacentHTML('beforeend',
+        `<div id="tCard" style="margin:30px 340px 0 40px;border:1px solid #30363d;border-radius:6px"><nav id="tTabs" style="display:flex;gap:16px;padding:8px 16px;border-bottom:1px solid #30363d"><a href="#">README</a><a href="#">Code of conduct</a></nav><article class="markdown-body" style="padding:24px">${paras}</article></div>`);
+    });
+    await page.waitForFunction(() => document.getElementById('tCard').hasAttribute('data-repv-frame'));
+    await page.evaluate(() => document.getElementById('tCard').scrollIntoView({ block: 'start' }));
+    await page.waitForFunction(() => document.querySelector('#tCard p').hasAttribute('data-repv-text') || getComputedStyle(document.querySelector('#tCard p')).backgroundColor !== 'rgba(0, 0, 0, 0)');
+    const s = await page.evaluate(() => { const c = document.getElementById('tCard'), cs = getComputedStyle(c), r = c.getBoundingClientRect(), p = c.querySelector('p').getBoundingClientRect();
+      const under = document.elementsFromPoint(r.right - 30, p.top + 4).filter(e => e !== document.documentElement).map(e => getComputedStyle(e).backgroundColor);
+      return { panel: c.hasAttribute('data-repv-panel'), bg: cs.backgroundColor, backdrop: cs.backdropFilter, shadow: cs.boxShadow, border: cs.borderTopWidth, under, pBg: getComputedStyle(c.querySelector('p')).backgroundColor, tabBg: getComputedStyle(c.querySelector('#tTabs a')).backgroundColor }; });
+    assert.equal(s.panel, false, 'not a dense panel');
+    assert.equal(alpha(s.bg), 0, `no broad surface behind the README (${s.bg})`); assert.equal(s.backdrop, 'none', 'no backdrop blur');
+    assert.notEqual(s.shadow, 'none', 'themed frame glow kept');
+    assert.ok(s.under.every(c => alpha(c) < 0.02), `empty space beside the text shows the scene: ${s.under}`);
+    assert.ok(alpha(s.pBg) >= 0.5 && alpha(s.tabBg) >= 0.3, `text keeps compact backings (p ${s.pBg}, tab ${s.tabBg})`);
+    const contrast = await visualContrast(context, page);
+    assert.equal(contrast.fails.length, 0, `WCAG AA: ${contrast.failSummary}`);
+    // "Full panels" still gives the card its broad surface back
+    await updateConfig(context, "c.readingBacking = 'panels';");
+    await page.waitForFunction(() => !document.documentElement.classList.contains('repv-open'));
+    await page.waitForFunction(() => document.getElementById('tCard').hasAttribute('data-repv-panel') || !document.getElementById('tCard').hasAttribute('data-repv-frame'));
+    await updateConfig(context, 'c.enabled = false;');
+    await page.waitForFunction(() => !document.querySelector('[data-repv-frame], [data-repv-panel]'));
+    assert.deepEqual(errors, []);
+  } finally { await close(); }
+});
+
+test('code-view file tree is a readable panel over bright scenery (live finding: ".github" 2.01:1 over the Sunset sky)', async () => {
+  const { context, errors, close } = await launch();
+  try {
+    context.setDefaultTimeout(30000);
+    await setConfig(context, { enabled: true, defaultThemeId: 'preset-18', motionMode: 'static' });
+    const page = await context.newPage(); await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto('https://github.com/acme/project/layout');
+    await page.waitForFunction(() => document.documentElement.classList.contains('repv-active'));
+    await page.evaluate(() => (document.querySelector('main, .application-main') || document.body).insertAdjacentHTML('afterbegin',
+      `<nav aria-label="File Tree Navigation" id="tTree" style="position:absolute;left:12px;top:120px;width:260px"><ul role="tree">${['.github', '.licenses/npm', '__test__', 'adrs', 'dist', 'images', 'src', '.gitattributes'].map(n => `<li role="treeitem"><div style="padding:6px 10px"><span>${n}</span></div></li>`).join('')}</ul></nav>`));
+    await page.waitForTimeout(500);
+    const bg = await page.evaluate(() => [document.getElementById('tTree'), document.querySelector('#tTree [role="tree"]')].map(e => getComputedStyle(e).backgroundColor).find(c => c !== 'rgba(0, 0, 0, 0)') || 'rgba(0, 0, 0, 0)');
+    const a = (bg.match(/[\d.]+/g) || []).map(Number); assert.ok((a.length > 3 ? a[3] : 1) >= 0.6, `file tree has a panel surface (${bg})`);
+    const contrast = await visualContrast(context, page);
+    assert.equal(contrast.fails.length, 0, `WCAG AA: ${contrast.failSummary}`);
+    assert.deepEqual(errors, []);
+  } finally { await close(); }
+});
+
+test('themed borders: ~3 px edge (1 px border + 2 px ring) with glow and inner highlight on major surfaces, no layout shift, no glow on text', async () => {
+  const { context, errors, close } = await launch();
+  try {
+    context.setDefaultTimeout(30000);
+    await setConfig(context, { enabled: false });
+    const page = await context.newPage(); await page.setViewportSize({ width: 1366, height: 900 });
+    await page.goto('https://github.com/acme/project/layout');
+    await page.evaluate(html => document.querySelector('main, .application-main, body').insertAdjacentHTML('beforeend', html), README);
+    const size = () => page.evaluate(() => ['tMd', 'tSide'].map(id => { const r = document.getElementById(id).getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }));
+    const before = await size();
+    for (const [id, edge] of [['preset-8', [94, 224, 193]], ['preset-3', [255, 143, 184]], ['preset-7', [79, 213, 232]]]) {
+      await updateConfig(context, `c.enabled = true; c.defaultThemeId = '${id}'; c.motionMode = 'static';`);
+      await page.waitForFunction(() => document.documentElement.classList.contains('repv-open'));
+      await page.waitForTimeout(300);
+      const s = await page.evaluate(() => { const g = e => { const cs = getComputedStyle(e); return { border: cs.borderTopStyle !== 'none' ? cs.borderTopWidth : cs.outlineStyle !== 'none' ? cs.outlineWidth : '0px', color: cs.borderTopStyle !== 'none' ? cs.borderTopColor : cs.outlineColor, shadow: cs.boxShadow }; };
+        return { md: g(document.getElementById('tMd')), side: g(document.querySelector('#tSide .BorderGrid-row')), p: getComputedStyle(document.querySelector('#tMd p')).boxShadow, h1: getComputedStyle(document.querySelector('#tMd h1')).textShadow }; });
+      for (const k of ['md', 'side']) {
+        assert.equal(s[k].border, '1px', `${id} ${k}: 1 px themed line (border, or an inset outline where GitHub draws none)`);
+        assert.match(s[k].shadow, /0px 0px 0px 2px/, `${id} ${k}: 2 px themed ring (total ≈ 3 px edge): ${s[k].shadow}`);
+        assert.match(s[k].shadow, /0px 0px 0px 1px inset/, `${id} ${k}: subtle inner highlight`);
+        assert.ok((s[k].shadow.match(/rgba?\(/g) || []).length >= 4, `${id} ${k}: ring + near/far glow + inner light`);
+        const c = (s[k].color.match(/\d+/g) || []).map(Number); assert.ok(Math.abs(c[0] - edge[0]) + Math.abs(c[1] - edge[1]) + Math.abs(c[2] - edge[2]) < 30, `${id} ${k}: theme-matching edge colour ${s[k].color}`);
+      }
+      assert.doesNotMatch(s.p, /0px 0px 0px 2px/, 'text blocks do not get the heavy outline');
+      // the edge is drawn with box-shadow rings and an inset outline: the README box keeps its native size, and the size of every surface is the
+      // same whatever the theme (the sidebar's pre-existing 12 px framing padding is the only intended difference from native GitHub)
+      const now = await size(); assert.deepEqual(now[0], before[0], `${id}: README box unchanged`);
+      if (!globalThis.__firstSize) globalThis.__firstSize = now; assert.deepEqual(now, globalThis.__firstSize, `${id}: same geometry in every theme`);
+    }
+    assert.deepEqual(errors, []);
+  } finally { await close(); }
+});

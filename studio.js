@@ -220,11 +220,49 @@
     card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectTheme(theme); } });
     return card;
   }
-  // Flagship live worlds first, then the other 3D cinematic themes, then illustrated ones (stable within each group).
+  /* Gallery: Approved (curated, owner-reviewed) · Experimental (awaiting visual approval) · My custom themes, plus archived themes that a
+     saved assignment still uses. Counts are computed from the data, never hard-coded. Search matches name, tagline and description. */
+  let galleryFilter = 'all';
+  const GROUPS = [
+    ['approved', 'Approved themes', 'Visually reviewed and accepted by the project owner.', 'No themes have been approved yet. The owner reviews the Experimental collection below (see docs/THEME_AUDIT.md); approved themes will appear here and take the popup\'s six featured slots.'],
+    ['experimental', 'Experimental themes', 'Implemented and working, but awaiting visual approval: not presented as finished premium backgrounds.', 'No experimental themes.'],
+    ['custom', 'My custom themes', 'Themes you created or imported. They stay yours whatever happens to the built-in collection.', 'You have no custom themes yet. Use Customize on any theme to make one.'],
+    ['inUseArchived', 'Archived, still in use', 'Retired from the collection. Your existing assignments keep working; pick a replacement whenever you like.', '']
+  ];
   function paintGallery() {
     const rank = t => t.flagship ? 3 : t.world ? 2 : (C.WALLPAPERS.find(w => w.ref === t.wallpaperRef) || {}).style === '3d' ? 1 : 0;
-    $('themeGallery').replaceChildren(...[...C.PRESETS].sort((a, b) => rank(b) - rank(a)).map(makeGalleryCard));
+    const col = C.themeCollection(config); const q = ($('gallerySearch')?.value || '').trim().toLowerCase();
+    const match = t => !q || [t.name, t.description, t.tagline].some(v => String(v || '').toLowerCase().includes(q));
+    const current = selectedScopeThemeId();
+    const groups = []; let shown = 0;
+    for (const [key, title, note, empty] of GROUPS) {
+      if (galleryFilter !== 'all' && galleryFilter !== key) continue;
+      const list = [...col[key]].sort((a, b) => rank(b) - rank(a)).filter(match);
+      if (key === 'inUseArchived' && !col.inUseArchived.length) continue;
+      const sec = document.createElement('section'); sec.className = 'gallery-group'; sec.dataset.group = key; sec.setAttribute('aria-label', title);
+      const h = document.createElement('h3'); h.innerHTML = `${title} <span class="group-count">${list.length}${q ? ` of ${col[key].length}` : ''}</span>`;
+      const p = document.createElement('p'); p.className = 'group-note'; p.textContent = list.length || q ? note : empty;
+      const grid = document.createElement('div'); grid.className = 'gallery-grid';
+      for (const t of list) { const card = makeGalleryCard(t); card.dataset.status = key === 'inUseArchived' ? 'archived' : key; badgeCard(card, key, t.id === current); grid.appendChild(card); }
+      shown += list.length; sec.append(h, p, grid); groups.push(sec);
+    }
+    $('themeGallery').replaceChildren(...groups);
+    const total = col.approved.length + col.experimental.length + col.custom.length;
+    for (const chip of document.querySelectorAll('.filter-chip')) { const k = chip.dataset.filter; chip.querySelector('.chip-count').textContent = k === 'all' ? total : col[k].length; }
+    $('galleryCount').textContent = q ? `${shown} matching “${$('gallerySearch').value.trim()}”` : `${total} backgrounds · ${col.approved.length} approved · ${col.experimental.length} experimental · ${col.custom.length} custom`;
   }
+  function badgeCard(card, key, isCurrent) {
+    const art = card.querySelector('.gallery-art'); if (!art) return;
+    const b = document.createElement('span'); b.className = `status-badge is-${key}`;
+    b.textContent = { approved: 'APPROVED', experimental: 'EXPERIMENTAL', custom: 'CUSTOM', inUseArchived: 'ARCHIVED · IN USE' }[key]; art.appendChild(b);
+    if (isCurrent) { card.classList.add('is-current'); const c = document.createElement('span'); c.className = 'current-badge'; c.textContent = '● CURRENT'; art.appendChild(c); card.setAttribute('aria-current', 'true'); }
+  }
+  $('gallerySearch')?.addEventListener('input', () => paintGallery());
+  for (const chip of document.querySelectorAll('.filter-chip')) chip.addEventListener('click', () => {
+    galleryFilter = chip.dataset.filter;
+    for (const c of document.querySelectorAll('.filter-chip')) { const on = c === chip; c.classList.toggle('active', on); c.setAttribute('aria-pressed', String(on)); }
+    paintGallery();
+  });
 
   function paintColors() {
     const controls = $('colorControls'); controls.replaceChildren();
@@ -410,7 +448,12 @@
       await loadUploaded();
       connectToTab();
       prepareForScope();
-      switchView(query.get('view') === 'customize' ? 'customize' : 'gallery');
+      const wanted = query.get('view') === 'customize' ? 'customize' : 'gallery';
+      switchView(wanted);
+      if (wanted === 'gallery' && (location.hash === '#gallery' || query.get('view') === 'gallery')) { // opened from the popup's "View All Backgrounds"
+        const filter = query.get('filter'); if (filter) document.querySelector(`.filter-chip[data-filter="${CSS.escape(filter)}"]`)?.click();
+        $('view-gallery').scrollIntoView({ block: 'start' }); $('gallerySearch').focus({ preventScroll: true });
+      }
     } catch (e) { say(`Unable to initialize studio: ${e.message}`, true); }
   }
 

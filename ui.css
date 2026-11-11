@@ -44,3 +44,25 @@
 .wallpaper-tile.is-3d:after{content:"3D";position:absolute;top:5px;left:5px;font-size:9px;font-weight:900;background:linear-gradient(120deg,#7c3aed,#06b6d4);color:#fff;padding:2px 6px;border-radius:4px}
 
 .scene-modes{display:flex;gap:6px;flex-wrap:wrap}.scene-modes .outline-button.selected{background:#332746;color:#eadbff;border-color:#a97efa}.toggle-row.diagnostics small{word-break:break-word;white-space:normal}
+
+/* Popup: full gallery button under the six quick picks (theme-aware border + glow) */
+.gallery-button{--glow:#c6a8ff;display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;margin:11px 0 4px;padding:11px 14px;border-radius:11px;border:1.5px solid color-mix(in srgb,var(--glow) 60%,transparent);background:linear-gradient(135deg,color-mix(in srgb,var(--glow) 16%,#17142a),#141222);color:#f4f0fb;text-align:left;box-shadow:0 0 0 1px color-mix(in srgb,var(--glow) 18%,transparent),0 0 16px -6px var(--glow),inset 0 1px 0 #ffffff14;transition:border-color .15s,box-shadow .15s,transform .15s}
+.gallery-button-title{font-size:13px;font-weight:800;letter-spacing:.01em}.gallery-button-sub{font-size:11px;color:#c4bbe3}
+.gallery-button:hover{border-color:var(--glow);box-shadow:0 0 0 1px color-mix(in srgb,var(--glow) 35%,transparent),0 0 22px -4px var(--glow),inset 0 1px 0 #ffffff1f;transform:translateY(-1px)}
+.gallery-button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.gallery-button{transition:none}.gallery-button:hover{transform:none}}
+
+/* Studio gallery: collection groups, search and filters */
+.gallery-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 18px}
+#gallerySearch{flex:1 1 220px;min-width:180px;max-width:340px;padding:9px 12px;border-radius:10px;border:1px solid #ffffff26;background:#14121f;color:#ede9f4}
+.gallery-filters{display:flex;flex-wrap:wrap;gap:6px}
+.filter-chip{padding:7px 12px;border-radius:999px;border:1px solid #ffffff24;background:#16131f;color:#d9d2ea;font-size:12px;font-weight:700}
+.filter-chip.active{border-color:#b997ff;background:#2a1f45;color:#fff;box-shadow:0 0 12px -4px #b997ff}
+.chip-count{opacity:.75;margin-left:3px}
+.gallery-count{font-size:12px;color:#b9b0cc}
+.gallery-group{margin:0 0 26px}.gallery-group h3{margin:0 0 4px;font-size:16px}.group-count{font-size:12px;color:#b9b0cc;margin-left:6px}
+.group-note{margin:0 0 12px;font-size:12px;color:#b9b0cc;max-width:760px}
+.status-badge{position:absolute;left:8px;bottom:8px;z-index:3;font-size:9px;font-weight:800;letter-spacing:.06em;padding:3px 7px;border-radius:6px;background:#000000b3;color:#fff;border:1px solid #ffffff38}
+.status-badge.is-approved{border-color:#59e0a3;color:#b9ffdc}.status-badge.is-experimental{border-color:#ffcf6a;color:#ffe7b0}.status-badge.is-custom{border-color:#9bb8ff;color:#d6e2ff}.status-badge.is-inUseArchived{border-color:#ff9a9a;color:#ffd6d6}
+.current-badge{position:absolute;right:8px;bottom:8px;z-index:3;font-size:9px;font-weight:800;letter-spacing:.06em;padding:3px 7px;border-radius:6px;background:#2f6b4ae6;color:#eafff2}
+.gallery-card.is-current{outline:2px solid #59e0a3;outline-offset:2px}
