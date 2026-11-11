@@ -559,11 +559,11 @@
       "style": "3d",
       "tone": [
         "#ebe6e4",
-        "#0c1e1a"
+        "#0d1f1b"
       ],
       "toneSoft": [
-        "#cdced6",
-        "#0e201c"
+        "#cdcfd6",
+        "#0f221e"
       ],
       "depth": [
         "far",
@@ -645,12 +645,12 @@
       "category": "Pixel art",
       "style": "3d",
       "tone": [
-        "#feffff",
-        "#120a1e"
+        "#fefeff",
+        "#103821"
       ],
       "toneSoft": [
-        "#f4bd99",
-        "#120a1f"
+        "#e6e5f9",
+        "#1e5536"
       ],
       "depth": [
         "far",

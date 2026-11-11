@@ -21,7 +21,7 @@
     ['Ocean Depths', 'Twilight swell', '#061b2c', '#0d2a40', '#163954', '#e7f8ff', '#9fc4d2', '#46c6ee', '#315870', '#08324d', '#082333', '#09283b', 'glass'],
     ['Enchanted Forest', 'Moonlit glade, fireflies', '#08181a', '#10272a', '#183436', '#e6fbf5', '#9cc7bd', '#5ee0c1', '#2c5753', '#0c3335', '#10263f', '#0d2123', 'glass'],
     ['Retro Terminal', 'Back to basics', '#171911', '#23291a', '#313928', '#f1f3c9', '#a8b28a', '#bdd774', '#5c6440', '#313019', '#181e16', '#1c2119', 'pixel'],
-    ['Pixel Paradise', '8-bit nostalgia', '#211a41', '#302959', '#40356c', '#fbf3ff', '#beb1de', '#ff9bd5', '#7350a0', '#33216b', '#14304f', '#29234b', 'pixel'],
+    ['Pixel Paradise', '8-bit nostalgia', '#0f2a4a', '#163a5e', '#1e4a72', '#f2fbff', '#b4d4e8', '#ffd45a', '#2f6a96', '#0d3a5c', '#1a2a50', '#0f2440', 'pixel'],
     ['Solar Flare', 'Dunes at dusk', '#291913', '#422617', '#5c331c', '#fff1dd', '#d9b297', '#ffad54', '#885337', '#5a2918', '#2b1b19', '#341f19', 'neon'],
     ['Arctic Frost', 'Alpine golden hour', '#dfeaf4', '#d6e5f2', '#cfe0ee', '#0d1f34', '#20354b', '#183f70', '#bfd7e8', '#e1f5ff', '#d6e4ff', '#f2f8fd', 'glass'],
     ['Lavender Nights', 'A gentle glow', '#1e1837', '#2c2448', '#3a305c', '#f8efff', '#b9abcd', '#d0a6ff', '#5b4d78', '#392252', '#221a43', '#29203f', 'soft'],

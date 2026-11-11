@@ -41,6 +41,9 @@ def spruce(h, seed, snow_amt=1.0):
     def bough(y, side, L, droop, t, rv, dark):
         # rib leaves the trunk slightly downward and droops; the bough is a filled feathery mass hanging below it
         n = 12; rib = []
+        room = (base - h * 0.035) - y                                  # space between this whorl and the ground line
+        drop = L * (0.16 + droop * 0.32) + L * 0.22
+        if drop > room: L *= max(0.35, room / drop)                     # low boughs shorten instead of hanging through the ground
         for k in range(n + 1):
             u = k / n; rib.append((cx + side * L * u, y + L * (0.16 * u + droop * 0.32 * u * u)))
         lower = []

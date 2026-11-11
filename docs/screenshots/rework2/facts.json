@@ -7,6 +7,7 @@
   "quality": "auto→minimal",
   "running": [
    "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-cross",
    "repv-cross-rev",
    "repv-drift",
    "repv-flick",
@@ -18,9 +19,9 @@
   "failSummary": "",
   "errors": 0,
   "motionChangedPct": [
-   4.83,
-   6.67,
-   5.22
+   5.2,
+   6,
+   5.06
   ]
  },
  "sakura-dreams": {
@@ -45,9 +46,9 @@
   "failSummary": "",
   "errors": 0,
   "motionChangedPct": [
-   36.45,
-   31.77,
-   28.3
+   36.52,
+   32.16,
+   28.71
   ]
  },
  "ocean-depths": {
@@ -58,6 +59,7 @@
   "running": [
    "prc-UnderlineNav-detect-overflow-6HuSH",
    "repv-cross",
+   "repv-cross-rev",
    "repv-drift",
    "repv-flutter",
    "repv-gust-r",
@@ -72,9 +74,9 @@
   "failSummary": "",
   "errors": 0,
   "motionChangedPct": [
-   11.67,
-   9.4,
-   8.82
+   8.04,
+   6.08,
+   6.77
   ]
  },
  "arctic-frost": {
@@ -101,9 +103,36 @@
   "failSummary": "",
   "errors": 0,
   "motionChangedPct": [
-   4.29,
-   2.41,
-   3.07
+   4.53,
+   2.66,
+   3.83
+  ]
+ },
+ "pixel-paradise": {
+  "scene": "pixel-paradise-3d",
+  "sprites": 6,
+  "popOuts": 2,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-cross",
+   "repv-cross-rev",
+   "repv-drift",
+   "repv-flutter",
+   "repv-gust-r",
+   "repv-spin",
+   "repv-swim",
+   "repv-tile",
+   "repv-tile-gust"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   4.01,
+   2.95,
+   3.28
   ]
  }
 }
