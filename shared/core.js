@@ -23,7 +23,7 @@
     ['Retro Terminal', 'Back to basics', '#171911', '#23291a', '#313928', '#f1f3c9', '#a8b28a', '#bdd774', '#5c6440', '#313019', '#181e16', '#1c2119', 'pixel'],
     ['Pixel Paradise', '8-bit nostalgia', '#0f2a4a', '#163a5e', '#1e4a72', '#f2fbff', '#b4d4e8', '#ffd45a', '#2f6a96', '#0d3a5c', '#1a2a50', '#0f2440', 'pixel'],
     ['Solar Flare', 'Dunes at dusk', '#291913', '#422617', '#5c331c', '#fff1dd', '#d9b297', '#ffad54', '#885337', '#5a2918', '#2b1b19', '#341f19', 'neon'],
-    ['Arctic Frost', 'Alpine golden hour', '#dfeaf4', '#d6e5f2', '#cfe0ee', '#0d1f34', '#20354b', '#183f70', '#bfd7e8', '#e1f5ff', '#d6e4ff', '#f2f8fd', 'glass'],
+    ['Arctic Frost', 'Alpine golden hour', '#dfeaf4', '#cfe0ef', '#c8dbec', '#06121f', '#0f2236', '#0c3360', '#bfd7e8', '#e1f5ff', '#d6e4ff', '#f2f8fd', 'glass'],
     ['Lavender Nights', 'A gentle glow', '#1e1837', '#2c2448', '#3a305c', '#f8efff', '#b9abcd', '#d0a6ff', '#5b4d78', '#392252', '#221a43', '#29203f', 'soft'],
     ['Dark Academia', 'Timeless and thoughtful', '#241d19', '#362b23', '#45362b', '#f2e8d3', '#c9bea9', '#d4b47d', '#69513a', '#30221a', '#221a17', '#2e251e', 'minimal'],
     ['Futuristic Sci-Fi', 'Holographic AI core', '#08131d', '#0f1e2b', '#16293a', '#e8f7ff', '#a3c3d6', '#5fd4ff', '#2a4a60', '#0f3a52', '#122a44', '#0c1823', 'glass'],

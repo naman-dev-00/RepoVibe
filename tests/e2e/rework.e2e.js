@@ -39,7 +39,7 @@ test('Cyberpunk Neon: rain-drop ripples on the canal animate (scale/opacity only
   } finally { await close(); }
 });
 
-test('Ocean Depths: no cartoon manta/whale; the distant school is hazed by opacity; corals sway on the current', async () => {
+test('Ocean Depths (painted from scratch): no cartoon manta/whale; the distant school is hazed by opacity; plants sway on the current', async () => {
   const { context, errors, close } = await launch({ colorScheme: 'dark' });
   try {
     context.setDefaultTimeout(30000);
@@ -50,12 +50,12 @@ test('Ocean Depths: no cartoon manta/whale; the distant school is hazed by opaci
       const s = [...document.querySelectorAll('#repovibe-depth .repv-s, #repovibe-popout .repv-s')];
       const srcs = s.map(w => w.querySelector('img').src.split('/').pop());
       const hazed = s.filter(w => w.style.opacity && +w.style.opacity < 1).length;
-      const coralWind = s.filter(w => /^coral/.test(w.dataset.sprite) && w.querySelector('img[data-wind]')).map(w => parseFloat(w.querySelector('img').style.getPropertyValue('--wa')));
-      return { srcs, hazed, coralWind };
+      const plantWind = s.filter(w => /^(kelp|fan|soft|grass)/.test(w.dataset.sprite) && w.querySelector('img[data-wind]')).map(w => parseFloat(w.querySelector('img').style.getPropertyValue('--wa')));
+      return { srcs, hazed, plantWind };
     });
     assert.ok(!f.srcs.some(x => /manta|whale/.test(x)), f.srcs.join());
     assert.ok(f.hazed >= 4, `hazed far school: ${f.hazed}`);
-    assert.ok(f.coralWind.length >= 8 && Math.min(...f.coralWind) >= 1.3, `coral sway amplitudes ${f.coralWind}`);
+    assert.ok(f.plantWind.length >= 10 && Math.min(...f.plantWind) >= 2.4, `kelp / sea fan / soft coral / seagrass sway amplitudes ${f.plantWind}`);
     for (const n of ['manta', 'whale']) assert.ok(!fs.existsSync(path.join(__dirname, '../../wallpapers/depth/ocean-kingdom', `s-${n}.webp`)), `${n} asset removed`);
     assert.deepEqual(errors, []);
   } finally { await close(); }
@@ -70,7 +70,10 @@ test('light worlds (Sakura Dreams, Arctic Frost): reading surfaces are transluce
       const page = await context.newPage(); await page.goto('https://github.com/acme/project/layout');
       await page.waitForFunction(() => document.documentElement.classList.contains('repv-active'));
       const op = await page.evaluate(() => Number(getComputedStyle(document.documentElement).getPropertyValue('--repv-panel-opacity')));
-      assert.ok(op > 0.6 && op <= 0.8, `${id}: panel opacity ${op} (was 0.88–0.91 before the rework)`);
+      assert.ok(op > 0.45 && op <= 0.7, `${id}: panel opacity ${op} (0.88–0.91 white before the rework; now a tinted, softer surface)`);
+      const surf = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-panel').trim());
+      const [r, g, b] = surf.match(/[0-9a-f]{2}/gi).map(h => parseInt(h, 16));
+      assert.ok(Math.min(r, g, b) < 0xe6, `${id}: reading surface is tinted, not white (${surf})`);
       const vc = await visualContrast(context, page);
       assert.equal(vc.fails.length, 0, `${id}: ${vc.failSummary}`);
       assert.deepEqual(errors, []);
@@ -81,7 +84,38 @@ test('light worlds (Sakura Dreams, Arctic Frost): reading surfaces are transluce
 test('reworked worlds ship their assets: Pixel Paradise and Arctic Frost layers and sprites, no leftover crystal props', () => {
   const D = path.join(__dirname, '../../wallpapers/depth');
   for (const [slug, files] of [['pixel-paradise-3d', ['far', 'mid', 'near', 'front', 'rays', 's-palmA', 's-palmB', 's-cloudA', 's-cloudB', 's-gull', 's-cube', 's-crab']],
-    ['arctic-frost-3d', ['far', 'mid', 'near', 'front', 'rays', 's-pineA', 's-pineB', 's-pineC', 's-fox', 's-flake']], ['neon-city-3d', ['s-ripple']]])
+    ['arctic-frost-3d', ['far', 'mid', 'near', 'front', 'rays', 's-pineA', 's-pineB', 's-pineC', 's-fox', 's-flake']], ['neon-city-3d', ['s-ripple']],
+    ['sakura-garden', ['far', 'mid', 's-treeNearL', 's-treeNearR', 's-treeMidL', 's-treeMidR', 's-sprayA', 's-sprayB', 't-clouds']],
+    ['ocean-kingdom', ['far', 's-kelpL1', 's-kelpR1', 's-fanL', 's-fanR', 's-softL', 's-grassA', 't-caustic', 't-mask-sand']]])
     for (const f of files) assert.ok(fs.existsSync(path.join(D, slug, `${f}.webp`)), `${slug}/${f}.webp`);
   for (const f of ['s-crystal', 's-shard']) assert.ok(!fs.existsSync(path.join(D, 'arctic-frost-3d', `${f}.webp`)));
+  assert.ok(!fs.readdirSync(path.join(D, 'ocean-kingdom')).some(f => f.startsWith('s-coral')), 'reference-plate coral cut-outs removed');
+});
+
+test('Lite / Auto on a slow machine: weather never freezes — rain, snow and petals keep falling, ripples run, plants sway, swimmers swim', async () => {
+  for (const [id, label, must] of [['preset-1', 'cyberpunk', ['repv-rain', 'repv-ripple']], ['preset-12', 'arctic', ['repv-tile']], ['preset-3', 'sakura', ['repv-tile', 'repv-gust-r']], ['preset-7', 'ocean', ['repv-cross', 'repv-gust-r']]]) {
+    const { context, errors, close } = await launch({ colorScheme: 'dark' });
+    try {
+      context.setDefaultTimeout(30000);
+      await setConfig(context, { enabled: true, defaultThemeId: id, motionMode: 'ambient', depthQuality: 'lite', depthTuning: TUNE });
+      const page = await context.newPage(); await page.goto('https://github.com/acme/project/layout');
+      await page.waitForFunction(() => document.documentElement.classList.contains('repv-depth-lite'));
+      await page.waitForTimeout(600);
+      const info = await page.evaluate(() => {
+        const run = [...new Set(document.getAnimations().filter(a => a.playState === 'running' && a.animationName).map(a => a.animationName))];
+        const pmid = document.querySelector('#repovibe-depth > [data-l="pmid"]');
+        const pm = pmid && pmid.firstElementChild ? document.getAnimations().filter(a => a.effect?.target === pmid.firstElementChild && a.playState === 'running').length : 0;
+        return { run, pmidVisible: pmid ? getComputedStyle(pmid).visibility : null, pmidAnims: pm };
+      });
+      for (const m of must) assert.ok(info.run.includes(m), `${label} (Lite): ${m} must run; running: ${info.run.join()}`);
+      assert.equal(info.pmidVisible, 'visible', `${label}: the weather plane stays visible`);
+      assert.ok(info.pmidAnims >= 1, `${label}: the visible weather plane animates (no frozen overlay)`);
+      // the plane really travels: its transform changes over time
+      const t0 = await page.evaluate(() => getComputedStyle(document.querySelector('#repovibe-depth > [data-l="pmid"] > i')).transform);
+      await page.waitForTimeout(400);
+      const t1 = await page.evaluate(() => getComputedStyle(document.querySelector('#repovibe-depth > [data-l="pmid"] > i')).transform);
+      assert.notEqual(t0, t1, `${label}: weather plane moved (${t0} → ${t1})`);
+      assert.deepEqual(errors, []);
+    } finally { await close(); }
+  }
 });

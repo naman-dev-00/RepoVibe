@@ -20,7 +20,7 @@ const PAGES = [
 ];
 const T = { // preset surface/text/bg used for assertions
   cyber: { id: 'preset-1', surface: '#1b1538', text: '#f3edff', bg: '#100c25' },
-  arctic: { id: 'preset-12', surface: '#d6e5f2', text: '#0d1f34', bg: '#dfeaf4' },
+  arctic: { id: 'preset-12', surface: '#cfe0ef', text: '#06121f', bg: '#dfeaf4' },
   synth: { id: 'preset-20', surface: '#33194a', text: '#fff1ff', bg: '#210c37' },
   aurora: { id: 'preset-17', surface: '#122b34', text: '#e8fff8', bg: '#0c1724' },
   galaxy: { id: 'preset-19', surface: '#17183d', text: '#f0edff', bg: '#0b0b25' }
