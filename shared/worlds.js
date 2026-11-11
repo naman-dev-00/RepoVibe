@@ -175,14 +175,14 @@
     ]
   };
 
-  /* ---- Pixel Paradise: a voxel island. Chunky palms rock, clouds and gulls drift, cubes float up, a crab patrols the sand. */
+  /* ---- Pixel Paradise: a sunset pixel-art archipelago. Palms on the islet rock in the breeze, pixel clouds and gulls drift, gems float up, a crab patrols the beach. */
   W['pixel-paradise-3d'] = {
     tiles: [
       { plane: 'pmid', shape: 'cube', seed: 9, w: 900, h: 700, n: 16, colors: ['#ffd23f', '#ff8a3d', '#fff08a'], r: [3, 6], sx: 0, sy: -1, t: 52, gust: true }
     ],
     sprites: [
       at('cloudA', -0.4, 0.3, 640 / 240, 0.2, { k: 0.46, cross: 160, dx: 0, dy: 0, rot: 0, delay: -40, z: 1 }), at('cloudB', 0.5, 0.36, 520 / 200, 0.17, { k: 0.46, crossRev: 210, dx: 0, dy: 0, rot: 0, delay: -90, z: 1 }),
-      base('palmA', -0.12, 0.14, 480 / 640, 0.44, { k: 0.64, z: 2, wind: 2.4, fl: 4.4 }), base('palmB', 0.18, 0.13, 420 / 600, 0.4, { k: 0.64, z: 2, wind: 2.6, fl: 4.0 }),
+      base('palmA', 0.55, -0.042, 480 / 640, 0.22, { k: 0.64, z: 2, wind: 2.4, fl: 4.4 }), base('palmB', 0.67, -0.046, 420 / 600, 0.18, { k: 0.64, z: 2, wind: 2.6, fl: 4.0 }),
       at('gull', 0.0, 0.2, 160 / 96, 0.07, { k: 0.64, cross: 48, dx: 0, dy: 0, rot: 0, delay: -14, swim: { wob: 14, wp: 1.4, tilt: 3 } }),
       at('crab', -0.5, -0.43, 200 / 120, 0.09, { k: 1.1, z: 4, dx: 60, dy: 0, rot: 0, dur: 9 }),
       { n: 'cube', plane: 'pop', at: 'band', x: 0.96, y: 0.5, h: 0.5, k: 2.6, dx: -6, dy: -14, rot: 14, dur: 6, noShadow: 1, fx: 'spin' },

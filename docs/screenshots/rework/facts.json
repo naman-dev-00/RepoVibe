@@ -26,5 +26,14 @@
   "aaFails": 0,
   "failSummary": "",
   "errors": 0
+ },
+ "pixel-paradise": {
+  "scene": "pixel-paradise-3d",
+  "sprites": 6,
+  "popOuts": 2,
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0
  }
 }

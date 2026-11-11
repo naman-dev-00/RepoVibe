@@ -177,11 +177,11 @@ vec4 frontLayer(vec2 uv) {
   float d = 1e9; float rim = 0.0;
   for (int s = 0; s < 2; s++) {
     float sg = s == 0 ? -1.0 : 1.0;
-    vec2 base = vec2(sg * 0.93, -0.55), crown = vec2(sg * 0.74, 0.3 - 0.06 * float(s));
+    vec2 base = vec2(sg * 0.95, -0.55), crown = vec2(sg * 0.8, 0.33 - 0.06 * float(s));
     vec2 mid = mix(base, crown, 0.5) + vec2(sg * 0.08, 0.0);
     float h; float tr = min(sdTaper(c, base, mid, 0.035, 0.026, h), sdTaper(c, mid, crown, 0.026, 0.016, h));
     d = min(d, tr);
-    for (int k = 0; k < 9; k++) { float fk = float(k); float ang = (s == 0 ? 0.0 : 3.1416) + sg * (-1.1 + fk * 0.36); d = min(d, frond(c, crown, ang, 0.22 + 0.06 * hash11(fk + float(s)), 0.07 + 0.05 * hash11(fk * 2.0))); }
+    for (int k = 0; k < 9; k++) { float fk = float(k); float ang = (s == 0 ? 0.0 : 3.1416) + sg * (-1.1 + fk * 0.36); d = min(d, frond(c, crown, ang, 0.15 + 0.05 * hash11(fk + float(s)), 0.05 + 0.04 * hash11(fk * 2.0))); }
     if (d < 0.0 && sg * (crown.x - c.x) > 0.0 && c.y > crown.y - 0.15) rim = 1.0;
   }
   // grass tufts along the bottom edge

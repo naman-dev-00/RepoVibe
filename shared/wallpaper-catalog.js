@@ -647,12 +647,12 @@
       "category": "Pixel art",
       "style": "3d",
       "tone": [
-        "#eae8e8",
-        "#04322b"
+        "#feffff",
+        "#120a1e"
       ],
       "toneSoft": [
-        "#dfdedb",
-        "#0b4138"
+        "#f4bd99",
+        "#120a1f"
       ],
       "depth": [
         "far",
