@@ -9,7 +9,12 @@
 const fs = require('node:fs'), path = require('node:path');
 const { launch, extPage, setConfig, visualContrast } = require('../tests/e2e/helpers');
 const R = require('../tests/e2e/real-snapshot');
-const ROOT = path.join(__dirname, '..'), OUT = path.join(ROOT, 'docs/screenshots/rework'), VIDS = path.join(ROOT, 'docs/recordings/rework');
+const ROUND = process.env.ROUND || '2';
+const ROOT = path.join(__dirname, '..'), OUT = path.join(ROOT, ROUND === '1' ? 'docs/screenshots/rework' : 'docs/screenshots/rework2'), VIDS = path.join(ROOT, ROUND === '1' ? 'docs/recordings/rework' : 'docs/recordings/rework2');
+const BEFORE = ROUND === '1' ? path.join(OUT, 'before') : path.join(ROOT, 'docs/screenshots/rework/after'), BEFORE_LABEL = ROUND === '1' ? 'Before (e98753f)' : 'Before (3a8945c, round 1)';
+// Round 2 uses the default quality (Auto), which is what users get: on slow (software-rendered) machines it drops to Lite, where weather
+// used to freeze. Motion is also measured: the share of scene-band pixels that change between frames 0.5 s apart.
+const QUALITY = process.env.QUALITY || (ROUND === '1' ? 'full' : 'auto');
 const THEMES = [['preset-1', 'cyberpunk-neon', 'dark'], ['preset-3', 'sakura-dreams', 'dark'], ['preset-7', 'ocean-depths', 'dark'], ['preset-10', 'pixel-paradise', 'dark'], ['preset-12', 'arctic-frost', 'light']];
 const SNAP = R.available().includes('actions-checkout-code') ? 'actions-checkout-code' : null;
 const only = process.argv.slice(2);
@@ -32,26 +37,41 @@ async function open(context) {
     const vdir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'rv-vid-'));
     const { context, errors, close } = await launch({ colorScheme: scheme, recordVideo: { dir: vdir, size: { width: 1600, height: 900 } } });
     try {
-      await setConfig(context, { enabled: true, motionMode: 'ambient', defaultThemeId: id, depthQuality: 'full', depthTuning: TUNE });
+      await setConfig(context, { enabled: true, motionMode: 'ambient', defaultThemeId: id, depthQuality: QUALITY, depthTuning: TUNE });
       const page = await open(context);
       await page.mouse.move(800, 450); await page.waitForTimeout(3500);
       const after = path.join(OUT, 'after', `${name}-github.jpg`);
       await page.screenshot({ path: after, type: 'jpeg', quality: 84 });
       const frames = [];
-      for (let i = 0; i < 3; i++) { frames.push((await page.screenshot({ clip: { x: 0, y: 168, width: 1600, height: 440 } })).toString('base64')); await page.waitForTimeout(1200); }
+      const STEP = ROUND === '1' ? 1200 : 500;
+      for (let i = 0; i < (ROUND === '1' ? 3 : 4); i++) { frames.push((await page.screenshot({ clip: { x: 0, y: 168, width: 1600, height: 440 } })).toString('base64')); await page.waitForTimeout(STEP); }
       await page.waitForTimeout(1200);
       const vc = await visualContrast(context, page);
-      const f = await page.evaluate(() => ({ scene: document.getElementById('repovibe-depth')?.dataset.scene, sprites: document.querySelectorAll('#repovibe-depth .repv-s').length, popOuts: [...document.querySelectorAll('#repovibe-popout > .repv-s')].filter(w => !w.hidden).length }));
+      const f = await page.evaluate(() => ({ scene: document.getElementById('repovibe-depth')?.dataset.scene, sprites: document.querySelectorAll('#repovibe-depth .repv-s').length, popOuts: [...document.querySelectorAll('#repovibe-popout > .repv-s')].filter(w => !w.hidden).length,
+        quality: document.documentElement.classList.contains('repv-depth-minimal') ? 'auto→minimal' : document.documentElement.classList.contains('repv-depth-lite') ? 'auto→lite' : 'full',
+        running: [...new Set(document.getAnimations().filter(a => a.playState === 'running' && a.animationName).map(a => a.animationName))].sort() }));
       facts[name] = { ...f, textMin: +vc.min.toFixed(2), aaFails: vc.fails.length, failSummary: vc.failSummary, errors: errors.filter(e => e.includes('chrome-extension://')).length };
       const video = page.video(); await page.close();
       const sheet = await extPage(context);
-      const before = path.join(OUT, 'before', `${name}-github.jpg`);
+      const before = path.join(BEFORE, `${name}-github.jpg`);
       const b64 = p => fs.existsSync(p) ? `data:image/jpeg;base64,${fs.readFileSync(p).toString('base64')}` : '';
+      // motion: fraction of scene-band pixels (outside GitHub's content column) that change by > 12/255 between consecutive frames
+      const motion = await sheet.evaluate(async fr => {
+        const load = b => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = 'data:image/png;base64,' + b; });
+        const imgs = await Promise.all(fr.map(load)); const c = new OffscreenCanvas(1600, 440), g = c.getContext('2d', { willReadFrequently: true });
+        const px = imgs.map(i => { g.drawImage(i, 0, 0); return g.getImageData(0, 0, 1600, 300).data; });
+        const out = [];
+        for (let k = 1; k < px.length; k++) { let ch = 0, n = 0; const a = px[k - 1], b = px[k];
+          for (let y = 0; y < 300; y += 2) for (let x = 0; x < 1600; x += 2) { if (x > 180 && x < 1420 && y > 250) continue; const i = (y * 1600 + x) * 4; n++; if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 36) ch++; }
+          out.push(+(ch / n * 100).toFixed(2)); }
+        return out;
+      }, frames);
+      facts[name].motionChangedPct = motion;
       await sheet.setViewportSize({ width: 1600, height: 1860 });
-      await sheet.setContent(`<body style="margin:0;background:#111;color:#fff;font:600 22px system-ui"><div style="padding:8px 14px">Before (e98753f)</div><img src="${b64(before)}" width=1600 height=900 style="display:block"><div style="padding:8px 14px">After</div><img src="${b64(after)}" width=1600 height=900 style="display:block"></body>`);
+      await sheet.setContent(`<body style="margin:0;background:#111;color:#fff;font:600 22px system-ui"><div style="padding:8px 14px">${BEFORE_LABEL}</div><img src="${b64(before)}" width=1600 height=900 style="display:block"><div style="padding:8px 14px">After</div><img src="${b64(after)}" width=1600 height=900 style="display:block"></body>`);
       await sheet.waitForTimeout(300); await sheet.screenshot({ path: path.join(OUT, 'compare', `${name}.jpg`), type: 'jpeg', quality: 80, fullPage: true });
-      await sheet.setViewportSize({ width: 1600, height: 3 * 440 + 3 * 34 });
-      await sheet.setContent(`<body style="margin:0;background:#111;color:#fff;font:600 18px system-ui">${frames.map((f, i) => `<div style="padding:6px 12px">t = ${(i * 1.2).toFixed(1)} s (pointer parked)</div><img src="data:image/png;base64,${f}" width=1600 height=440 style="display:block">`).join('')}</body>`);
+      await sheet.setViewportSize({ width: 1600, height: frames.length * (440 + 34) });
+      await sheet.setContent(`<body style="margin:0;background:#111;color:#fff;font:600 18px system-ui">${frames.map((f, i) => `<div style="padding:6px 12px">t = ${(i * STEP / 1000).toFixed(1)} s · pointer parked · quality ${facts[name].quality}${i ? ` · ${motion[i - 1]}% of scene pixels changed since previous frame` : ''}</div><img src="data:image/png;base64,${f}" width=1600 height=440 style="display:block">`).join('')}</body>`);
       await sheet.waitForTimeout(300); await sheet.screenshot({ path: path.join(OUT, 'motion', `${name}-motion.jpg`), type: 'jpeg', quality: 80 });
       await sheet.close();
       if (video) { await context.close().catch(() => {}); fs.copyFileSync(await video.path(), path.join(VIDS, `${name}-ambient.webm`)); }

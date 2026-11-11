@@ -14,7 +14,7 @@
     // name, tagline, primary background, panel, brighter panel, foreground, muted, accent, border, gradient 2, gradient 3, code, vibe
     ['Cyberpunk Neon', 'Neon rain canyon', '#100c25', '#1b1538', '#292044', '#f3edff', '#c4bbe3', '#c6a8ff', '#49337e', '#25104c', '#051f31', '#15122a', 'neon'],
     ['Midnight Developer', 'Deep focus', '#0b1220', '#151e30', '#1e2b40', '#ebf1ff', '#9aabc6', '#6eacff', '#34445e', '#132b47', '#0b1828', '#101c30', 'minimal'],
-    ['Sakura Dreams', 'Soft blossom light', '#fff1f6', '#fff1f7', '#ffe7ef', '#2e0f26', '#3e1c36', '#781a4a', '#e9bed3', '#ffe2f0', '#f8e9ff', '#fff0f8', 'soft'],
+    ['Sakura Dreams', 'Soft blossom light', '#f4dbe7', '#f3d6e3', '#efd0de', '#240a1d', '#33142c', '#62123c', '#e9bed3', '#ffe2f0', '#f8e9ff', '#fff0f8', 'soft'],
     ['Cozy Coding', 'Warm and familiar', '#241c1b', '#342926', '#47352e', '#fff1dc', '#c4a998', '#f1ac72', '#725345', '#4a2e24', '#261d2b', '#28201f', 'soft'],
     ['Matrix', 'Into the source', '#071008', '#0d1c10', '#15291a', '#b9f9bd', '#76aa7c', '#4ad66d', '#265637', '#081e0f', '#04110b', '#0a160c', 'neon'],
     ['Dracula', 'Legendary dark', '#191a2a', '#292a40', '#343650', '#f6f5ff', '#b3b2cd', '#bd93f9', '#55506c', '#34233c', '#1b2640', '#202134', 'soft'],
@@ -23,7 +23,7 @@
     ['Retro Terminal', 'Back to basics', '#171911', '#23291a', '#313928', '#f1f3c9', '#a8b28a', '#bdd774', '#5c6440', '#313019', '#181e16', '#1c2119', 'pixel'],
     ['Pixel Paradise', '8-bit nostalgia', '#211a41', '#302959', '#40356c', '#fbf3ff', '#beb1de', '#ff9bd5', '#7350a0', '#33216b', '#14304f', '#29234b', 'pixel'],
     ['Solar Flare', 'Dunes at dusk', '#291913', '#422617', '#5c331c', '#fff1dd', '#d9b297', '#ffad54', '#885337', '#5a2918', '#2b1b19', '#341f19', 'neon'],
-    ['Arctic Frost', 'Alpine golden hour', '#eaf5fc', '#fbfdff', '#deecf6', '#213952', '#4b6178', '#2a5f9e', '#bfd7e8', '#e1f5ff', '#d6e4ff', '#f2f8fd', 'glass'],
+    ['Arctic Frost', 'Alpine golden hour', '#dfeaf4', '#d6e5f2', '#cfe0ee', '#0d1f34', '#20354b', '#183f70', '#bfd7e8', '#e1f5ff', '#d6e4ff', '#f2f8fd', 'glass'],
     ['Lavender Nights', 'A gentle glow', '#1e1837', '#2c2448', '#3a305c', '#f8efff', '#b9abcd', '#d0a6ff', '#5b4d78', '#392252', '#221a43', '#29203f', 'soft'],
     ['Dark Academia', 'Timeless and thoughtful', '#241d19', '#362b23', '#45362b', '#f2e8d3', '#c9bea9', '#d4b47d', '#69513a', '#30221a', '#221a17', '#2e251e', 'minimal'],
     ['Futuristic Sci-Fi', 'Holographic AI core', '#08131d', '#0f1e2b', '#16293a', '#e8f7ff', '#a3c3d6', '#5fd4ff', '#2a4a60', '#0f3a52', '#122a44', '#0c1823', 'glass'],
@@ -69,7 +69,7 @@
      backdrop blur, native brightness, minimal overlay) and clean, nearly solid reading panels. Balanced adds a subtle
      overlay and more solid panels. Frosted Glass is the opt-in glassmorphism style. Custom themes keep their own values. */
   const APPEARANCES = {
-    crisp: { label: 'Crisp Immersive', dark: { wallpaperBlur: 0, glass: 0, wallpaperOpacity: 100, wallpaperBrightness: 100, wallpaperOverlay: 6, glassOpacity: 86 }, light: { wallpaperBlur: 0, glass: 0, wallpaperOpacity: 100, wallpaperBrightness: 100, wallpaperOverlay: 4, glassOpacity: 70 } }, // light scenes: translucent backing (the readability guard raises it only as far as AA needs)
+    crisp: { label: 'Crisp Immersive', dark: { wallpaperBlur: 0, glass: 0, wallpaperOpacity: 100, wallpaperBrightness: 100, wallpaperOverlay: 6, glassOpacity: 86 }, light: { wallpaperBlur: 0, glass: 0, wallpaperOpacity: 100, wallpaperBrightness: 100, wallpaperOverlay: 4, glassOpacity: 45 } }, // light scenes: soft, tinted, translucent backing (the readability guard raises it only as far as AA needs)
     balanced: { label: 'Balanced', dark: { wallpaperBlur: 0, glass: 0, wallpaperOpacity: 100, wallpaperBrightness: 85, wallpaperOverlay: 32, glassOpacity: 96 }, light: { wallpaperBlur: 0, glass: 0, wallpaperOpacity: 100, wallpaperBrightness: 100, wallpaperOverlay: 26, glassOpacity: 96 } },
     frosted: { label: 'Frosted Glass', dark: { wallpaperBlur: 0, glass: 18, wallpaperOpacity: 100, wallpaperBrightness: 96, wallpaperOverlay: 10, glassOpacity: 52 }, light: { wallpaperBlur: 0, glass: 18, wallpaperOpacity: 100, wallpaperBrightness: 100, wallpaperOverlay: 6, glassOpacity: 58 } }
   };
@@ -101,7 +101,7 @@
     gradientTo: row[9], gradientThird: row[10], codeBg: row[11], vibe: row[12],
     radius: row[12] === 'pixel' ? 3 : row[12] === 'minimal' ? 8 : 16,
     glass: 0, // no panel backdrop blur by default (Crisp Immersive); Frosted Glass is an explicit choice
-    glassOpacity: isLightHex(row[2]) ? 70 : 86, // clean, nearly solid reading surfaces; the scene stays sharp around them
+    glassOpacity: isLightHex(row[2]) ? 45 : 86, // clean, nearly solid reading surfaces; the scene stays sharp around them
     gradientAngle: 135,
     backgroundMode: 'image',
     wallpaper: '',

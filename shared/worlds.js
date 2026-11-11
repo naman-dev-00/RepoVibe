@@ -12,16 +12,17 @@
 
   /* ---- Sakura Dreams: a Japanese garden at sunrise. Both cherry trees are sprites whose heads pivot at the trunk fork. */
   /*REF-SAKURA-BEGIN*/
-  const REF_SAKURA = [{"n":"treeNearL","plane":"scene","x":15.84,"y":32.05,"w":31.68,"k":1.28,"z":3,"wind":0.45,"ox":"50%","oy":"100%","fl":7.0},{"n":"treeNearR","plane":"scene","x":76.6,"y":36.63,"w":46.8,"k":1.28,"z":3,"wind":0.4,"ox":"50%","oy":"100%","fl":7.6},{"n":"treeMidL","plane":"scene","x":32.29,"y":33.78,"w":26.52,"k":0.86,"z":2,"wind":0.9,"ox":"50%","oy":"100%","fl":5.4},{"n":"treeMidR","plane":"scene","x":69.34,"y":39.48,"w":21.41,"k":0.86,"z":2,"wind":1.0,"ox":"50%","oy":"100%","fl":5.0}];
+  const REF_SAKURA = [{"n":"treeNearL","plane":"scene","x":23.98,"y":56.53,"w":41.25,"k":1.28,"z":3,"wind":0.45,"ox":"3.2%","oy":"99.7%","fl":7.0},{"n":"treeNearR","plane":"scene","x":79.57,"y":55.87,"w":42.19,"k":1.28,"z":3,"wind":0.4,"ox":"87.3%","oy":"99.7%","fl":7.6},{"n":"treeMidL","plane":"scene","x":26.35,"y":55.28,"w":16.52,"k":0.86,"z":2,"wind":0.9,"ox":"56.0%","oy":"99.2%","fl":5.4},{"n":"treeMidR","plane":"scene","x":71.88,"y":55.69,"w":13.67,"k":0.86,"z":2,"wind":1.0,"ox":"61.4%","oy":"99.2%","fl":5.0}];
   /*REF-SAKURA-END*/
   const treeSpan = 0.625;
   W['sakura-garden'] = {
-    // Built from the owner's reference plate (assets/reference/cherrybg.jpg): the plate is the mid layer (sky cut out), tree groups are cut-out sprites that
-    // sway on the shared gust, the sky window shows drifting cloud tiles, petals fall in 3D-rendered sprites and tile planes. Hybrid 2.5D, not 3D geometry.
+    // Painted from scratch by scripts/wallpapers/sakura-paint.py (concept from the owner's reference): sky in the far layer, mountains, groves, meadow and
+    // path in the mid layer (sky transparent so the cloud tile drifts behind the mountains), four recursively grown cherry trees as sprites whose crowns
+    // sway on the shared gust from the trunk base; every blossom is an individual five-petal flower. Petals fall in tile planes and 3D-shaded sprites.
     tiles: [
-      { plane: 'pfar', image: 't-clouds', region: [0.37, 0, 0.7, 0.25], rel: 0.8, w: 2048, h: 1024, sx: -1, sy: 0, t: 420 },
-      { plane: 'pmid', shape: 'petal', seed: 5, w: 900, h: 640, n: 22, colors: ['#ff8fc0', '#ffc2dc', '#e65ca0'], r: [4, 8], sx: -1, sy: 1, t: 34, gust: true },
-      { plane: 'pnear', shape: 'petal', seed: 11, w: 1100, h: 760, n: 10, colors: ['#ffb0d0', '#ff7fb2', '#fff0f6'], r: [10, 17], sx: -1, sy: 1, t: 21, gust: true }
+      { plane: 'pfar', image: 't-clouds', region: [0, 0, 1, 0.5], rel: 0.8, w: 2048, h: 1024, sx: -1, sy: 0, t: 260 },
+      { plane: 'pmid', shape: 'petal', seed: 5, w: 900, h: 640, n: 26, colors: ['#ff8fc0', '#ffc2dc', '#e65ca0'], r: [4, 8], sx: -1, sy: 2, t: 20, gust: true },
+      { plane: 'pnear', shape: 'petal', seed: 11, w: 1100, h: 760, n: 11, colors: ['#ffb0d0', '#ff7fb2', '#fff0f6'], r: [10, 17], sx: -1, sy: 2, t: 12, gust: true }
     ],
     sprites: [
       ...REF_SAKURA,
@@ -44,15 +45,15 @@
 
   /* ---- Ocean Depths: a reef under a sunlit surface. One slow current sways the corals; fish schools, a turtle and moon jellies drift through. */
   /*REF-OCEAN-BEGIN*/
-  const REF_OCEAN = [{"n":"coralPurpleL","plane":"scene","x":7.64,"y":24.9,"w":15.27,"k":1.28,"z":3,"wind":1.3,"ox":"50%","oy":"100%","fl":7.4},{"n":"coralOrangeA","plane":"scene","x":24.0,"y":43.58,"w":12.23,"k":0.86,"z":2,"wind":3.2,"ox":"50%","oy":"100%","fl":5.2},{"n":"coralOrangeB","plane":"scene","x":29.53,"y":45.31,"w":11.02,"k":0.86,"z":2,"wind":3.6,"ox":"50%","oy":"100%","fl":4.8},{"n":"coralPurpleS","plane":"scene","x":15.68,"y":49.13,"w":9.34,"k":0.86,"z":2,"wind":2.8,"ox":"50%","oy":"100%","fl":5.6},{"n":"coralOrangeBig","plane":"scene","x":21.27,"y":67.92,"w":29.41,"k":1.28,"z":3,"wind":2.1,"ox":"50%","oy":"100%","fl":6.4},{"n":"coralPurpleMid","plane":"scene","x":36.56,"y":57.6,"w":14.92,"k":0.86,"z":2,"wind":2.5,"ox":"50%","oy":"100%","fl":5.9},{"n":"coralOrangeC","plane":"scene","x":47.64,"y":70.0,"w":11.84,"k":0.86,"z":2,"wind":3.8,"ox":"50%","oy":"100%","fl":4.4},{"n":"coralOrangeD","plane":"scene","x":52.32,"y":70.56,"w":8.16,"k":0.86,"z":2,"wind":4.2,"ox":"50%","oy":"100%","fl":4.2},{"n":"coralPurpleLow","plane":"scene","x":30.06,"y":88.16,"w":10.27,"k":1.28,"z":3,"wind":2.3,"ox":"50%","oy":"100%","fl":6.0},{"n":"coralPurpleBR","plane":"scene","x":90.08,"y":90.21,"w":19.84,"k":1.28,"z":3,"wind":1.7,"ox":"50%","oy":"100%","fl":7.8}];
+  const REF_OCEAN = [{"n":"kelpL1","plane":"scene","x":5.47,"y":68.75,"w":11.64,"ox":"50%","oy":"100%","k":1.28,"z":3,"wind":2.6,"fl":6.2},{"n":"kelpL2","plane":"scene","x":12.89,"y":73.61,"w":9.53,"ox":"50%","oy":"100%","k":1.28,"z":3,"wind":3.0,"fl":5.6},{"n":"kelpR1","plane":"scene","x":95.31,"y":67.36,"w":11.02,"ox":"50%","oy":"100%","k":1.28,"z":3,"wind":2.4,"fl":6.6},{"n":"kelpR2","plane":"scene","x":87.89,"y":75.69,"w":8.71,"ox":"50%","oy":"100%","k":1.28,"z":3,"wind":3.2,"fl":5.2},{"n":"fanL","plane":"scene","x":21.88,"y":64.69,"w":16.41,"ox":"50%","oy":"100%","k":0.86,"z":2,"wind":2.4,"fl":5.4},{"n":"fanR","plane":"scene","x":77.34,"y":64.62,"w":14.84,"ox":"50%","oy":"100%","k":0.86,"z":2,"wind":2.6,"fl":5.0},{"n":"softL","plane":"scene","x":29.69,"y":81.04,"w":11.72,"ox":"50%","oy":"100%","k":1.28,"z":3,"wind":3.4,"fl":4.6},{"n":"softR","plane":"scene","x":71.09,"y":82.08,"w":8.24,"ox":"50%","oy":"100%","k":1.28,"z":3,"wind":3.6,"fl":4.4},{"n":"grassA","plane":"scene","x":46.09,"y":71.53,"w":3.91,"ox":"50%","oy":"100%","k":0.86,"z":2,"wind":4.2,"fl":3.8},{"n":"grassB","plane":"scene","x":55.47,"y":72.92,"w":3.67,"ox":"50%","oy":"100%","k":0.86,"z":2,"wind":4.6,"fl":3.6}];
   /*REF-OCEAN-END*/
   const kelp = (n, x, base, span, ratio, wind, fl) => ({ n, plane: 'scene', k: 0.64, x: X(x), y: Y(base + span / 2), w: stageW(ratio, span), z: 2, wind, ox: '50%', oy: '100%', fl });
   const school = (n, y, dx, dur, delay, scale, rev) => ({ n, plane: 'scene', k: 0.46, x: 50, y, w: scale, [rev ? 'crossRev' : 'cross']: dur, dx: 0, dy: 0, rot: 0, delay, swim: { wob: 8, wp: 1.1, tilt: 3 } });
   W['ocean-kingdom'] = {
-    // Built from the owner's reference plate (assets/reference/oceanbg.jpg): the plate is the far layer (corals inpainted at their edges, baked specks removed,
-    // crisp polyp detail), coral groups are cut-out sprites that sway on the shared current, two counter-moving caustic planes are masked onto the sunlit
-    // sand, light shafts breathe, and the sea life (fish schools, turtles, moon jellies) are raymarched 3D models shaded into the water's haze.
-    // Hybrid 2.5D, not 3D geometry.
+    // Painted from scratch by scripts/wallpapers/ocean-paint.py (concept from the owner's reference): water column, reef walls, corals and sand in the far
+    // layer; kelp, sea fans, soft corals and seagrass are separate sprites that sway on the shared current from their holdfasts; two counter-moving caustic
+    // planes are masked onto the sunlit sand, light shafts breathe; the sea life (fish schools, a turtle, moon jellies) are raymarched 3D models shaded
+    // into the water's haze. Hybrid 2.5D, not 3D geometry.
     tiles: [
       { plane: 'pfar', image: 't-caustic', mask: 't-mask-sand', region: [0.38, 0.49, 1, 1], rel: 0.42, w: 1024, h: 1024, sx: 1, sy: 0.6, t: 52 },
       { plane: 'mist', image: 't-caustic', mask: 't-mask-sand', region: [0.38, 0.49, 1, 1], rel: 0.29, w: 1024, h: 1024, sx: -1, sy: -0.4, t: 41 },
@@ -64,7 +65,7 @@
       // a distant school, half lost in the blue (opacity = water haze): gives depth without another cartoon animal
       { ...school('fishA', 22, 0, 70, -10, 1.2, 1), op: 0.5 }, { ...school('fishA', 24, 0, 70, -13, 1.0, 1), op: 0.45 }, { ...school('fishA', 21, 0, 70, -15, 0.9, 1), op: 0.45 },
       { ...school('fishA', 25, 0, 70, -18, 1.1, 1), op: 0.5 }, { ...school('fishA', 23, 0, 70, -21, 0.8, 1), op: 0.4 }, { ...school('fishA', 26, 0, 70, -24, 1.0, 1), op: 0.45 },
-      { n: 'turtle', plane: 'scene', k: 0.86, x: 50, y: 36, w: stageW(760 / 520, 0.26), cross: 120, dx: 0, dy: 0, rot: 0, delay: -70, swim: { wob: 10, wp: 2.8, tilt: 3.5 } },
+      { n: 'turtle', plane: 'scene', k: 0.86, x: 50, y: 36, w: stageW(760 / 520, 0.15), cross: 120, dx: 0, dy: 0, rot: 0, delay: -70, swim: { wob: 10, wp: 2.8, tilt: 3.5 } },
       school('fishA', 40, 0, 36, -2, 3.2), school('fishA', 43, 0, 36, -5, 2.6), school('fishA', 38, 0, 36, -8, 2.9), school('fishA', 45, 0, 36, -11, 2.2), school('fishA', 41, 0, 36, -14, 2.7),
       school('fishB', 62, 0, 48, -6, 2.8, 1), school('fishB', 59, 0, 48, -10, 2.4, 1), school('fishB', 65, 0, 48, -16, 2.6, 1), school('fishB', 61, 0, 48, -21, 2.1, 1),
       { n: 'jelly1', src: 'jelly', plane: 'scene', k: 0.64, x: 66, y: 0, w: stageW(520 / 720, 0.26), rise: 70, sw: 34, sway: 6.5, flut: 7, fa: 4, sy: 38 },
@@ -76,9 +77,9 @@
       { n: 'b5', src: 'bubble', plane: 'scene', k: 1.1, x: 88, y: 100, w: 1.2, rise: 18, sw: 20, sway: 3.7, flut: 2, fa: 5, sy: 42, delay: -3 },
       // pop-outs: sea life and foreground coral, closer to the viewer
       { n: 'jelly', plane: 'pop', at: 'band', x: 0.96, y: 0.5, h: 0.9, k: 2.6, dx: -8, dy: -10, rot: 3, dur: 10, noShadow: 1, swim: { wob: 18, wp: 4.4, tilt: 3 } },
-      { n: 'turtleP', src: 'turtle', plane: 'pop', at: 'band', x: 0.04, y: 0.55, h: 0.7, k: 2.8, dx: 14, dy: -4, rot: -2, dur: 12, noShadow: 1, flip: 1, swim: { wob: 10, wp: 3, tilt: 4 } },
-      { n: 'coralBRp', src: 'coralPurpleMid', plane: 'pop', at: 'margin', side: 'right', y: 0.82, h: 0.24, k: 2.4, dx: -4, dy: 0, rot: 1, dur: 9, noShadow: 1, wind: 1.6, ox: '50%', oy: '100%' },
-      { n: 'coralLp', src: 'coralOrangeBig', plane: 'pop', at: 'margin', side: 'left', y: 0.6, h: 0.3, k: 2.5, dx: 4, dy: 0, rot: -1, dur: 10, noShadow: 1, wind: 1.4, ox: '50%', oy: '100%' },
+      { n: 'turtleP', src: 'turtle', plane: 'pop', at: 'band', x: 0.04, y: 0.55, h: 0.42, k: 2.8, dx: 14, dy: -4, rot: -2, dur: 12, noShadow: 1, flip: 1, swim: { wob: 10, wp: 3, tilt: 4 } },
+      { n: 'softRp', src: 'softR', plane: 'pop', at: 'margin', side: 'right', y: 0.82, h: 0.24, k: 2.4, dx: -4, dy: 0, rot: 1, dur: 9, noShadow: 1, wind: 3.0, ox: '50%', oy: '100%' },
+      { n: 'kelpLp', src: 'kelpL2', plane: 'pop', at: 'margin', side: 'left', y: 0.6, h: 0.5, k: 2.5, dx: 4, dy: 0, rot: -1, dur: 10, noShadow: 1, wind: 2.8, ox: '50%', oy: '100%' },
       { n: 'fishPop', src: 'fishA', plane: 'pop', at: 'band', x: 0.6, y: 0.4, h: 0.22, k: 2.9, dx: 60, dy: -10, rot: 2, dur: 12, noShadow: 1, swim: { wob: 8, wp: 1.1, tilt: 3 } }
     ]
   };
@@ -91,9 +92,9 @@
   /* ---- Arctic Frost (light theme): a golden-hour alpine valley over a frozen lake. Snow flurries ride the shared gust; spruces sway; a fox crosses the ice. */
   W['arctic-frost-3d'] = {
     tiles: [
-      { plane: 'pfar', shape: 'flake', seed: 4, w: 800, h: 600, n: 40, colors: ['#ffffff', '#e4f3ff'], r: [3, 5.5], sx: -1, sy: 1, t: 46, gust: true },
-      { plane: 'pmid', shape: 'flake', seed: 9, w: 900, h: 700, n: 24, colors: ['#ffffff', '#d6ecff'], r: [5, 8.5], sx: -1, sy: 1, t: 30, gust: true },
-      { plane: 'pnear', shape: 'flake', seed: 17, w: 1100, h: 800, n: 9, colors: ['#ffffff'], r: [10, 15], sx: -1, sy: 1, t: 19, gust: true }
+      { plane: 'pfar', shape: 'flake', seed: 4, w: 800, h: 600, n: 46, colors: ['#ffffff', '#e4f3ff'], r: [2.5, 4.5], sx: -1, sy: 3, t: 30, gust: true },
+      { plane: 'pmid', shape: 'flake', seed: 9, w: 900, h: 700, n: 30, colors: ['#ffffff', '#d6ecff'], r: [4.5, 8], sx: -1, sy: 3, t: 18, gust: true },
+      { plane: 'pnear', shape: 'flake', seed: 17, w: 1100, h: 800, n: 10, colors: ['#ffffff'], r: [9, 14], sx: -1, sy: 3, t: 11, gust: true }
     ],
     sprites: [
       // the closest spruces on the near shore sway on the gust; the lake in the centre stays open
@@ -176,7 +177,7 @@
   /* ---- Pixel Paradise: a sunset pixel-art archipelago. Palms on the islet rock in the breeze, pixel clouds and gulls drift, gems float up, a crab patrols the beach. */
   W['pixel-paradise-3d'] = {
     tiles: [
-      { plane: 'pmid', shape: 'cube', seed: 9, w: 900, h: 700, n: 16, colors: ['#ffd23f', '#ff8a3d', '#fff08a'], r: [3, 6], sx: 0, sy: -1, t: 52, gust: true }
+      { plane: 'pmid', shape: 'cube', seed: 9, w: 900, h: 700, n: 16, colors: ['#ffd23f', '#ff8a3d', '#fff08a'], r: [3, 6], sx: 0, sy: -1, t: 20, gust: true }
     ],
     sprites: [
       at('cloudA', -0.4, 0.3, 640 / 240, 0.2, { k: 0.46, cross: 160, dx: 0, dy: 0, rot: 0, delay: -40, z: 1 }), at('cloudB', 0.5, 0.36, 520 / 200, 0.17, { k: 0.46, crossRev: 210, dx: 0, dy: 0, rot: 0, delay: -90, z: 1 }),

@@ -112,7 +112,7 @@
 html.repv-open :where(${OPEN}) { background-color:transparent !important; background-image:none !important; box-shadow:none !important; border-color:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
 /* anchored, not floating: sidebar sections get a very light surface + themed frame + glow (text keeps its own backing),
    the README a themed frame + glow around an open interior */
-html.repv-open :is([class*="sidebarSection"], .BorderGrid-row):not(:where([class*="sidebarSection"], .BorderGrid-row) *):not(:empty) { background-color:${rgba(v.surface, light ? Math.max(0.72, a) : 0.26)} !important; border:1px solid ${edgeLine} !important; border-radius:var(--repv-radius); box-shadow:0 0 0 2px ${edgeRing}, 0 0 16px -2px ${glowNear}, inset 0 0 0 1px ${innerRim}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.05)} !important; padding-left:12px !important; padding-right:12px !important; margin-bottom:10px !important; }
+html.repv-open :is([class*="sidebarSection"], .BorderGrid-row):not(:where([class*="sidebarSection"], .BorderGrid-row) *):not(:empty) { background-color:${rgba(v.surface, light ? a : 0.26)} !important; border:1px solid ${edgeLine} !important; border-radius:var(--repv-radius); box-shadow:0 0 0 2px ${edgeRing}, 0 0 16px -2px ${glowNear}, inset 0 0 0 1px ${innerRim}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.05)} !important; padding-left:12px !important; padding-right:12px !important; margin-bottom:10px !important; }
 html.repv-open :is(#readme, [data-repv-frame], .markdown-body:not(.comment-body, .js-comment-body)):not(:where(#readme, [data-repv-frame]) *):not(:where([data-repv-panel]) .markdown-body) { border-color:${edgeLine} !important; outline:1px solid ${edgeLine} !important; outline-offset:-1px; /* a 1 px themed line without changing the box (GitHub's card may or may not draw a border) */ border-radius:var(--repv-radius); box-shadow:0 0 0 2px ${edgeRing}, 0 0 18px -2px ${glowNear}, 0 0 38px -8px ${glowFar}, inset 0 0 0 1px ${innerRim}, inset 0 0 26px -12px ${glowFar} !important; }
 html.repv-open :is(${PROSE}) :is(${PROSE_BLOCKS}):not(:is(li, blockquote, td, th, p, dd, summary, table) *):not(:has(img, picture, video, svg:not(.octicon))) {
  background-color:${back} !important; box-shadow:0 0 0 6px ${back}, ${lift}; border-radius:6px; width:fit-content; max-width:100%; box-sizing:border-box; }
@@ -313,9 +313,9 @@ ${glass ? openCss + MOTION_CSS + DEPTH_CSS : ''}
   // data: images — GitHub's CSP already allows data: images (the uploaded-wallpaper path relies on it too).
   function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
   const svgUrl = (w, h, body, defs = '') => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}'><defs>${defs}</defs>${body}</svg>`)}")`;
-  function rainTile(seed, n, alpha) {
+  function rainTile(seed, n, alpha, lenK = 1) {
     const r = rng(seed); let body = '';
-    for (let i = 0; i < n; i++) { const x = r() * 400, y = r() * 400, len = 14 + r() * 30; body += `<line x1='${x.toFixed(1)}' y1='${y.toFixed(1)}' x2='${(x - len * 0.16).toFixed(1)}' y2='${(y + len).toFixed(1)}' stroke='url(#d)' stroke-width='${(0.8 + r() * 0.7).toFixed(2)}' opacity='${(alpha * (0.45 + r() * 0.55)).toFixed(2)}'/>`; }
+    for (let i = 0; i < n; i++) { const x = r() * 400, y = r() * 400, len = (16 + r() * 34) * lenK; body += `<line x1='${x.toFixed(1)}' y1='${y.toFixed(1)}' x2='${(x - len * 0.16).toFixed(1)}' y2='${(y + len).toFixed(1)}' stroke='url(#d)' stroke-width='${(0.8 + r() * 0.7).toFixed(2)}' opacity='${(alpha * (0.45 + r() * 0.55)).toFixed(2)}'/>`; }
     return svgUrl(400, 400, body, `<linearGradient id='d' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#bcd4ff' stop-opacity='0'/><stop offset='1' stop-color='#d9e6ff'/></linearGradient>`);
   }
   function glowTile(seed, w, h, n, colors, rMin, rMax) {
@@ -352,7 +352,7 @@ ${M}.repv-motion-holo body::after { ${LAYER} left:0; right:0; top:0; height:28vh
  animation:repv-scan 12s ease-in-out infinite; }
 ${M}.repv-motion-cinematic::after { animation-duration:.4s, 2.4s; }
 ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-out infinite alternate; will-change:transform; }
-@keyframes repv-rain { from { transform:translate3d(0,0,0); } to { transform:translate3d(-64px,400px,0); } }
+@keyframes repv-rain { from { transform:translate3d(0,0,0); } to { transform:translate3d(0,400px,0); } } /* exactly one tile period (200/400 px tiles): seamless loop, the slant is in the streaks */
 @keyframes repv-fog { from { transform:translate3d(-3%,0,0); } to { transform:translate3d(3%,-1%,0); } }
 @keyframes repv-flicker { 0%, 100% { opacity:1; } 41% { opacity:.55; } 43% { opacity:1; } 72% { opacity:.7; } 73% { opacity:1; } 88% { opacity:.6; } 89% { opacity:1; } }
 @keyframes repv-fly-a { from { transform:translate3d(0,0,0); } 50% { transform:translate3d(18px,-26px,0); } to { transform:translate3d(-14px,-8px,0); } }
@@ -432,7 +432,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
       pnear: [bokehTile(41, 1400, 900, 6, ['#fff0a0', '#a8ffd8']), '1400px 900px'], mist: 'radial-gradient(60% 22% at 30% 78%, rgba(130,235,215,.16), transparent 70%), radial-gradient(50% 18% at 78% 66%, rgba(120,205,255,.12), transparent 70%), radial-gradient(70% 16% at 50% 92%, rgba(150,230,220,.12), transparent 70%)' },
     'cosmic-galaxy': { pfar: [glowTile(53, 600, 600, 70, ['#eef2ff', '#cfd8ff', '#fff4e0'], 0.9, 2.2), '600px 600px'], pmid: [glowTile(57, 820, 820, 36, ['#d8ccff', '#bfe0ff'], 1.4, 3), '820px 820px'],
       pnear: [bokehTile(59, 1500, 1000, 4, ['#c9b8ff', '#9fd0ff']), '1500px 1000px'], mist: 'radial-gradient(45% 32% at 20% 30%, rgba(150,80,255,.14), transparent 70%), radial-gradient(40% 30% at 82% 72%, rgba(60,140,255,.12), transparent 70%)' },
-    'neon-city-3d': { pfar: [rainTile(61, 70, 0.28), '200px 200px'], pmid: [rainTile(67, 40, 0.5), '400px 400px'],
+    'neon-city-3d': { pfar: [rainTile(61, 90, 0.42), '200px 200px'], pmid: [rainTile(67, 46, 0.72, 2.2), '400px 400px'],
       pnear: [bokehTile(71, 1400, 900, 7, ['#ff4fd8', '#4fe3ff', '#b48cff']), '1400px 900px'], mist: 'radial-gradient(60% 20% at 50% 88%, rgba(150,170,255,.16), transparent 70%), radial-gradient(40% 24% at 15% 40%, rgba(255,60,200,.14), transparent 70%), radial-gradient(35% 22% at 85% 40%, rgba(60,200,255,.12), transparent 70%)' },
     'scifi-ai': { pfar: [glowTile(73, 640, 480, 26, ['#7fdcff', '#c8f2ff'], 1, 2.4), '640px 480px'], pmid: [glowTile(79, 900, 640, 12, ['#5fd0ff', '#ffffff'], 2, 4), '900px 640px'],
       pnear: [bokehTile(83, 1400, 900, 5, ['#9fe6ff', '#ffffff']), '1400px 900px'], mist: 'radial-gradient(60% 24% at 50% 80%, rgba(160,225,255,.20), transparent 70%)' }
@@ -795,14 +795,16 @@ html.repv-depth-cinematic #repovibe-depth { --amp:30px; }
 #repovibe-depth > .repv-veil { position:absolute; inset:0; }
 #repovibe-depth > [data-l="rays"] { opacity:.8; } /* light-coloured alpha art: no blend mode (avoids an extra render surface) */
 html.repv-depth-lite #repovibe-depth > :is([data-l="pfar"], [data-l="mist"], [data-l="pnear"]) { visibility:hidden; }
-/* Lite (manual, or Auto below 40 fps): fewer full-viewport planes and no full-viewport animation — the main cost of
-   software compositing. The mid particle plane stays (still), main objects keep drifting, distant belt rocks rest,
-   pop-out objects lose their filter shadow. */
-html.repv-depth-lite #repovibe-depth > .repv-l > i { animation:none !important; }
-html.repv-depth-lite #repovibe-depth .repv-b[data-k="0.46"] > .repv-s > img { animation:none !important; }
+#repovibe-depth[data-scene="neon-city-3d"] > :is([data-l="pfar"], [data-l="pmid"]) > i { top:-420px; } /* the rain loop travels 400 px: start above the view so no empty band sweeps in */
+/* Lite (manual, or Auto below 40 fps): fewer full-viewport planes and no camera drift — the main cost of software compositing.
+   The weather never freezes: the mid particle plane (rain, snow, petals, bubbles) keeps falling — a single compositor transform —
+   because a still weather plane reads as a frozen picture. Main objects keep drifting, plants keep swaying, ripples keep running;
+   distant belt rocks rest; pop-out objects lose their filter shadow. */
+html.repv-depth-lite #repovibe-depth > .repv-l:not([data-l="pmid"]) > i { animation:none !important; }
+html.repv-depth-lite #repovibe-depth .repv-b[data-k="0.46"] > .repv-s > img:not([data-fx="ripple"], [data-wind], [data-cross], [data-swim], [data-fall], [data-rise], [data-approach]) { animation:none !important; } /* only idle drift rests (e.g. distant belt rocks); travellers never freeze mid-path */
 html.repv-depth-lite #repovibe-popout > .repv-s::before { display:none; }
-/* Minimal (Auto only, < 25 fps): no particle planes and no light shafts; layers, moving objects and pop-out stay */
-html.repv-depth-minimal #repovibe-depth > :is([data-l="pmid"], [data-l="rays"]) { visibility:hidden; }
+/* Minimal (Auto only, < 25 fps): no light shafts; the one moving weather plane, layers, moving objects and pop-out stay */
+html.repv-depth-minimal #repovibe-depth > [data-l="rays"] { visibility:hidden; }
 #repovibe-depth > [data-l="front"] > i { transform-origin:50% 0; }
 html.repv-depth.repv-active::after, html.repv-depth body::after { content:none !important; animation:none !important; }
 html.repv-depth body::before { animation:none !important; will-change:auto !important; } /* covered by the depth scene: no hidden work */
@@ -812,7 +814,8 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
  #repovibe-depth > [data-l="pnear"] > i { animation:repv-bokeh 22s ease-in-out infinite alternate; }
  #repovibe-depth > [data-l="mist"] > i { animation:repv-fog 30s ease-in-out infinite alternate; }
  #repovibe-depth > [data-l="rays"] > i { animation:repv-breathe 9s ease-in-out infinite alternate; }
- #repovibe-depth[data-scene="neon-city-3d"] > [data-l="pfar"] > i, #repovibe-depth[data-scene="neon-city-3d"] > [data-l="pmid"] > i { animation:repv-rain .9s linear infinite; }
+ #repovibe-depth[data-scene="neon-city-3d"] > [data-l="pfar"] > i { animation:repv-rain 1.05s linear infinite; }  /* distant rain: thin, slower on screen */
+ #repovibe-depth[data-scene="neon-city-3d"] > [data-l="pmid"] > i { animation:repv-rain .62s linear infinite; }  /* near rain: longer, brighter, faster */
  html.repv-depth-cinematic #repovibe-depth > .repv-l:not([data-tile]) > i { animation:repv-cam 26s ease-in-out infinite alternate; }
  html.repv-depth-cinematic #repovibe-depth > .repv-l[data-l="front"] > i { animation:repv-sway 7s ease-in-out infinite alternate; }
  html.repv-depth-cinematic #repovibe-depth > .repv-l[data-l="rays"] > i { animation:repv-breathe 5s ease-in-out infinite alternate, repv-cam 26s ease-in-out infinite alternate; }
@@ -877,7 +880,6 @@ html.repv-depth-static #repovibe-depth .repv-s:has(> img:is([data-fall], [data-r
  #repovibe-depth > .repv-l[data-tw] > i { animation:repv-tile var(--tp, 40s) linear infinite; }
  #repovibe-depth > .repv-l[data-tw][data-gustpush] > i { animation:repv-tile var(--tp, 40s) linear infinite, repv-tile-gust 23s ease-in-out infinite; }
 }
-html.repv-depth-lite #repovibe-depth .repv-s > img[data-wind] { animation:none !important; }
 html.repv-depth-static #repovibe-depth .repv-s:has(> img[data-approach]), html.repv-depth-still #repovibe-depth .repv-s:has(> img[data-approach]) { visibility:hidden; } /* scanning lines / arriving traffic only exist while moving; the baked scene is complete at rest */
 #repovibe-depth .repv-s > img[data-approach] { animation-timing-function:cubic-bezier(.62, 0, .95, .55) !important; }
 @keyframes repv-gust-r { 0%, 100% { rotate:calc(var(--wa) * -.15); } 12% { rotate:calc(var(--wa) * .25); } 22% { rotate:calc(var(--wa) * .9); } 31% { rotate:calc(var(--wa) * .35); } 47% { rotate:calc(var(--wa) * -.1); } 58% { rotate:calc(var(--wa) * .55); } 66% { rotate:calc(var(--wa) * 1.15); } 78% { rotate:calc(var(--wa) * .2); } 90% { rotate:calc(var(--wa) * -.2); } }

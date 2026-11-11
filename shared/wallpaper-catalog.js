@@ -488,12 +488,12 @@
       "category": "Nature",
       "style": "3d",
       "tone": [
-        "#f5d7eb",
-        "#090b19"
+        "#ffffff",
+        "#352029"
       ],
       "toneSoft": [
-        "#dad3e2",
-        "#0b101e"
+        "#fee5f6",
+        "#48323a"
       ],
       "depth": [
         "far",
@@ -520,12 +520,12 @@
       "category": "Nature",
       "style": "3d",
       "tone": [
-        "#fef4f5",
-        "#030c15"
+        "#f4fefc",
+        "#1a3233"
       ],
       "toneSoft": [
-        "#e0d6c2",
-        "#051123"
+        "#a9e4ee",
+        "#1b3737"
       ],
       "depth": [
         "far",
@@ -536,19 +536,19 @@
       ],
       "sprites": [
         "bubble",
-        "coralOrangeA",
-        "coralOrangeB",
-        "coralOrangeBig",
-        "coralOrangeC",
-        "coralOrangeD",
-        "coralPurpleBR",
-        "coralPurpleL",
-        "coralPurpleLow",
-        "coralPurpleMid",
-        "coralPurpleS",
+        "fanL",
+        "fanR",
         "fishA",
         "fishB",
+        "grassA",
+        "grassB",
         "jelly",
+        "kelpL1",
+        "kelpL2",
+        "kelpR1",
+        "kelpR2",
+        "softL",
+        "softR",
         "turtle"
       ]
     },
