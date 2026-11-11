@@ -80,6 +80,10 @@ Real github.com page replay (`actions/checkout`, logged out, local snapshot, not
 * Motion strips (four frames 0.5 s apart, % of pixels changed): `docs/screenshots/rework2/motion/<theme>-motion.jpg`
 * Recordings: `docs/recordings/rework2/<theme>-ambient.webm`
 * Facts (quality class, running animations, contrast, motion %): `docs/screenshots/rework2/facts.json`
+* Text backing before/after (Sakura, Arctic): `docs/screenshots/rework2/text-backing.jpg`
+* Tests: unit 35/35; browser E2E 81 tests — 79 passed on the first full run, the 2 failures were screenshot baselines showing the intended
+  new Arctic art/tinted panels and the new gallery thumbnails (inspected, updated; the affected files re-ran 22/22); new rework tests 5/5
+  including the forced-Lite motion test.
 
 ## 5. Limitations
 * Sakura and Ocean are now procedural paintings (stylised illustration, not photographs); the sea animals are raymarched models from round 1.

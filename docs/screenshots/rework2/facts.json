@@ -19,9 +19,9 @@
   "failSummary": "",
   "errors": 0,
   "motionChangedPct": [
-   5.2,
-   6,
-   5.06
+   5.48,
+   6.88,
+   6.04
   ]
  },
  "sakura-dreams": {
@@ -46,9 +46,9 @@
   "failSummary": "",
   "errors": 0,
   "motionChangedPct": [
-   36.52,
-   32.16,
-   28.71
+   36.7,
+   31.75,
+   26.6
   ]
  },
  "ocean-depths": {
@@ -74,9 +74,9 @@
   "failSummary": "",
   "errors": 0,
   "motionChangedPct": [
-   8.04,
-   6.08,
-   6.77
+   8.39,
+   6.77,
+   5.49
   ]
  },
  "arctic-frost": {
@@ -103,9 +103,9 @@
   "failSummary": "",
   "errors": 0,
   "motionChangedPct": [
-   4.53,
-   2.66,
-   3.83
+   4.45,
+   2.62,
+   3.59
   ]
  },
  "pixel-paradise": {
@@ -130,9 +130,9 @@
   "failSummary": "",
   "errors": 0,
   "motionChangedPct": [
-   4.01,
-   2.95,
-   3.28
+   4.02,
+   2.47,
+   3.73
   ]
  }
 }
