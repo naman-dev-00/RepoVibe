@@ -487,12 +487,12 @@
       "category": "Nature",
       "style": "3d",
       "tone": [
-        "#ede2e3",
-        "#4b4a41"
+        "#f2d6e8",
+        "#080a19"
       ],
       "toneSoft": [
-        "#ebdeda",
-        "#746057"
+        "#d6d2e2",
+        "#0b101d"
       ],
       "depth": [
         "far",
@@ -502,14 +502,15 @@
         "rays"
       ],
       "sprites": [
-        "koi",
         "petalA",
         "petalB",
         "petalC",
         "sprayA",
         "sprayB",
-        "treeL",
-        "treeR"
+        "treeMidL",
+        "treeMidR",
+        "treeNearL",
+        "treeNearR"
       ]
     },
     {
@@ -518,12 +519,12 @@
       "category": "Nature",
       "style": "3d",
       "tone": [
-        "#f0ebf2",
-        "#1e6853"
+        "#fbeaf2",
+        "#030c17"
       ],
       "toneSoft": [
-        "#c4d7da",
-        "#267877"
+        "#e0d6c4",
+        "#051122"
       ],
       "depth": [
         "far",
@@ -534,12 +535,19 @@
       ],
       "sprites": [
         "bubble",
-        "fan",
+        "coralOrangeA",
+        "coralOrangeB",
+        "coralOrangeBig",
+        "coralOrangeC",
+        "coralOrangeD",
+        "coralPurpleBR",
+        "coralPurpleL",
+        "coralPurpleLow",
+        "coralPurpleMid",
+        "coralPurpleS",
         "fishA",
         "fishB",
         "jelly",
-        "kelpA",
-        "kelpB",
         "manta",
         "turtle",
         "whale"

@@ -107,3 +107,29 @@ Drop WebP files (RGBA for sprites/foreground layers) into `wallpapers/depth/<slu
 * Ocean: coral colonies (branching, brain, fan) with displaced geometry, kelp ribbons, rock/seabed with sediment, ruins; Sakura: modelled cherry trunks and canopy clusters (heads as separate RGBA at ≥2× density), stone lantern, koi pond water with refraction; Arctic: ice formations with refraction/caustics, snow pines; Aurora: volumetric curtains; Synthwave: modelled car, palms; Dark Academia: modelled shelves/books, candle with volumetric flame; Pixel Paradise: true voxel scene (e.g. MagicaVoxel renders); Sunset: modelled palms, car, cliff road.
 * Sprites should be rendered at ≥2× their display size (≥3× for foreground/pop-outs) so they stay sharp at 4K.
 Until such assets exist, the eight worlds must be regarded as stylised, with only the items listed above upgraded.
+
+## 8. Ocean Depths and Sakura Dreams rebuilt from the owner's reference images
+Inputs: `assets/reference/oceanbg.jpg` and `assets/reference/cherrybg.jpg` (768×512, supplied by the project owner; derived layers and 3D sprites are original). Pipeline: `scripts/wallpapers/reference-world.py`
+(+ `render3d.js` for the raymarched sprites). **What is real and what is simulated:**
+
+| Element | Technique | Real 3D? |
+|---|---|---|
+| Scene plates (reef; cherry forest) | 16:9 crop, 3.33× Lanczos upscale, unsharp + luminance-modulated grain (no detail can be invented) | No — a 2D photograph-like plate |
+| Coral groups (12) / tree groups (4) | colour + hand-placed-polygon segmentation, RGBA cut-outs, plate re-filled only in a thin edge band (push-pull), animated as wind sprites about their base on the shared 23 s gust curve | No — 2.5D cut-outs |
+| Caustics (Ocean) | seamless caustic tile ×2 planes moving in opposite directions, restricted to the sunlit sand with a mask image | No — animated 2D planes |
+| Light shafts, vignette | generated alpha layers; shafts breathe | No |
+| Clouds (Sakura) | the sky window is cut out of the plate; a seamless cloud tile drifts slowly behind it | No |
+| Fish, turtles, jellyfish, manta, whale; falling petals, blossom boughs | **raymarched signed-distance 3D models** (materials, subsurface, caustic key light, AO) rendered to sharp transparent sprites | **Yes** (rendered offline, displayed as sprites) |
+| Pop-outs | the 3D sprites plus cut-out coral and petals above the page, `pointer-events:none`, placed only in measured empty margins/band | Mixed |
+No mouse parallax and no butterfly were reintroduced; Static shows the plate and sprites at rest (the original composition), reduced motion = Static.
+
+**Honest assessment against the references.** Composition, colour, light and atmosphere are now those of the references (turquoise reef with golden shafts, purple/orange coral, lit sand ripples; pink forest, trunks framing the view, petal-covered path, mountain vista),
+because the plates *are* the references. The scenes read as alive (swaying coral/trees, moving caustics, drifting clouds, schools and petals) but:
+* **Sharpness:** the plates are upscaled from 768 px, so they are soft at 1440p and clearly soft at 4K; the 3D sprites and particles are sharp on top of them. A ≥3840×2160 source would be needed for the "ultra-HD" target.
+* **Depth is simulated:** no depth map was available, so only the objects listed above separate from the plate; sway amplitude is deliberately small (≤ ~1.8°) because cut edges would show.
+* The raymarched sea life is stylistically a little cleaner/cartoonier than the photographic plate (manta and whale especially).
+* Marine vegetation does not exist in the Ocean reference, so none was invented; coral sway stands in for it.
+So: the references' **atmosphere and composition are achieved; their rendering fidelity at 1440p/4K is not**, and the scenes are 2.5D, not geometry.
+
+**Performance** (software-rendered Chromium, 1366×768, real-page replay; GPU **UNVERIFIED**): Ocean Static 57.6 / Ambient Full 15.4 / Lite 30.6 / Cinematic 14.6 fps; Sakura 57.6 / 17.9 / 28.6 / 18.7; heap ≤ 2.6 MB; ≈1.3–1.4 MB of layers per world
+(`docs/perf-profile-reference.json`). Caustic/cloud planes are hidden in Lite and Minimal. Evidence: `docs/screenshots/worlds/reference/` (inputs, before/after, 1080p, 4K, pop-out crops, motion strips) and `docs/recordings/worlds/{ocean-kingdom,sakura-garden}-reference-{ambient,cinematic}.webm`.

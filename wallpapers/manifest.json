@@ -376,12 +376,12 @@
       "name": "Sakura Dreams",
       "category": "Nature",
       "style": "3d",
-      "source": "rendered-3d",
-      "generator": "scripts/wallpapers/shaders/sakura-garden.glsl",
-      "description": "Cherry-blossom garden at sunrise: Mt. Fuji, a torii in a still pond, an arched bridge and a pagoda, layered 2.5D with swaying tree heads, falling petals and koi.",
+      "source": "reference-derived",
+      "generator": "scripts/wallpapers/reference-world.py",
+      "description": "Cherry-blossom forest built from the owner-supplied reference image (assets/reference/cherrybg.jpg): enhanced plate, swaying tree groups, drifting clouds, petals in 3D-rendered sprites. Hybrid layered 2.5D.",
       "width": 2560,
       "height": 1440,
-      "license": "RepoVibe (original work)",
+      "license": "Reference image supplied by the project owner; derived layers and 3D sprites original to RepoVibe",
       "attribution": "RepoVibe contributors"
     },
     {
@@ -389,12 +389,12 @@
       "name": "Ocean Depths",
       "category": "Nature",
       "style": "3d",
-      "source": "rendered-3d",
-      "generator": "scripts/wallpapers/shaders/ocean-kingdom.glsl",
-      "description": "Sunlit reef under the surface: coral, kelp forest and sunken ruins, with schools of fish, a turtle, a manta, a whale, jellyfish and rising bubbles on one slow current.",
+      "source": "reference-derived",
+      "generator": "scripts/wallpapers/reference-world.py",
+      "description": "Turquoise reef built from the owner-supplied reference image (assets/reference/oceanbg.jpg): enhanced plate, swaying coral groups, masked caustics, light shafts, raymarched 3D sea life. Hybrid layered 2.5D.",
       "width": 2560,
       "height": 1440,
-      "license": "RepoVibe (original work)",
+      "license": "Reference image supplied by the project owner; derived layers and 3D sprites original to RepoVibe",
       "attribution": "RepoVibe contributors"
     },
     {

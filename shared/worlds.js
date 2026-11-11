@@ -11,18 +11,20 @@
   const W = {};
 
   /* ---- Sakura Dreams: a Japanese garden at sunrise. Both cherry trees are sprites whose heads pivot at the trunk fork. */
+  /*REF-SAKURA-BEGIN*/
+  const REF_SAKURA = [{"n":"treeNearL","plane":"scene","x":15.84,"y":32.05,"w":31.68,"k":1.28,"z":3,"wind":0.45,"ox":"50%","oy":"100%","fl":7.0},{"n":"treeNearR","plane":"scene","x":76.6,"y":36.63,"w":46.8,"k":1.28,"z":3,"wind":0.4,"ox":"50%","oy":"100%","fl":7.6},{"n":"treeMidL","plane":"scene","x":32.29,"y":33.78,"w":26.52,"k":0.86,"z":2,"wind":0.9,"ox":"50%","oy":"100%","fl":5.4},{"n":"treeMidR","plane":"scene","x":69.34,"y":39.48,"w":21.41,"k":0.86,"z":2,"wind":1.0,"ox":"50%","oy":"100%","fl":5.0}];
+  /*REF-SAKURA-END*/
   const treeSpan = 0.625;
   W['sakura-garden'] = {
+    // Built from the owner's reference plate (assets/reference/cherrybg.jpg): the plate is the mid layer (sky cut out), tree groups are cut-out sprites that
+    // sway on the shared gust, the sky window shows drifting cloud tiles, petals fall in 3D-rendered sprites and tile planes. Hybrid 2.5D, not 3D geometry.
     tiles: [
-      { plane: 'pmid', shape: 'petal', seed: 5, w: 900, h: 640, n: 26, colors: ['#ffc2d6', '#ffe3ec', '#ff9fc0'], r: [5, 10], sx: -1, sy: 1, t: 34, gust: true },
-      { plane: 'pnear', shape: 'petal', seed: 11, w: 1100, h: 760, n: 12, colors: ['#ffd0df', '#ff9cbd', '#fff0f4'], r: [10, 17], sx: -1, sy: 1, t: 21, gust: true }
+      { plane: 'pfar', image: 't-clouds', rel: 0.8, w: 2048, h: 1024, sx: -1, sy: 0, t: 420 },
+      { plane: 'pmid', shape: 'petal', seed: 5, w: 900, h: 640, n: 22, colors: ['#ff8fc0', '#ffc2dc', '#e65ca0'], r: [4, 8], sx: -1, sy: 1, t: 34, gust: true },
+      { plane: 'pnear', shape: 'petal', seed: 11, w: 1100, h: 760, n: 10, colors: ['#ffb0d0', '#ff7fb2', '#fff0f6'], r: [10, 17], sx: -1, sy: 1, t: 21, gust: true }
     ],
     sprites: [
-      // tree heads: gust-driven sway about the trunk fork (pivot = fork position inside the sprite)
-      { n: 'treeL', plane: 'scene', k: 0.64, x: X(-0.345), y: Y(0.1925), w: stageW(2, treeSpan), z: 3, wind: 0.9, ox: '67%', oy: '99%', fl: 5.4 },
-      { n: 'treeR', plane: 'scene', k: 0.64, x: X(0.42), y: Y(0.1925), w: stageW(1.5, treeSpan), z: 3, wind: 0.8, ox: '79%', oy: '99%', fl: 4.8 },
-      { n: 'koi', plane: 'scene', k: 0.46, x: 33, y: 75, w: 9, dx: 220, dy: 14, rot: 3, dur: 26, swim: { wob: 14, wp: 2.4, tilt: 5 } },
-      { n: 'koi', plane: 'scene', k: 0.46, x: 63, y: 83, w: 7, dx: -180, dy: -10, rot: -3, dur: 31, flip: 1, swim: { wob: 12, wp: 2.8, tilt: 5 }, delay: -11 },
+      ...REF_SAKURA,
       // falling petals share the gust: each wrapper is pushed sideways by the same travelling gust
       { n: 'pt1', src: 'petalA', plane: 'scene', k: 0.7, x: 12, y: 0, w: 1.3, fall: 30, dx: 240, rot: 220, sw: 42, sway: 4.6, flut: 2.4, fa: 36, turn: 3.1, sy: 38, gust: 90 },
       { n: 'pt2', src: 'petalB', plane: 'scene', k: 1.5, x: 34, y: 0, w: 1.9, fall: 23, dx: 320, rot: -180, sw: 60, sway: 3.9, flut: 2.1, fa: 44, turn: 2.7, sy: 62, flip: 1, gust: 150 },
@@ -30,41 +32,52 @@
       { n: 'pt4', src: 'petalA', plane: 'scene', k: 1.1, x: 77, y: 0, w: 1.6, fall: 27, dx: 280, rot: 150, sw: 50, sway: 4.2, flut: 2.5, fa: 40, turn: 3.0, sy: 22, flip: 1, gust: 120 },
       { n: 'pt5', src: 'petalB', plane: 'scene', k: 0.9, x: 91, y: 0, w: 1.4, fall: 33, dx: 200, rot: -200, sw: 36, sway: 5.0, flut: 2.8, fa: 32, turn: 3.6, sy: 52, gust: 80 },
       { n: 'pt6', src: 'petalC', plane: 'scene', k: 1.8, x: 46, y: 0, w: 2.3, fall: 21, dx: 340, rot: 190, sw: 70, sway: 3.7, flut: 2.0, fa: 46, turn: 2.5, sy: 44, gust: 200 },
+      { n: 'pt7', src: 'petalC', plane: 'scene', k: 1.3, x: 22, y: 0, w: 1.7, fall: 25, dx: 260, rot: 170, sw: 52, sway: 4.4, flut: 2.3, fa: 40, turn: 3.2, sy: 70, gust: 130, delay: -9 },
+      { n: 'pt8', src: 'petalA', plane: 'scene', k: 2.3, x: 68, y: 0, w: 3.2, fall: 17, dx: 360, rot: -250, sw: 90, sway: 3.2, flut: 1.7, fa: 50, turn: 2.2, sy: 30, gust: 260, delay: -6 },
       // pop-out boughs (reach into the page margins and the scene band; pointer-events none)
       { n: 'sprayA', plane: 'pop', at: 'band', x: 0.98, y: 0.5, h: 1.0, k: 2.6, dx: -10, dy: 3, rot: 2, dur: 9, noShadow: 1, wind: 1.6, ox: '100%', oy: '50%' },
-      { n: 'sprayB', plane: 'pop', at: 'band', x: 0.02, y: 0.45, h: 0.8, k: 2.8, dx: 10, dy: -3, rot: -2.5, dur: 11, noShadow: 1, flip: 1, wind: 1.8, ox: '0%', oy: '50%' }
+      { n: 'sprayB', plane: 'pop', at: 'band', x: 0.02, y: 0.45, h: 0.8, k: 2.8, dx: 10, dy: -3, rot: -2.5, dur: 11, noShadow: 1, flip: 1, wind: 1.8, ox: '0%', oy: '50%' },
+      { n: 'popPetal1', src: 'petalC', plane: 'pop', at: 'band', x: 0.88, y: 0.3, h: 0.16, k: 2.9, dx: -40, dy: 26, rot: 40, dur: 7, noShadow: 1 },
+      { n: 'popPetal2', src: 'petalA', plane: 'pop', at: 'band', x: 0.1, y: 0.7, h: 0.14, k: 3.0, dx: 36, dy: -22, rot: -50, dur: 8, noShadow: 1 }
     ]
   };
 
   /* ---- Ocean Depths: a reef under a sunlit surface. One slow current sways kelp and fans; schools, turtle, manta and whale cross. */
+  /*REF-OCEAN-BEGIN*/
+  const REF_OCEAN = [{"n":"coralPurpleL","plane":"scene","x":7.64,"y":24.9,"w":15.27,"k":1.28,"z":3,"wind":0.7,"ox":"50%","oy":"100%","fl":7.4},{"n":"coralOrangeA","plane":"scene","x":24.0,"y":43.58,"w":12.23,"k":0.86,"z":2,"wind":1.7,"ox":"50%","oy":"100%","fl":5.2},{"n":"coralOrangeB","plane":"scene","x":29.53,"y":45.31,"w":11.02,"k":0.86,"z":2,"wind":1.9,"ox":"50%","oy":"100%","fl":4.8},{"n":"coralPurpleS","plane":"scene","x":15.68,"y":49.13,"w":9.34,"k":0.86,"z":2,"wind":1.5,"ox":"50%","oy":"100%","fl":5.6},{"n":"coralOrangeBig","plane":"scene","x":21.27,"y":67.92,"w":29.41,"k":1.28,"z":3,"wind":1.1,"ox":"50%","oy":"100%","fl":6.4},{"n":"coralPurpleMid","plane":"scene","x":36.56,"y":57.6,"w":14.92,"k":0.86,"z":2,"wind":1.3,"ox":"50%","oy":"100%","fl":5.9},{"n":"coralOrangeC","plane":"scene","x":47.64,"y":70.0,"w":11.84,"k":0.86,"z":2,"wind":2.0,"ox":"50%","oy":"100%","fl":4.4},{"n":"coralOrangeD","plane":"scene","x":52.32,"y":70.56,"w":8.16,"k":0.86,"z":2,"wind":2.2,"ox":"50%","oy":"100%","fl":4.2},{"n":"coralPurpleLow","plane":"scene","x":30.06,"y":88.16,"w":10.27,"k":1.28,"z":3,"wind":1.2,"ox":"50%","oy":"100%","fl":6.0},{"n":"coralPurpleBR","plane":"scene","x":90.08,"y":90.21,"w":19.84,"k":1.28,"z":3,"wind":0.9,"ox":"50%","oy":"100%","fl":7.8}];
+  /*REF-OCEAN-END*/
   const kelp = (n, x, base, span, ratio, wind, fl) => ({ n, plane: 'scene', k: 0.64, x: X(x), y: Y(base + span / 2), w: stageW(ratio, span), z: 2, wind, ox: '50%', oy: '100%', fl });
   const school = (n, y, dx, dur, delay, scale, rev) => ({ n, plane: 'scene', k: 0.46, x: 50, y, w: scale, [rev ? 'crossRev' : 'cross']: dur, dx: 0, dy: 0, rot: 0, delay, swim: { wob: 8, wp: 1.1, tilt: 3 } });
   W['ocean-kingdom'] = {
+    // Built from the owner's reference plate (assets/reference/oceanbg.jpg): the plate is the far layer (corals inpainted at their edges), coral groups are cut-out
+    // sprites that sway on the shared current, two counter-moving caustic planes are masked onto the sunlit sand, light shafts breathe, and the sea life
+    // (fish, turtles, jellyfish, manta, whale) are real raymarched 3D models. Hybrid 2.5D, not 3D geometry.
     tiles: [
-      { plane: 'pfar', shape: 'dot', seed: 3, w: 900, h: 700, n: 70, colors: ['#bff3ff', '#e8fdff'], r: [1.2, 2.4], sx: 0, sy: 1, t: 90, gust: false },   // marine snow
-      { plane: 'pmid', shape: 'bubble', seed: 8, w: 1000, h: 800, n: 16, colors: ['#d8f7ff', '#ffffff'], r: [4, 9], sx: 0, sy: -1, t: 34, gust: true },
+      { plane: 'pfar', image: 't-caustic', mask: 't-mask-sand', rel: 0.42, w: 1024, h: 1024, sx: 1, sy: 0.6, t: 52 },
+      { plane: 'mist', image: 't-caustic', mask: 't-mask-sand', rel: 0.29, w: 1024, h: 1024, sx: -1, sy: -0.4, t: 41 },
+      { plane: 'pmid', shape: 'dot', seed: 3, w: 900, h: 700, n: 60, colors: ['#e8fdff', '#bff3ff'], r: [1.2, 2.6], sx: 0, sy: 1, t: 95, gust: false },
       { plane: 'pnear', shape: 'bubble', seed: 15, w: 1200, h: 900, n: 7, colors: ['#e8fbff'], r: [9, 16], sx: 0, sy: -1, t: 22, gust: true }
     ],
     sprites: [
+      ...REF_OCEAN,
       { n: 'whale', plane: 'scene', k: 0.46, x: 50, y: 17, w: stageW(1500 / 560, 0.2), crossRev: 170, dx: 0, dy: 0, rot: 0, delay: -40, swim: { wob: 6, wp: 6, tilt: 1.2 } },
-      kelp('kelpA', -0.80, -0.36, 0.7, 520 / 1200, 2.4, 6.2), kelp('kelpB', -0.38, -0.34, 0.58, 420 / 1000, 2.8, 5.2),
-      kelp('kelpA', 0.12, -0.35, 0.62, 520 / 1200, 2.2, 6.8), kelp('kelpB', 0.55, -0.33, 0.6, 420 / 1000, 2.9, 5.6), kelp('kelpA', 0.84, -0.36, 0.72, 520 / 1200, 2.5, 6.4),
-      { n: 'fan', plane: 'scene', k: 0.86, x: X(-0.64), y: Y(-0.36 + 0.42 * 0.34), w: stageW(640 / 700, 0.34), z: 3, wind: 1.8, ox: '50%', oy: '100%', fl: 5.0 },
-      { n: 'fan', plane: 'scene', k: 0.86, x: X(0.70), y: Y(-0.37 + 0.42 * 0.3), w: stageW(640 / 700, 0.3), z: 3, flip: 1, wind: 2.0, ox: '50%', oy: '100%', fl: 4.6 },
       { n: 'manta', plane: 'scene', k: 0.64, x: 50, y: 27, w: stageW(1200 / 700, 0.3), cross: 95, dx: 0, dy: 0, rot: 0, delay: -22, swim: { wob: 16, wp: 3.6, tilt: 3 } },
       { n: 'turtle', plane: 'scene', k: 0.86, x: 50, y: 52, w: stageW(760 / 520, 0.26), cross: 120, dx: 0, dy: 0, rot: 0, delay: -70, swim: { wob: 10, wp: 2.8, tilt: 3.5 } },
       school('fishA', 40, 0, 36, -2, 3.2), school('fishA', 43, 0, 36, -5, 2.6), school('fishA', 38, 0, 36, -8, 2.9), school('fishA', 45, 0, 36, -11, 2.2), school('fishA', 41, 0, 36, -14, 2.7),
       school('fishB', 62, 0, 48, -6, 2.8, 1), school('fishB', 59, 0, 48, -10, 2.4, 1), school('fishB', 65, 0, 48, -16, 2.6, 1), school('fishB', 61, 0, 48, -21, 2.1, 1),
-      { n: 'jelly1', src: 'jelly', plane: 'scene', k: 0.64, x: 22, y: 0, w: stageW(520 / 720, 0.26), rise: 70, sw: 34, sway: 6.5, flut: 7, fa: 4, sy: 38 },
-      { n: 'jelly2', src: 'jelly', plane: 'scene', k: 1.1, x: 78, y: 100, w: stageW(520 / 720, 0.2), rise: 55, sw: 26, sway: 5.2, flut: 6, fa: 5, sy: 55, delay: -25 },
+      { n: 'jelly1', src: 'jelly', plane: 'scene', k: 0.64, x: 66, y: 0, w: stageW(520 / 720, 0.26), rise: 70, sw: 34, sway: 6.5, flut: 7, fa: 4, sy: 38 },
+      { n: 'jelly2', src: 'jelly', plane: 'scene', k: 1.1, x: 82, y: 0, w: stageW(520 / 720, 0.2), rise: 55, sw: 26, sway: 5.2, flut: 6, fa: 5, sy: 55, delay: -25 },
       { n: 'b1', src: 'bubble', plane: 'scene', k: 0.86, x: 40, y: 100, w: 1.0, rise: 16, sw: 18, sway: 3.4, flut: 2, fa: 5, sy: 70 },
       { n: 'b2', src: 'bubble', plane: 'scene', k: 1.1, x: 46, y: 100, w: 1.5, rise: 21, sw: 24, sway: 4.1, flut: 2, fa: 5, sy: 48, delay: -9 },
       { n: 'b3', src: 'bubble', plane: 'scene', k: 1.5, x: 61, y: 100, w: 0.8, rise: 14, sw: 14, sway: 3.0, flut: 2, fa: 5, sy: 30, delay: -5 },
       { n: 'b4', src: 'bubble', plane: 'scene', k: 1.8, x: 12, y: 100, w: 1.9, rise: 25, sw: 30, sway: 4.4, flut: 2, fa: 5, sy: 60, delay: -17 },
       { n: 'b5', src: 'bubble', plane: 'scene', k: 1.1, x: 88, y: 100, w: 1.2, rise: 18, sw: 20, sway: 3.7, flut: 2, fa: 5, sy: 42, delay: -3 },
-      // pop-outs
+      // pop-outs: sea life and foreground coral, closer to the viewer
       { n: 'jelly', plane: 'pop', at: 'band', x: 0.96, y: 0.5, h: 0.9, k: 2.6, dx: -8, dy: -10, rot: 3, dur: 10, noShadow: 1, swim: { wob: 18, wp: 4.4, tilt: 3 } },
-      { n: 'turtleP', src: 'turtle', plane: 'pop', at: 'band', x: 0.04, y: 0.55, h: 0.7, k: 2.8, dx: 14, dy: -4, rot: -2, dur: 12, noShadow: 1, flip: 1, swim: { wob: 10, wp: 3, tilt: 4 } }
+      { n: 'turtleP', src: 'turtle', plane: 'pop', at: 'band', x: 0.04, y: 0.55, h: 0.7, k: 2.8, dx: 14, dy: -4, rot: -2, dur: 12, noShadow: 1, flip: 1, swim: { wob: 10, wp: 3, tilt: 4 } },
+      { n: 'coralBRp', src: 'coralPurpleMid', plane: 'pop', at: 'margin', side: 'right', y: 0.82, h: 0.24, k: 2.4, dx: -4, dy: 0, rot: 1, dur: 9, noShadow: 1, wind: 1.6, ox: '50%', oy: '100%' },
+      { n: 'coralLp', src: 'coralOrangeBig', plane: 'pop', at: 'margin', side: 'left', y: 0.6, h: 0.3, k: 2.5, dx: 4, dy: 0, rot: -1, dur: 10, noShadow: 1, wind: 1.4, ox: '50%', oy: '100%' },
+      { n: 'fishPop', src: 'fishA', plane: 'pop', at: 'band', x: 0.6, y: 0.4, h: 0.22, k: 2.9, dx: 60, dy: -10, rot: 2, dur: 12, noShadow: 1, swim: { wob: 8, wp: 1.1, tilt: 3 } }
     ]
   };
 

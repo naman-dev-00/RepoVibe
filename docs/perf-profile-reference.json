@@ -1,0 +1,271 @@
+{
+  "source": "real github.com page replay (actions-checkout-code, logged out; local snapshot, not committed)",
+  "viewport": "1366x768",
+  "worlds": {
+    "ocean-kingdom": {
+      "static": {
+        "fps": 57.6,
+        "frameMs": {
+          "p50": 16.7,
+          "p95": 16.8,
+          "p99": 33.3,
+          "over33": 0.7
+        },
+        "mainMsPerS": {
+          "task": 70.6,
+          "script": 2.3,
+          "style": 1.9,
+          "layout": 0
+        },
+        "traceMsPerS": {
+          "paint": 14.2,
+          "raster": 143.4,
+          "composite": 74.9
+        },
+        "layers": {
+          "composited": 26,
+          "areaViewports": 39.6
+        },
+        "heapMB": 2.4,
+        "cpuCores": 0.22
+      },
+      "depth off": {
+        "fps": 60,
+        "frameMs": {
+          "p50": 16.7,
+          "p95": 16.7,
+          "p99": 16.8,
+          "over33": 0
+        },
+        "mainMsPerS": {
+          "task": 42.2,
+          "script": 2.1,
+          "style": 1.9,
+          "layout": 0
+        },
+        "traceMsPerS": {
+          "paint": 15.6,
+          "raster": 40.4,
+          "composite": 13
+        },
+        "layers": {
+          "composited": 10,
+          "areaViewports": 18.3
+        },
+        "heapMB": 2.4,
+        "cpuCores": 0.13
+      },
+      "ambient full": {
+        "fps": 15.4,
+        "frameMs": {
+          "p50": 66.6,
+          "p95": 116.6,
+          "p99": 183.4,
+          "over33": 94.8
+        },
+        "mainMsPerS": {
+          "task": 119.1,
+          "script": 0.6,
+          "style": 24.6,
+          "layout": 0
+        },
+        "traceMsPerS": {
+          "paint": 12.9,
+          "raster": 168.8,
+          "composite": 994.4
+        },
+        "layers": {
+          "composited": 54,
+          "areaViewports": 50.5
+        },
+        "heapMB": 2.1,
+        "cpuCores": 1.17
+      },
+      "ambient lite": {
+        "fps": 30.6,
+        "frameMs": {
+          "p50": 33.3,
+          "p95": 50,
+          "p99": 66.7,
+          "over33": 23.5
+        },
+        "mainMsPerS": {
+          "task": 91.3,
+          "script": 1.2,
+          "style": 21.2,
+          "layout": 0
+        },
+        "traceMsPerS": {
+          "paint": 12.8,
+          "raster": 130.1,
+          "composite": 942.5
+        },
+        "layers": {
+          "composited": 37,
+          "areaViewports": 32.4
+        },
+        "heapMB": 2.3,
+        "cpuCores": 1.13
+      },
+      "cinematic full": {
+        "fps": 14.6,
+        "frameMs": {
+          "p50": 66.7,
+          "p95": 116.8,
+          "p99": 233.3,
+          "over33": 91.8
+        },
+        "mainMsPerS": {
+          "task": 114.1,
+          "script": 0.6,
+          "style": 26.7,
+          "layout": 0
+        },
+        "traceMsPerS": {
+          "paint": 10.5,
+          "raster": 165.7,
+          "composite": 988
+        },
+        "layers": {
+          "composited": 54,
+          "areaViewports": 50.5
+        },
+        "heapMB": 2.1,
+        "cpuCores": 1.17
+      }
+    },
+    "sakura-garden": {
+      "static": {
+        "fps": 57.6,
+        "frameMs": {
+          "p50": 16.7,
+          "p95": 16.8,
+          "p99": 33.3,
+          "over33": 0.3
+        },
+        "mainMsPerS": {
+          "task": 74.8,
+          "script": 2.1,
+          "style": 1.7,
+          "layout": 0
+        },
+        "traceMsPerS": {
+          "paint": 14.5,
+          "raster": 139.1,
+          "composite": 74.6
+        },
+        "layers": {
+          "composited": 23,
+          "areaViewports": 41.4
+        },
+        "heapMB": 2.6,
+        "cpuCores": 0.22
+      },
+      "depth off": {
+        "fps": 60,
+        "frameMs": {
+          "p50": 16.7,
+          "p95": 16.7,
+          "p99": 16.8,
+          "over33": 0
+        },
+        "mainMsPerS": {
+          "task": 44.4,
+          "script": 2.5,
+          "style": 1.9,
+          "layout": 0
+        },
+        "traceMsPerS": {
+          "paint": 15.5,
+          "raster": 39,
+          "composite": 12.8
+        },
+        "layers": {
+          "composited": 10,
+          "areaViewports": 18.3
+        },
+        "heapMB": 2,
+        "cpuCores": 0.13
+      },
+      "ambient full": {
+        "fps": 17.9,
+        "frameMs": {
+          "p50": 50,
+          "p95": 100,
+          "p99": 183.3,
+          "over33": 90
+        },
+        "mainMsPerS": {
+          "task": 103.5,
+          "script": 0.7,
+          "style": 23.7,
+          "layout": 0
+        },
+        "traceMsPerS": {
+          "paint": 11.7,
+          "raster": 160.9,
+          "composite": 971.2
+        },
+        "layers": {
+          "composited": 33,
+          "areaViewports": 45.4
+        },
+        "heapMB": 2.3,
+        "cpuCores": 1.16
+      },
+      "ambient lite": {
+        "fps": 28.6,
+        "frameMs": {
+          "p50": 33.3,
+          "p95": 50,
+          "p99": 83.3,
+          "over33": 29.2
+        },
+        "mainMsPerS": {
+          "task": 102.3,
+          "script": 1.1,
+          "style": 26.8,
+          "layout": 0
+        },
+        "traceMsPerS": {
+          "paint": 12,
+          "raster": 132.3,
+          "composite": 949
+        },
+        "layers": {
+          "composited": 31,
+          "areaViewports": 31.3
+        },
+        "heapMB": 2.2,
+        "cpuCores": 1.17
+      },
+      "cinematic full": {
+        "fps": 18.7,
+        "frameMs": {
+          "p50": 50,
+          "p95": 83.4,
+          "p99": 183.4,
+          "over33": 85.1
+        },
+        "mainMsPerS": {
+          "task": 89.5,
+          "script": 0.8,
+          "style": 24.5,
+          "layout": 0
+        },
+        "traceMsPerS": {
+          "paint": 8.9,
+          "raster": 121.9,
+          "composite": 950.8
+        },
+        "layers": {
+          "composited": 33,
+          "areaViewports": 45.4
+        },
+        "heapMB": 2.2,
+        "cpuCores": 1.13
+      }
+    }
+  },
+  "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+}

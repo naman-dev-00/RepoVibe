@@ -405,7 +405,15 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
   function worldParticles(slug) {   // declarative tiles → { plane: [url, size, motion] }, built once per world
     if (!worldTiles.has(slug)) {
       const out = {};
-      for (const t of WORLDS[slug]?.tiles || []) out[t.plane] = [shapeTile(t.shape, t.seed, t.w, t.h, t.n, t.colors, t.r[0], t.r[1]), `${t.w}px ${t.h}px`, t.still ? undefined : { w: t.w, h: t.h, sx: t.sx, sy: t.sy, t: t.t, gust: t.gust }];   // still: the default twinkle/flicker plane (stars, motes)
+      for (const t of WORLDS[slug]?.tiles || []) {
+        if (t.image) {   // a pre-rendered seamless image tile (caustics, clouds), sized relative to the stage so it scales with the scene; optional mask keeps it on part of the scene
+          const u = n => `url("${chrome.runtime.getURL(`wallpapers/depth/${slug}/${n}.webp`)}")`;
+          const wc = `calc(max(100vw, 177.78vh) * ${t.rel})`, hc = `calc(max(100vw, 177.78vh) * ${(t.rel * t.h / t.w).toFixed(4)})`;
+          out[t.plane] = [u(t.image), `${wc} ${hc}`, { w: wc, h: hc, sx: t.sx, sy: t.sy, t: t.t, gust: t.gust, mask: t.mask ? u(t.mask) : null }];
+          continue;
+        }
+        out[t.plane] = [shapeTile(t.shape, t.seed, t.w, t.h, t.n, t.colors, t.r[0], t.r[1]), `${t.w}px ${t.h}px`, t.still ? undefined : { w: t.w, h: t.h, sx: t.sx, sy: t.sy, t: t.t, gust: t.gust }];
+      }   // still: the default twinkle/flicker plane (stars, motes)
       worldTiles.set(slug, out);
     }
     return worldTiles.get(slug);
@@ -669,8 +677,9 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
           layer.dataset.tile = ''; inner.style.backgroundImage = part[0]; inner.style.backgroundSize = part[1];
           const tl = part[2]; // world tile plane: one-tile-period transform loop (seamless, compositor-only) + optional gust push
           if (tl) {
-            layer.dataset.tw = ''; const cin = d.mode === 'cinematic', pxw = +tl.w, pxh = +tl.h;
-            inner.style.setProperty('--tw', `${pxw}px`); inner.style.setProperty('--th', `${pxh}px`); inner.style.setProperty('--sx', String(tl.sx || 0)); inner.style.setProperty('--sy2', String(tl.sy || 0));
+            layer.dataset.tw = ''; const cin = d.mode === 'cinematic', pxw = typeof tl.w === 'string' ? tl.w : +tl.w, pxh = typeof tl.h === 'string' ? tl.h : +tl.h;
+            if (tl.mask) { layer.style.webkitMaskImage = tl.mask; layer.style.maskImage = tl.mask; layer.style.webkitMaskSize = layer.style.maskSize = 'cover'; layer.style.webkitMaskPosition = layer.style.maskPosition = 'center'; layer.style.webkitMaskRepeat = layer.style.maskRepeat = 'no-repeat'; }
+            inner.style.setProperty('--tw', typeof pxw === 'string' ? pxw : `${pxw}px`); inner.style.setProperty('--th', typeof pxh === 'string' ? pxh : `${pxh}px`); inner.style.setProperty('--sx', String(tl.sx || 0)); inner.style.setProperty('--sy2', String(tl.sy || 0));
             inner.style.setProperty('--tp', `${(tl.t || 40) / (cin ? 1.4 : 1)}s`); if (tl.gust) layer.dataset.gustpush = '';
           }
         }

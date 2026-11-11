@@ -414,7 +414,7 @@ vec3 shade3(vec3 p, vec3 n, vec3 rd, float m, float ao, out float alpha) {
     vec3 H = normalize(L - rd); float sp = pow(SAT(dot(n, H)), 60.0) * 0.6;
     return base * (sky * 0.5 + vec3(1.0, 0.95, 0.85) * diff * 0.8) * ao + vec3(1.0) * sp + vec3(1.0, 0.6, 0.5) * back * 0.1; }
   if (k >= 4) { vec3 q = gP; float tip = SAT((q.y + 0.3) / 0.6);
-    vec3 base = mix(vec3(1.0, 0.55, 0.72), vec3(1.0, 0.93, 0.95), smoothstep(0.0, 1.0, tip));
+    vec3 base = mix(vec3(0.9, 0.3, 0.55), vec3(1.0, 0.78, 0.88), smoothstep(0.0, 1.0, tip));
     base *= 0.93 + 0.07 * sin(q.x * 90.0 * (1.0 - tip * 0.5));
     vec3 sss = vec3(1.0, 0.45, 0.6) * back * 0.6;
     return base * (sky * 0.55 + vec3(1.0, 0.92, 0.85) * diff * 0.75) * (0.75 + 0.25 * ao) + sss + vec3(1.0, 0.9, 0.9) * fr * 0.15; }
@@ -422,7 +422,7 @@ vec3 shade3(vec3 p, vec3 n, vec3 rd, float m, float ao, out float alpha) {
   if (m == 3.0) { vec3 bark = mix(vec3(0.13, 0.07, 0.06), vec3(0.45, 0.28, 0.24), SAT(noise(p.xy * 160.0) * 0.5 + 0.5)); bark = mix(bark, vec3(0.62, 0.5, 0.46), step(0.9, noise(p.xy * vec2(240.0, 60.0)) * 0.5 + 0.5) * 0.4);
     return bark * (sky * 0.45 + vec3(1.0, 0.9, 0.8) * diff * 0.9) * ao; }
   if (m == 2.0) return mix(vec3(1.0, 0.8, 0.2), vec3(0.9, 0.2, 0.5), 0.35) * (0.6 + 0.6 * diff) * ao;
-  float rad = SAT(length(p.xy - gC.xy) / 0.16); vec3 base = mix(vec3(0.92, 0.22, 0.46), vec3(1.0, 0.82, 0.88), smoothstep(0.1, 0.9, rad) * (0.7 + 0.3 * noise(p.xy * 80.0)));
+  float rad = SAT(length(p.xy - gC.xy) / 0.16); vec3 base = mix(vec3(0.82, 0.14, 0.4), vec3(1.0, 0.62, 0.78), smoothstep(0.1, 0.9, rad) * (0.7 + 0.3 * noise(p.xy * 80.0)));
   return base * (sky * 0.32 + vec3(1.0, 0.9, 0.82) * diff * 0.85) * (0.3 + 0.7 * pow(ao, 1.6)) + vec3(1.0, 0.4, 0.55) * back * 0.45 + vec3(1.0) * fr * 0.08;
 }
 

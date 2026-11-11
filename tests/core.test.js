@@ -375,6 +375,10 @@ test('every world sprite and pop-out declared in shared/worlds.js exists on disk
       if (s.plane === 'scene') assert.ok(Number.isFinite(s.x) && Number.isFinite(s.y) && s.w > 0, `${slug}/${s.n} placement`);
       if (s.plane === 'pop') assert.ok(s.noShadow && ['band', 'margin'].includes(s.at), `${slug}/${s.n} pop-out`);
     }
-    for (const t of def.tiles) assert.ok(['petal', 'flake', 'dot', 'bubble', 'cube', 'ember', 'page'].includes(t.shape) && ['pfar', 'pmid', 'pnear'].includes(t.plane), `${slug} tile`);
+    for (const t of def.tiles) {
+      assert.ok(['pfar', 'mist', 'pmid', 'pnear'].includes(t.plane), `${slug} tile plane`);
+      if (t.image) for (const n of [t.image, t.mask].filter(Boolean)) assert.ok(fs.existsSync(path.join(__dirname, '..', 'wallpapers', 'depth', slug, `${n}.webp`)), `${slug}/${n}.webp (image tile / mask)`);
+      else assert.ok(['petal', 'flake', 'dot', 'bubble', 'cube', 'ember', 'page'].includes(t.shape), `${slug} tile shape`);
+    }
   }
 });
