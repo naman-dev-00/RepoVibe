@@ -10,7 +10,7 @@ const { OUT_DIR, launch, extPage, setConfig, getConfig, openGitHub, openStudioFo
 
 const panel = page => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-panel').trim());
 const wallpaperVar = page => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').trim().slice(0, 60));
-const PRESET = id => ({ 'preset-1': '#1b1538', 'preset-3': '#fff8fb', 'preset-12': '#fbfdff', 'preset-19': '#17183d', 'preset-20': '#33194a' })[id];
+const PRESET = id => ({ 'preset-1': '#1b1538', 'preset-3': '#fff1f7', 'preset-12': '#fbfdff', 'preset-19': '#17183d', 'preset-20': '#33194a' })[id];
 
 async function idbList(context) {
   const p = await extPage(context, 'studio.html');

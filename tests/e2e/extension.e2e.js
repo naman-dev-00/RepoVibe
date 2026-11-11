@@ -65,7 +65,7 @@ test('repository > owner > global priority, including prototype-like owner names
   try {
     await setConfig(context, { enabled: true, defaultThemeId: 'preset-2', ownerAssignments: { acme: 'preset-3' }, repoAssignments: { 'acme/project': 'preset-1' } });
     assert.equal((await state(await openGitHub(context, 'acme/project'))).bgDefault, '#1b1538');
-    assert.equal((await state(await openGitHub(context, 'acme/another'))).bgDefault, '#fff8fb');
+    assert.equal((await state(await openGitHub(context, 'acme/another'))).bgDefault, '#fff1f7'); // Sakura's pinker reading surface (rework 2026-11-11)
     assert.equal((await state(await openGitHub(context, 'else/another'))).bgDefault, '#151e30');
     assert.equal((await state(await openGitHub(context, 'constructor/thing'))).bgDefault, '#151e30');
     assert.equal((await state(await openGitHub(context, 'tostring/x'))).bgDefault, '#151e30');
