@@ -93,13 +93,13 @@
   W['arctic-frost-3d'] = {
     tiles: [
       { plane: 'pfar', shape: 'flake', seed: 4, w: 800, h: 600, n: 46, colors: ['#ffffff', '#e4f3ff'], r: [2.5, 4.5], sx: -1, sy: 3, t: 30, gust: true },
-      { plane: 'pmid', shape: 'flake', seed: 9, w: 900, h: 700, n: 30, colors: ['#ffffff', '#d6ecff'], r: [4.5, 8], sx: -1, sy: 3, t: 18, gust: true },
+      { plane: 'pmid', shape: 'flake', seed: 9, w: 900, h: 700, n: 58, colors: ['#ffffff', '#d6ecff'], r: [3.5, 7.5], sx: -1, sy: 3, t: 18, gust: true },
       { plane: 'pnear', shape: 'flake', seed: 17, w: 1100, h: 800, n: 10, colors: ['#ffffff'], r: [9, 14], sx: -1, sy: 3, t: 11, gust: true }
     ],
     sprites: [
       // the closest spruces on the near shore sway on the gust; the lake in the centre stays open
-      base('pineA', -0.64, -0.13, 640 / 900, 0.36, { k: 0.64, z: 2, wind: 1.2, fl: 5.2 }), base('pineC', 0.68, -0.13, 560 / 800, 0.32, { k: 0.64, z: 2, wind: 1.4, fl: 4.8 }),
-      base('pineB', 0.44, -0.125, 520 / 760, 0.24, { k: 0.64, z: 2, wind: 1.1, fl: 5.6 }),
+      base('pineA', -0.64, -0.13, 558 / 900, 0.36, { k: 0.64, z: 2, wind: 1.2, fl: 5.2 }), base('pineC', 0.68, -0.13, 508 / 820, 0.32, { k: 0.64, z: 2, wind: 1.4, fl: 4.8 }),
+      base('pineB', 0.44, -0.125, 471 / 760, 0.24, { k: 0.64, z: 2, wind: 1.1, fl: 5.6 }),
       at('fox', 0, -0.3, 520 / 300, 0.08, { k: 0.86, cross: 70, dx: 0, dy: 0, rot: 0, delay: -18, swim: { wob: 4, wp: 0.7, tilt: 1.5 } }),
       // two wind-blown flake sprites in the foreground
       { n: 'f1', src: 'flake', plane: 'scene', k: 1.8, x: 20, y: 0, w: 2.3, fall: 18, dx: 340, rot: 160, sw: 60, sway: 3.6, flut: 2.0, fa: 40, turn: 2.6, sy: 40, gust: 220 },

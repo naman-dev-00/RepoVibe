@@ -558,12 +558,12 @@
       "category": "Nature",
       "style": "3d",
       "tone": [
-        "#e4e4e5",
-        "#576b71"
+        "#ebe6e4",
+        "#0c1e1a"
       ],
       "toneSoft": [
-        "#cecfd7",
-        "#64797e"
+        "#cdced6",
+        "#0e201c"
       ],
       "depth": [
         "far",
