@@ -35,5 +35,14 @@
   "aaFails": 0,
   "failSummary": "",
   "errors": 0
+ },
+ "arctic-frost": {
+  "scene": "arctic-frost-3d",
+  "sprites": 6,
+  "popOuts": 1,
+  "textMin": 4.58,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0
  }
 }

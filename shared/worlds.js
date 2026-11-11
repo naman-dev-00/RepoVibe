@@ -88,7 +88,7 @@
   const base = (n, bx, by, ratio, span, o) => Object.assign({ n, plane: 'scene', x: X(bx), y: Y(by + BASE * span), w: stageW(ratio, span), ox: '50%', oy: '100%' }, o);
   const at = (n, cx, cy, ratio, span, o) => Object.assign({ n, plane: 'scene', x: X(cx), y: Y(cy), w: stageW(ratio, span) }, o);
 
-  /* ---- Arctic Frost (light theme): a bright frozen valley. Blizzard flakes ride the shared gust; pines sway; the fox crosses. */
+  /* ---- Arctic Frost (light theme): a golden-hour alpine valley over a frozen lake. Snow flurries ride the shared gust; spruces sway; a fox crosses the ice. */
   W['arctic-frost-3d'] = {
     tiles: [
       { plane: 'pfar', shape: 'flake', seed: 4, w: 800, h: 600, n: 40, colors: ['#ffffff', '#e4f3ff'], r: [3, 5.5], sx: -1, sy: 1, t: 46, gust: true },
@@ -96,15 +96,13 @@
       { plane: 'pnear', shape: 'flake', seed: 17, w: 1100, h: 800, n: 9, colors: ['#ffffff'], r: [10, 15], sx: -1, sy: 1, t: 19, gust: true }
     ],
     sprites: [
-      base('pineA', -0.46, -0.09, 640 / 900, 0.34, { k: 0.64, z: 2, wind: 1.4, fl: 5.2 }), base('pineC', 0.58, -0.1, 560 / 800, 0.3, { k: 0.64, z: 2, wind: 1.6, fl: 4.8 }),
-      base('pineB', -0.2, -0.14, 520 / 760, 0.27, { k: 0.86, z: 2, wind: 1.3, fl: 5.6 }),
-      at('fox', 0, -0.33, 520 / 300, 0.14, { k: 0.86, cross: 70, dx: 0, dy: 0, rot: 0, delay: -18, swim: { wob: 6, wp: 0.7, tilt: 2 } }),
-      at('crystal', 0.2, -0.3, 600 / 760, 0.3, { k: 0.86, z: 2, dx: 0, dy: 0, rot: 0, dur: 30, fx: 'pulse' }),
-      at('shard', -0.3, -0.36, 1, 0.05, { k: 1.1, dx: 5, dy: -6, rot: 12, dur: 7, fx: 'pulse' }),
+      // the closest spruces on the near shore sway on the gust; the lake in the centre stays open
+      base('pineA', -0.64, -0.13, 640 / 900, 0.36, { k: 0.64, z: 2, wind: 1.2, fl: 5.2 }), base('pineC', 0.68, -0.13, 560 / 800, 0.32, { k: 0.64, z: 2, wind: 1.4, fl: 4.8 }),
+      base('pineB', 0.44, -0.125, 520 / 760, 0.24, { k: 0.64, z: 2, wind: 1.1, fl: 5.6 }),
+      at('fox', 0, -0.3, 520 / 300, 0.08, { k: 0.86, cross: 70, dx: 0, dy: 0, rot: 0, delay: -18, swim: { wob: 4, wp: 0.7, tilt: 1.5 } }),
       // two wind-blown flake sprites in the foreground
       { n: 'f1', src: 'flake', plane: 'scene', k: 1.8, x: 20, y: 0, w: 2.3, fall: 18, dx: 340, rot: 160, sw: 60, sway: 3.6, flut: 2.0, fa: 40, turn: 2.6, sy: 40, gust: 220 },
       { n: 'f2', src: 'flake', plane: 'scene', k: 2.1, x: 66, y: 0, w: 3.0, fall: 15, dx: 380, rot: -140, sw: 80, sway: 3.2, flut: 1.8, fa: 44, turn: 2.3, sy: 62, gust: 260 },
-      { n: 'crystalP', src: 'crystal', plane: 'pop', at: 'band', x: 0.97, y: 0.5, h: 0.9, k: 2.6, dx: -6, dy: -4, rot: 1.5, dur: 9, noShadow: 1, fx: 'pulse' },
       { n: 'pineAp', src: 'pineA', plane: 'pop', at: 'band', x: 0.03, y: 0.55, h: 1.0, k: 2.8, dx: 8, dy: 0, rot: -1.5, dur: 10, noShadow: 1, wind: 1.6, ox: '50%', oy: '100%' }
     ]
   };

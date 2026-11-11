@@ -558,12 +558,12 @@
       "category": "Nature",
       "style": "3d",
       "tone": [
-        "#e7e8ea",
-        "#819aa1"
+        "#e4e4e5",
+        "#576b71"
       ],
       "toneSoft": [
-        "#e0e3e6",
-        "#94acb6"
+        "#cecfd7",
+        "#64797e"
       ],
       "depth": [
         "far",
@@ -573,13 +573,11 @@
         "rays"
       ],
       "sprites": [
-        "crystal",
         "flake",
         "fox",
         "pineA",
         "pineB",
-        "pineC",
-        "shard"
+        "pineC"
       ]
     },
     {

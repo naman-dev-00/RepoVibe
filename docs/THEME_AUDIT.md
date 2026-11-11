@@ -1,7 +1,12 @@
 # RepoVibe theme audit and proposed curated shortlist
 
-Status: **for the owner's review. Nothing has been approved or archived.** All 20 built-in themes are currently `experimental`
-(`shared/theme-review.js` is empty). No assignment, custom theme, upload or preference has been changed.
+Status (2026-11-11, owner's first decisions, recorded in `shared/theme-review.js`):
+* **Approved**: Enchanted Forest (`preset-8`), Cosmic Galaxy (`preset-19`), Futuristic Sci-Fi (`preset-15`). Unchanged by the rework.
+* **Experimental, rework requested** (not approved, not archived): Cyberpunk Neon, Sakura Dreams, Ocean Depths, Pixel Paradise, Arctic Frost.
+  The rework and its before/after evidence: `docs/REWORK_REPORT.md`.
+* Everything else stays **experimental**; nothing is archived. No assignment, custom theme, upload or preference has been changed.
+
+The table below is the original audit (commit e98753f); rows for the five reworked themes describe the version before the rework.
 
 Review material: one 1600×900 screenshot per preset on a real github.com page replay (Ambient, popup closed) in
 `docs/theme-review/preset-N.jpg`, an overview page `docs/theme-review/index.html`, and the measured facts in `docs/theme-review/facts.json`.
