@@ -231,6 +231,8 @@ async function visualContrast(context, page, limit = 150, retry = 1) {
       if (![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 1)) continue;
       // Screen-reader-only text (clipped to 1 px) is never painted visibly: not a contrast target.
       if (el.closest('.sr-only, [class*="VisuallyHidden"], .visually-hidden')) continue;
+      // WCAG 1.4.3 exempts inactive (disabled) UI components, e.g. GitHub's aria-disabled "Previous" pagination link on the first page.
+      if (el.closest('[aria-disabled="true"], [disabled], [inert]')) continue;
       const r = el.getBoundingClientRect();
       if (r.width < 8 || r.height < 8 || r.top < 0 || r.bottom > innerHeight || r.left < 0 || r.right > innerWidth) continue;
       const cs = getComputedStyle(el);
@@ -245,7 +247,7 @@ async function visualContrast(context, page, limit = 150, retry = 1) {
         for (let e = top; e && !e.contains(el); e = e.parentElement) { if (Number(getComputedStyle(e).opacity) < 0.05) break; const m = getComputedStyle(e).backgroundColor.match(/rgba?\(([^)]+)\)/); const p = m ? m[1].split(/[ ,/]+/).filter(Boolean).map(Number) : []; if (p.length && (p.length > 3 ? p[3] : 1) >= 0.5) { opaque = true; break; } }
         if (opaque) continue;
       }
-      out.push({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height), color: cs.color, text: el.textContent.trim().slice(0, 30) });
+      out.push({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height), color: cs.color, text: el.textContent.trim().slice(0, 30), tag: el.tagName.toLowerCase() + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/)[0].slice(0, 30) : ''), fs: parseFloat(cs.fontSize) || 16, fw: parseInt(cs.fontWeight, 10) || 400 });
     }
     return out;
   }, limit);
@@ -267,13 +269,17 @@ async function visualContrast(context, page, limit = 150, retry = 1) {
       ls.sort((a, b) => a - b); const bg = ls[Math.floor(ls.length / 2)];
       const [r, gg, b, a = 1] = parse(it.color);
       const fg = lum([r, gg, b]) * a + bg * (1 - a);
-      return { ratio: (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05), text: it.text, at: `${it.x},${it.y} ${it.w}x${it.h}` };
+      // WCAG 2.x 1.4.3: 4.5:1 for normal text; 3:1 only for large text (>= 24 px, or >= 18.66 px and bold)
+      const large = it.fs >= 24 || (it.fs >= 18.66 && it.fw >= 700);
+      return { ratio: (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05), text: it.text, at: `${it.x},${it.y} ${it.w}x${it.h}`, tag: it.tag, fs: it.fs, fw: it.fw, large, required: large ? 3 : 4.5 };
     });
   }, [`data:image/png;base64,${shot.toString('base64')}`, items]);
   await helper.close();
   const sorted = ratios.map(r => r.ratio).sort((a, b) => a - b);
   return { count: ratios.length, min: sorted[0], p10: sorted[Math.floor(sorted.length * 0.1)], median: sorted[Math.floor(sorted.length / 2)],
-    below3: ratios.filter(r => r.ratio < 3), below45: ratios.filter(r => r.ratio < 4.5).length, low: ratios.filter(r => r.ratio < 4.5) };
+    below3: ratios.filter(r => r.ratio < 3), below45: ratios.filter(r => r.ratio < 4.5).length, low: ratios.filter(r => r.ratio < 4.5),
+    /* WCAG AA verdict per element: normal text must reach 4.5:1, only large text may stop at 3:1. Gate on `fails`, not on below3. */
+    fails: ratios.filter(r => r.ratio < r.required), failSummary: ratios.filter(r => r.ratio < r.required).slice(0, 5).map(r => `"${r.text}" <${r.tag}> ${r.ratio.toFixed(2)}:1 (needs ${r.required}, ${r.fs}px/${r.fw}) @${r.at}`).join('; ') };
 }
 
 /** Scene metrics on the current page.

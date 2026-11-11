@@ -319,7 +319,7 @@ L.liveTest('LIVE 6: wallpapers are visibly rendered on real GitHub pages (bundle
       const changed = await diffRatio(context, flat, art);
       c.check(changed > 0.15, name, `bundled wallpaper visibly rendered (chrome-extension:// image allowed by GitHub CSP): ${(changed * 100).toFixed(1)}% of pixels differ from the same theme without artwork`);
       const vc = await visualContrast(context, page);
-      const okC = vc.below3.length <= nativeContrast.below3.length + 2 && vc.p10 >= 4.5;
+      const okC = vc.fails.length <= nativeContrast.fails.length && vc.p10 >= 4.5;   // never worse (by WCAG AA verdict) than the same page without RepoVibe
       c.check(okC, name, `screenshot-measured text contrast over wallpaper: min ${vc.min.toFixed(2)}, p10 ${vc.p10.toFixed(2)}, median ${vc.median.toFixed(2)} across ${vc.count} elements; <3:1 ${vc.below3.length} (native ${nativeContrast.below3.length})${vc.below3.length ? ` e.g. ${vc.below3.slice(0, 4).map(x => `"${x.text}" ${x.ratio.toFixed(2)}`).join('; ')}` : ''}`);
       await L.logShot(context, page, `after-sunset-${name}`);
     }
@@ -333,7 +333,7 @@ L.liveTest('LIVE 6: wallpapers are visibly rendered on real GitHub pages (bundle
         await page.waitForFunction(s => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes(`${s}.webp`), slug, { timeout: 8000 }).catch(() => {});
         await L.settleAnimations(page); await page.waitForTimeout(400);
         const vc = await visualContrast(context, page);
-        c.check(ev.ok && vc.below3.length === 0, `3D theme ${slug} · ${pageName}`, `3D wallpaper on real github.com: evidence ${ev.ok ? 'ok' : 'FAILED'}; screenshot contrast min ${vc.min.toFixed(2)}, p10 ${vc.p10.toFixed(2)}, <3:1 ${vc.below3.length}`);
+        c.check(ev.ok && vc.fails.length === 0, `3D theme ${slug} · ${pageName}`, `3D wallpaper on real github.com: evidence ${ev.ok ? 'ok' : 'FAILED'}; screenshot contrast min ${vc.min.toFixed(2)}, p10 ${vc.p10.toFixed(2)}, WCAG AA failures ${vc.fails.length}${vc.fails.length ? ': ' + vc.failSummary : ''}`);
         await L.logShot(context, page, `${label}-${pageName}`);
       }
     }
@@ -465,7 +465,7 @@ L.liveTest('LIVE 8: four flagship worlds with live wallpapers on real pages; def
       const cls = await page.evaluate(() => document.documentElement.className);
       await freeze(page); await page.waitForTimeout(400);
       const vc = await visualContrast(context, page);
-      c.check(cls.includes(`repv-motion-${motion}`) && vc.below3.length === 0, `${repo}`, `mapped world ${id} (${slug}) with live layer ${motion}: classes "${cls}"; contrast min ${vc.min.toFixed(2)}, p10 ${vc.p10.toFixed(2)}, <3:1 ${vc.below3.length}`);
+      c.check(cls.includes(`repv-motion-${motion}`) && vc.fails.length === 0, `${repo}`, `mapped world ${id} (${slug}) with live layer ${motion}: classes "${cls}"; contrast min ${vc.min.toFixed(2)}, p10 ${vc.p10.toFixed(2)}, WCAG AA failures ${vc.fails.length}${vc.fails.length ? ': ' + vc.failSummary : ''}`);
       await L.logShot(context, page, `flagship-own-${label}`);
     }
     // 2. Each world on the same real public repository (overview + issues) — visible art, live layer, readable, links clickable.

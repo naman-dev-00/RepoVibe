@@ -111,7 +111,7 @@
 html.repv-open :where(${OPEN}) { background-color:transparent !important; background-image:none !important; box-shadow:none !important; border-color:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
 /* anchored, not floating: sidebar sections get a very light surface + themed frame + glow (text keeps its own backing),
    the README a themed frame + glow around an open interior */
-html.repv-open :is([class*="sidebarSection"], .BorderGrid-row):not(:where([class*="sidebarSection"], .BorderGrid-row) *):not(:empty) { background-color:${rgba(v.surface, light ? 0.62 : 0.26)} !important; border:1px solid ${edgeLine} !important; border-radius:var(--repv-radius); box-shadow:0 0 0 1px ${edgeRing}, 0 0 12px -3px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.05)} !important; padding-left:12px !important; padding-right:12px !important; margin-bottom:10px !important; }
+html.repv-open :is([class*="sidebarSection"], .BorderGrid-row):not(:where([class*="sidebarSection"], .BorderGrid-row) *):not(:empty) { background-color:${rgba(v.surface, light ? 0.86 : 0.26)} !important; border:1px solid ${edgeLine} !important; border-radius:var(--repv-radius); box-shadow:0 0 0 1px ${edgeRing}, 0 0 12px -3px ${glowNear}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.05)} !important; padding-left:12px !important; padding-right:12px !important; margin-bottom:10px !important; }
 html.repv-open :is(#readme, .markdown-body:not(.comment-body, .js-comment-body)):not(:where(#readme) *):not(:where([data-repv-panel]) .markdown-body) { border:1px solid ${edgeLine} !important; border-radius:var(--repv-radius); box-shadow:0 0 0 1px ${edgeRing}, 0 0 16px -3px ${glowNear}, 0 0 34px -8px ${glowFar}, inset 0 0 26px -12px ${glowFar} !important; }
 html.repv-open :is(${PROSE}) :is(${PROSE_BLOCKS}):not(:is(li, blockquote, td, th, p, dd, summary, table) *):not(:has(img, picture, video, svg:not(.octicon))) {
  background-color:${back} !important; box-shadow:0 0 0 6px ${back}, ${lift}; border-radius:6px; width:fit-content; max-width:100%; box-sizing:border-box; }
@@ -409,7 +409,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
         if (t.image) {   // a pre-rendered seamless image tile (caustics, clouds), sized relative to the stage so it scales with the scene; optional mask keeps it on part of the scene
           const u = n => `url("${chrome.runtime.getURL(`wallpapers/depth/${slug}/${n}.webp`)}")`;
           const wc = `calc(max(100vw, 177.78vh) * ${t.rel})`, hc = `calc(max(100vw, 177.78vh) * ${(t.rel * t.h / t.w).toFixed(4)})`;
-          out[t.plane] = [u(t.image), `${wc} ${hc}`, { w: wc, h: hc, sx: t.sx, sy: t.sy, t: t.t, gust: t.gust, mask: t.mask ? u(t.mask) : null }];
+          out[t.plane] = [u(t.image), `${wc} ${hc}`, { w: wc, h: hc, sx: t.sx, sy: t.sy, t: t.t, gust: t.gust, mask: t.mask ? u(t.mask) : null, region: t.region }];
           continue;
         }
         out[t.plane] = [shapeTile(t.shape, t.seed, t.w, t.h, t.n, t.colors, t.r[0], t.r[1]), `${t.w}px ${t.h}px`, t.still ? undefined : { w: t.w, h: t.h, sx: t.sx, sy: t.sy, t: t.t, gust: t.gust }];
@@ -678,10 +678,16 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
           const tl = part[2]; // world tile plane: one-tile-period transform loop (seamless, compositor-only) + optional gust push
           if (tl) {
             layer.dataset.tw = ''; const cin = d.mode === 'cinematic', pxw = typeof tl.w === 'string' ? tl.w : +tl.w, pxh = typeof tl.h === 'string' ? tl.h : +tl.h;
+            if (tl.region) {   // only the part of the stage the plane is visible in is drawn: a clip rectangle (stage fractions x0,y0,x1,y1) keeps the compositor from blending a full-viewport plane
+              const [x0, y0, x1, y1] = tl.region, Ws = 'max(100vw, 177.78vh)', Hs = 'max(56.25vw, 100vh)', L = `((100vw - ${Ws}) / 2)`, T = `((100vh - ${Hs}) / 2)`;
+              layer.style.clipPath = `inset(calc(${T} + ${y0} * ${Hs}) calc(100vw - ${L} - ${x1} * ${Ws}) calc(100vh - ${T} - ${y1} * ${Hs}) calc(${L} + ${x0} * ${Ws}))`;
+            }
             if (tl.mask) { layer.style.webkitMaskImage = tl.mask; layer.style.maskImage = tl.mask; layer.style.webkitMaskSize = layer.style.maskSize = 'cover'; layer.style.webkitMaskPosition = layer.style.maskPosition = 'center'; layer.style.webkitMaskRepeat = layer.style.maskRepeat = 'no-repeat'; }
             inner.style.setProperty('--tw', typeof pxw === 'string' ? pxw : `${pxw}px`); inner.style.setProperty('--th', typeof pxh === 'string' ? pxh : `${pxh}px`); inner.style.setProperty('--sx', String(tl.sx || 0)); inner.style.setProperty('--sy2', String(tl.sy || 0));
-            inner.style.setProperty('--tp', `${(tl.t || 40) / (cin ? 1.4 : 1)}s`); if (tl.gust) layer.dataset.gustpush = '';
-          }
+            const twv = inner.style.getPropertyValue('--tw'), thv = inner.style.getPropertyValue('--th');
+            if (tl.sx > 0) inner.style.setProperty('--exl', twv); else if (tl.sx < 0) inner.style.setProperty('--exr', twv);
+            if (tl.sy > 0) inner.style.setProperty('--eyt', thv); else if (tl.sy < 0) inner.style.setProperty('--eyb', thv);
+            inner.style.setProperty('--tp', `${(tl.t || 40) / (cin ? 1.4 : 1)}s`); if (tl.gust) layer.dataset.gustpush = '';          }
         }
         else inner.style.backgroundImage = part;
         layer.appendChild(inner); el.appendChild(layer);
@@ -754,7 +760,8 @@ html.repv-depth-cinematic #repovibe-depth { --amp:30px; }
 #repovibe-depth[data-world] > .repv-l { inset:0; }
 #repovibe-depth > .repv-l > i { position:absolute; inset:0; background-position:center; background-size:cover; background-repeat:no-repeat; }
 #repovibe-depth > .repv-l[data-tile] > i { background-position:0 0; background-repeat:repeat; }
-#repovibe-depth > .repv-l[data-tw] > i { inset:calc(-1 * var(--th)) calc(-1 * var(--tw)); } /* one tile of spare area each side: a whole-period slide never shows an edge */
+/* spare area only where the plane slides FROM (one tile on the leading side, plus a 100 px margin all round for the gust push): a whole-period slide never shows an edge, and the plane is ~35 % smaller than with a tile on every side */
+#repovibe-depth > .repv-l[data-tw] > i { inset:calc(-100px - var(--eyt, 0px)) calc(-100px - var(--exr, 0px)) calc(-100px - var(--eyb, 0px)) calc(-100px - var(--exl, 0px)); }
 #repovibe-depth > .repv-veil { position:absolute; inset:0; }
 #repovibe-depth > [data-l="rays"] { opacity:.8; } /* light-coloured alpha art: no blend mode (avoids an extra render surface) */
 html.repv-depth-lite #repovibe-depth > :is([data-l="pfar"], [data-l="mist"], [data-l="pnear"]) { visibility:hidden; }

@@ -19,7 +19,7 @@
     // Built from the owner's reference plate (assets/reference/cherrybg.jpg): the plate is the mid layer (sky cut out), tree groups are cut-out sprites that
     // sway on the shared gust, the sky window shows drifting cloud tiles, petals fall in 3D-rendered sprites and tile planes. Hybrid 2.5D, not 3D geometry.
     tiles: [
-      { plane: 'pfar', image: 't-clouds', rel: 0.8, w: 2048, h: 1024, sx: -1, sy: 0, t: 420 },
+      { plane: 'pfar', image: 't-clouds', region: [0.37, 0, 0.7, 0.25], rel: 0.8, w: 2048, h: 1024, sx: -1, sy: 0, t: 420 },
       { plane: 'pmid', shape: 'petal', seed: 5, w: 900, h: 640, n: 22, colors: ['#ff8fc0', '#ffc2dc', '#e65ca0'], r: [4, 8], sx: -1, sy: 1, t: 34, gust: true },
       { plane: 'pnear', shape: 'petal', seed: 11, w: 1100, h: 760, n: 10, colors: ['#ffb0d0', '#ff7fb2', '#fff0f6'], r: [10, 17], sx: -1, sy: 1, t: 21, gust: true }
     ],
@@ -53,8 +53,8 @@
     // sprites that sway on the shared current, two counter-moving caustic planes are masked onto the sunlit sand, light shafts breathe, and the sea life
     // (fish, turtles, jellyfish, manta, whale) are real raymarched 3D models. Hybrid 2.5D, not 3D geometry.
     tiles: [
-      { plane: 'pfar', image: 't-caustic', mask: 't-mask-sand', rel: 0.42, w: 1024, h: 1024, sx: 1, sy: 0.6, t: 52 },
-      { plane: 'mist', image: 't-caustic', mask: 't-mask-sand', rel: 0.29, w: 1024, h: 1024, sx: -1, sy: -0.4, t: 41 },
+      { plane: 'pfar', image: 't-caustic', mask: 't-mask-sand', region: [0.38, 0.49, 1, 1], rel: 0.42, w: 1024, h: 1024, sx: 1, sy: 0.6, t: 52 },
+      { plane: 'mist', image: 't-caustic', mask: 't-mask-sand', region: [0.38, 0.49, 1, 1], rel: 0.29, w: 1024, h: 1024, sx: -1, sy: -0.4, t: 41 },
       { plane: 'pmid', shape: 'dot', seed: 3, w: 900, h: 700, n: 60, colors: ['#e8fdff', '#bff3ff'], r: [1.2, 2.6], sx: 0, sy: 1, t: 95, gust: false },
       { plane: 'pnear', shape: 'bubble', seed: 15, w: 1200, h: 900, n: 7, colors: ['#e8fbff'], r: [9, 16], sx: 0, sy: -1, t: 22, gust: true }
     ],

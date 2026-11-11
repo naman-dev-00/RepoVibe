@@ -1,0 +1,54 @@
+{
+  "id": "preset-7",
+  "mode": "ambient",
+  "size": "1366x768",
+  "groups": {
+    "baseline": {
+      "fps": 15.4,
+      "p95": 116.7,
+      "mainMsPerS": 36
+    },
+    "tile planes (caustics/clouds/snow/bubbles)": {
+      "fps": 29.4,
+      "p95": 50,
+      "mainMsPerS": 51.4
+    },
+    "masked planes only (caustics)": {
+      "fps": 24.1,
+      "p95": 50.1,
+      "mainMsPerS": 46.3
+    },
+    "scene sprites (wind + swim + rise)": {
+      "fps": 19.4,
+      "p95": 83.3,
+      "mainMsPerS": 19.1
+    },
+    "wind sprites only": {
+      "fps": 17,
+      "p95": 116.7,
+      "mainMsPerS": 58.4
+    },
+    "pop-out layer": {
+      "fps": 16.2,
+      "p95": 83.3,
+      "mainMsPerS": 38.7
+    },
+    "light shafts (rays)": {
+      "fps": 17.6,
+      "p95": 83.3,
+      "mainMsPerS": 41
+    },
+    "vignette (near)": {
+      "fps": 18.7,
+      "p95": 100,
+      "mainMsPerS": 43
+    },
+    "animations paused (compositing cost of layers only)": {
+      "fps": 60,
+      "p95": 16.8,
+      "mainMsPerS": 15.5
+    }
+  },
+  "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "scene": "ocean-kingdom"
+}

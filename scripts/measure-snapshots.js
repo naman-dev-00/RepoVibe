@@ -28,10 +28,10 @@ const R = require('../tests/e2e/real-snapshot');
         for (const k of [1, 2]) {
           await page.evaluate(n => window.scrollTo(0, innerHeight * n), k); await page.waitForTimeout(250);
           const more = await visualContrast(context, page, 400);
-          vc = { ...vc, count: vc.count + more.count, min: Math.min(vc.min, more.min), below45: vc.below45 + more.below45, below3: [...vc.below3, ...more.below3], low: [...vc.low, ...more.low.map(x => ({ ...x, at: `${x.at} (scroll ${k})` }))] };
+          vc = { ...vc, count: vc.count + more.count, min: Math.min(vc.min, more.min), below45: vc.below45 + more.below45, below3: [...vc.below3, ...more.below3], fails: [...vc.fails, ...more.fails.map(x => ({ ...x, at: `${x.at} (scroll ${k})` }))], low: [...vc.low, ...more.low.map(x => ({ ...x, at: `${x.at} (scroll ${k})` }))] };
         }
         await page.evaluate(() => window.scrollTo(0, 0));
-        console.log(`${snapName} ${id} ${size}: scene changes ${(changed * 100).toFixed(1)}% of pixels vs solid; text n=${vc.count} min ${vc.min.toFixed(2)} p10 ${vc.p10.toFixed(2)} <4.5:${vc.below45} <3:${vc.below3.length} ${vc.low.slice(0, 6).map(x => `"${x.text}" ${x.ratio.toFixed(2)} @${x.at}`).join('; ')}`);
+        console.log(`${snapName} ${id} ${size}: scene changes ${(changed * 100).toFixed(1)}% of pixels vs solid; text n=${vc.count} min ${vc.min.toFixed(2)} p10 ${vc.p10.toFixed(2)} <4.5:${vc.below45} <3:${vc.below3.length} WCAG-AA fails:${vc.fails.length} ${vc.fails.slice(0, 6).map(x => `"${x.text}" <${x.tag}> ${x.ratio.toFixed(2)} (needs ${x.required}, ${x.fs}px/${x.fw}) @${x.at}`).join('; ')}`);
       }
     } finally { await close(); }
   }

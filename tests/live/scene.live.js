@@ -70,7 +70,7 @@ for (const [, id, slug, motion, label] of FLAGSHIPS) L.liveTest(`LIVE 9 (${label
             `backdrop-blurred elements ${blurNow} (native GitHub ${nativeBlur[name]}), blurred wallpaper copy ${crisp.before === 'none' ? 'none' : 'PRESENT'}, scene window ${crisp.window ? `${Math.round(crisp.pad)}px` : 'OFF'}; exposed scene ${(m.exposedShare * 100).toFixed(0)}% of viewport, sharpness ${m.sharpness == null ? 'n/a' : m.sharpness.toFixed(2)}`);
           const vc = await visualContrast(context, page, 300);
           const nat = native[name];
-          const okText = vc.below3.length === 0 && (vc.below45 === 0 || vc.below45 <= nat.below45);
+          const okText = vc.fails.length === 0 || vc.fails.length <= nat.fails.length;   // WCAG AA verdict (4.5:1 normal, 3:1 large text), never worse than the native page
           // Crisp Immersive shows the scene UNCOVERED (scene window, gaps, margins) next to near-solid reading panels, so the
           // measure is the uncovered share (≥ 25 %), not how much shows through panels (median transmission, reported only).
           c.check(ev.ok && m.correlation >= 0.25 && m.clear >= 0.25 && changed >= 0.1 && okText, `${label} · ${name} · ${w}×${h}`,

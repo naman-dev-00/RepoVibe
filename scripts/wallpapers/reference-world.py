@@ -159,6 +159,10 @@ def ocean():
     for n in ('s-kelpA', 's-kelpB', 's-fan'):
         f = os.path.join(out, n + '.webp')
         if os.path.exists(f): os.remove(f)
+    # the vignette is baked into the plate: a separate full-viewport translucent layer would have to be re-composited over the animated scene every frame
+    yy0, xx0 = np.mgrid[0:H, 0:W].astype(np.float32)
+    vig0 = np.clip(((xx0 / W - 0.5) ** 2 * 1.6 + (yy0 / H - 0.5) ** 2 * 1.9) - 0.12, 0, 1) ** 1.2 * 0.55
+    far = far * (1 - vig0[..., None]) + np.array([0.01, 0.06, 0.1], np.float32) * vig0[..., None]
     sizes = {'far': save_webp(far, os.path.join(out, 'far.webp'), 90)}
     for name, bb, cls, wind, fl, k in groups:
         mh = hires_mask(masks[name]); c = cutout(plate, mh)
@@ -177,10 +181,7 @@ def ocean():
     ra = np.concatenate([np.stack([np.full_like(rays, 1.0), np.full_like(rays, 0.92), np.full_like(rays, 0.72)], -1), np.clip(rays * 0.55, 0, 0.6)[..., None]], -1)
     sizes['rays'] = save_webp(ra, os.path.join(out, 'rays.webp'), 80, alpha=True)
     # vignette (near layer), tiny transparent mid/front (kept so the layer stack stays uniform)
-    vig = np.clip(((xx / W - 0.5) ** 2 * 1.6 + (yy / H - 0.5) ** 2 * 1.9) - 0.12, 0, 1) ** 1.2 * 0.55
-    nr = np.concatenate([np.stack([np.full_like(vig, 0.01), np.full_like(vig, 0.06), np.full_like(vig, 0.1)], -1), vig[..., None]], -1)
-    sizes['near'] = save_webp(nr, os.path.join(out, 'near.webp'), 70, alpha=True)
-    for n in ('mid', 'front'): sizes[n] = save_webp(np.zeros((9, 16, 4), np.float32), os.path.join(out, n + '.webp'), 80, alpha=True)
+    for n in ('mid', 'front', 'near'): sizes[n] = save_webp(np.zeros((9, 16, 4), np.float32), os.path.join(out, n + '.webp'), 80, alpha=True)
     # caustics: bright network, tileable, used as two counter-moving planes restricted to the sunlit sand by a mask
     T = 1024; n1 = tileable_noise(T, T, 4, 3); n2 = tileable_noise(T, T, 4, 9)
     gx = np.arange(T, dtype=np.float32)[None, :]; gy = np.arange(T, dtype=np.float32)[:, None]
@@ -225,6 +226,9 @@ def sakura():
     for n in ('s-treeL', 's-treeR'):
         f = os.path.join(out, n + '.webp')
         if os.path.exists(f): os.remove(f)
+    yy1, xx1 = np.mgrid[0:H, 0:W].astype(np.float32)
+    vig1 = np.clip(((xx1 / W - 0.5) ** 2 * 1.3 + (yy1 / H - 0.5) ** 2 * 1.5) - 0.10, 0, 1) ** 1.2 * 0.5
+    mid = mid * (1 - vig1[..., None]) + np.array([0.06, 0.02, 0.1], np.float32) * vig1[..., None]   # vignette baked in (no extra full-viewport layer to composite)
     mid_rgba = np.concatenate([mid, (1 - skyh)[..., None]], -1)
     sizes = {'mid': save_webp(mid_rgba, os.path.join(out, 'mid.webp'), 90, alpha=True)}
     # far = soft sky gradient (visible through the window under the drifting clouds)
@@ -256,8 +260,7 @@ def sakura():
     # vignette + a soft atmospheric lift near the horizon; light shafts through the canopy gaps
     yy3, xx3 = np.mgrid[0:H, 0:W].astype(np.float32)
     vig = np.clip(((xx3 / W - 0.5) ** 2 * 1.3 + (yy3 / H - 0.5) ** 2 * 1.5) - 0.10, 0, 1) ** 1.2 * 0.5
-    nr = np.concatenate([np.stack([np.full_like(vig, 0.06), np.full_like(vig, 0.02), np.full_like(vig, 0.1)], -1), vig[..., None]], -1)
-    sizes['near'] = save_webp(nr, os.path.join(out, 'near.webp'), 70, alpha=True)
+    sizes['near'] = save_webp(np.zeros((9, 16, 4), np.float32), os.path.join(out, 'near.webp'), 80, alpha=True)
     ang = np.arctan2(xx3 - 0.5 * W, yy3 + 0.3 * H); rays = np.zeros((H, W), np.float32)
     for f, a, ph in ((30, 1.0, 0.4), (53, 0.6, 2.2)): rays += a * np.maximum(np.sin(ang * f + ph + 1.7 * np.sin(ang * 6 + ph)), 0) ** 3
     rays = blur(rays / rays.max() * np.exp(-np.hypot(xx3 - 0.5 * W, yy3 + 0.3 * H) / H * 0.9), 4)

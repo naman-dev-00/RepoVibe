@@ -67,7 +67,7 @@ test('fresh install: the four default mappings are seeded and each repository re
       await page.screenshot({ path: path.join(SHOTS, `repo-${label}.jpg`), type: 'jpeg', quality: 82 });
       // readability over the art: no text element below 3:1 on the rendered page
       const contrast = await visualContrast(context, page);
-      assert.equal(contrast.below3.length, 0, `${repo}: low-contrast text ${JSON.stringify(contrast.below3)}`);
+      assert.equal(contrast.fails.length, 0, `${repo}: text below WCAG AA: ${contrast.failSummary}`);
       // links stay clickable through the wallpaper/motion layers
       const hit = await page.evaluate(() => { const a = document.querySelector('#toOther'); const r = a.getBoundingClientRect(); return document.elementFromPoint(r.left + 5, r.top + r.height / 2) === a; });
       assert.ok(hit, `${repo}: link is the hit target`);
@@ -170,7 +170,7 @@ test('GitHub Home: Top repositories rows show their own themes; links, sync, dyn
     // 5. names keep accessible contrast over the art
     await page.evaluate(() => document.getAnimations().forEach(a => a.finish()));
     const contrast = await visualContrast(context, page);
-    assert.equal(contrast.below3.length, 0, JSON.stringify(contrast.below3));
+    assert.equal(contrast.fails.length, 0, `text below WCAG AA: ${contrast.failSummary}`);
     const nameRatios = await (async () => {
       const list = await page.$$eval('li[data-repv-card] .markdown-title', els => els.map(e => e.textContent));
       return list;
@@ -240,7 +240,7 @@ test('GitHub Home in GitHub light mode: flagship cards keep their own readable t
     const sci = await page.$eval('a[href="/naman-dev-00/ai-powered-inbox-assistant"].markdown-title', a => getComputedStyle(a).color);
     assert.equal(sci, 'rgb(232, 247, 255)', 'the dark Sci-Fi world keeps its light text colour on GitHub light mode');
     const contrast = await visualContrast(context, page);
-    assert.equal(contrast.below3.length, 0, JSON.stringify(contrast.below3));
+    assert.equal(contrast.fails.length, 0, `text below WCAG AA: ${contrast.failSummary}`);
     fs.writeFileSync(path.join(SHOTS, 'home-top-repositories-light.png'), await page.locator('aside').screenshot());
   } finally { await close(); }
 });
@@ -274,7 +274,7 @@ for (const variant of ['react', 'anchor']) {
       const diag = await extPage(context).then(async p => { const d = await p.evaluate(() => chrome.tabs.query({ url: 'https://github.com/*' }).then(t => new Promise(res => chrome.tabs.sendMessage(t[0].id, { type: 'GET_REPO' }, res)))); await p.close(); return d.diagnostics.homeCards; });
       assert.equal(diag.method, 'heading'); assert.equal(diag.rows.length, HOME_REPOS.length); assert.ok(diag.rows.every(r => r.theme));
       const contrast = await visualContrast(context, page);
-      assert.equal(contrast.below3.length, 0, JSON.stringify(contrast.below3));
+      assert.equal(contrast.fails.length, 0, `text below WCAG AA: ${contrast.failSummary}`);
       // theme change → immediate card update
       await updateConfig(context, "c.repoAssignments['naman-dev-00/repovibe'] = 'preset-20';");
       await page.waitForFunction(() => [...document.querySelectorAll('[data-repv-card]')].some(e => e.getAttribute('data-repv-card') === 'preset-20'));

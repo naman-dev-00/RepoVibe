@@ -93,7 +93,7 @@ test('text stays readable over wallpapers (screenshot-measured contrast) for dar
       await page.waitForTimeout(500);
       const c = await visualContrast(context, page);
       assert.ok(c.count >= 8, `measured ${c.count} text elements`);
-      assert.ok(c.min >= 3, `${id}: worst visual contrast ${c.min.toFixed(2)}:1 (${c.below3.map(x => `"${x.text}" ${x.ratio.toFixed(2)}`).join(', ')})`);
+      assert.equal(c.fails.length, 0, `${id}: text below WCAG AA: ${c.failSummary}`);
       assert.ok(c.p10 >= 4.5, `${id}: 10th percentile contrast ${c.p10.toFixed(2)}:1 should meet AA`);
       assert.deepEqual(errors, []);
     } finally { await close(); }
