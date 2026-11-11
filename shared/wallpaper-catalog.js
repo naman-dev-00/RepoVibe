@@ -111,11 +111,11 @@
       "style": "3d",
       "tone": [
         "#fcf6f8",
-        "#21142b"
+        "#1d1329"
       ],
       "toneSoft": [
-        "#bbacce",
-        "#281b35"
+        "#9c88af",
+        "#211930"
       ],
       "depth": [
         "far",
@@ -127,6 +127,7 @@
       "sprites": [
         "drone",
         "holo",
+        "ripple",
         "signA",
         "signB"
       ]
@@ -487,12 +488,12 @@
       "category": "Nature",
       "style": "3d",
       "tone": [
-        "#f2d6e8",
+        "#f5d7eb",
         "#090b19"
       ],
       "toneSoft": [
-        "#d6d2e1",
-        "#0b101d"
+        "#dad3e2",
+        "#0b101e"
       ],
       "depth": [
         "far",
@@ -519,12 +520,12 @@
       "category": "Nature",
       "style": "3d",
       "tone": [
-        "#fbeaf2",
-        "#030d17"
+        "#fef4f5",
+        "#030c15"
       ],
       "toneSoft": [
-        "#e0d6c4",
-        "#051122"
+        "#e0d6c2",
+        "#051123"
       ],
       "depth": [
         "far",
@@ -548,9 +549,7 @@
         "fishA",
         "fishB",
         "jelly",
-        "manta",
-        "turtle",
-        "whale"
+        "turtle"
       ]
     },
     {

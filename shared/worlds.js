@@ -42,16 +42,17 @@
     ]
   };
 
-  /* ---- Ocean Depths: a reef under a sunlit surface. One slow current sways kelp and fans; schools, turtle, manta and whale cross. */
+  /* ---- Ocean Depths: a reef under a sunlit surface. One slow current sways the corals; fish schools, a turtle and moon jellies drift through. */
   /*REF-OCEAN-BEGIN*/
-  const REF_OCEAN = [{"n":"coralPurpleL","plane":"scene","x":7.64,"y":24.9,"w":15.27,"k":1.28,"z":3,"wind":0.7,"ox":"50%","oy":"100%","fl":7.4},{"n":"coralOrangeA","plane":"scene","x":24.0,"y":43.58,"w":12.23,"k":0.86,"z":2,"wind":1.7,"ox":"50%","oy":"100%","fl":5.2},{"n":"coralOrangeB","plane":"scene","x":29.53,"y":45.31,"w":11.02,"k":0.86,"z":2,"wind":1.9,"ox":"50%","oy":"100%","fl":4.8},{"n":"coralPurpleS","plane":"scene","x":15.68,"y":49.13,"w":9.34,"k":0.86,"z":2,"wind":1.5,"ox":"50%","oy":"100%","fl":5.6},{"n":"coralOrangeBig","plane":"scene","x":21.27,"y":67.92,"w":29.41,"k":1.28,"z":3,"wind":1.1,"ox":"50%","oy":"100%","fl":6.4},{"n":"coralPurpleMid","plane":"scene","x":36.56,"y":57.6,"w":14.92,"k":0.86,"z":2,"wind":1.3,"ox":"50%","oy":"100%","fl":5.9},{"n":"coralOrangeC","plane":"scene","x":47.64,"y":70.0,"w":11.84,"k":0.86,"z":2,"wind":2.0,"ox":"50%","oy":"100%","fl":4.4},{"n":"coralOrangeD","plane":"scene","x":52.32,"y":70.56,"w":8.16,"k":0.86,"z":2,"wind":2.2,"ox":"50%","oy":"100%","fl":4.2},{"n":"coralPurpleLow","plane":"scene","x":30.06,"y":88.16,"w":10.27,"k":1.28,"z":3,"wind":1.2,"ox":"50%","oy":"100%","fl":6.0},{"n":"coralPurpleBR","plane":"scene","x":90.08,"y":90.21,"w":19.84,"k":1.28,"z":3,"wind":0.9,"ox":"50%","oy":"100%","fl":7.8}];
+  const REF_OCEAN = [{"n":"coralPurpleL","plane":"scene","x":7.64,"y":24.9,"w":15.27,"k":1.28,"z":3,"wind":1.3,"ox":"50%","oy":"100%","fl":7.4},{"n":"coralOrangeA","plane":"scene","x":24.0,"y":43.58,"w":12.23,"k":0.86,"z":2,"wind":3.2,"ox":"50%","oy":"100%","fl":5.2},{"n":"coralOrangeB","plane":"scene","x":29.53,"y":45.31,"w":11.02,"k":0.86,"z":2,"wind":3.6,"ox":"50%","oy":"100%","fl":4.8},{"n":"coralPurpleS","plane":"scene","x":15.68,"y":49.13,"w":9.34,"k":0.86,"z":2,"wind":2.8,"ox":"50%","oy":"100%","fl":5.6},{"n":"coralOrangeBig","plane":"scene","x":21.27,"y":67.92,"w":29.41,"k":1.28,"z":3,"wind":2.1,"ox":"50%","oy":"100%","fl":6.4},{"n":"coralPurpleMid","plane":"scene","x":36.56,"y":57.6,"w":14.92,"k":0.86,"z":2,"wind":2.5,"ox":"50%","oy":"100%","fl":5.9},{"n":"coralOrangeC","plane":"scene","x":47.64,"y":70.0,"w":11.84,"k":0.86,"z":2,"wind":3.8,"ox":"50%","oy":"100%","fl":4.4},{"n":"coralOrangeD","plane":"scene","x":52.32,"y":70.56,"w":8.16,"k":0.86,"z":2,"wind":4.2,"ox":"50%","oy":"100%","fl":4.2},{"n":"coralPurpleLow","plane":"scene","x":30.06,"y":88.16,"w":10.27,"k":1.28,"z":3,"wind":2.3,"ox":"50%","oy":"100%","fl":6.0},{"n":"coralPurpleBR","plane":"scene","x":90.08,"y":90.21,"w":19.84,"k":1.28,"z":3,"wind":1.7,"ox":"50%","oy":"100%","fl":7.8}];
   /*REF-OCEAN-END*/
   const kelp = (n, x, base, span, ratio, wind, fl) => ({ n, plane: 'scene', k: 0.64, x: X(x), y: Y(base + span / 2), w: stageW(ratio, span), z: 2, wind, ox: '50%', oy: '100%', fl });
   const school = (n, y, dx, dur, delay, scale, rev) => ({ n, plane: 'scene', k: 0.46, x: 50, y, w: scale, [rev ? 'crossRev' : 'cross']: dur, dx: 0, dy: 0, rot: 0, delay, swim: { wob: 8, wp: 1.1, tilt: 3 } });
   W['ocean-kingdom'] = {
-    // Built from the owner's reference plate (assets/reference/oceanbg.jpg): the plate is the far layer (corals inpainted at their edges), coral groups are cut-out
-    // sprites that sway on the shared current, two counter-moving caustic planes are masked onto the sunlit sand, light shafts breathe, and the sea life
-    // (fish, turtles, jellyfish, manta, whale) are real raymarched 3D models. Hybrid 2.5D, not 3D geometry.
+    // Built from the owner's reference plate (assets/reference/oceanbg.jpg): the plate is the far layer (corals inpainted at their edges, baked specks removed,
+    // crisp polyp detail), coral groups are cut-out sprites that sway on the shared current, two counter-moving caustic planes are masked onto the sunlit
+    // sand, light shafts breathe, and the sea life (fish schools, turtles, moon jellies) are raymarched 3D models shaded into the water's haze.
+    // Hybrid 2.5D, not 3D geometry.
     tiles: [
       { plane: 'pfar', image: 't-caustic', mask: 't-mask-sand', region: [0.38, 0.49, 1, 1], rel: 0.42, w: 1024, h: 1024, sx: 1, sy: 0.6, t: 52 },
       { plane: 'mist', image: 't-caustic', mask: 't-mask-sand', region: [0.38, 0.49, 1, 1], rel: 0.29, w: 1024, h: 1024, sx: -1, sy: -0.4, t: 41 },
@@ -60,9 +61,10 @@
     ],
     sprites: [
       ...REF_OCEAN,
-      { n: 'whale', plane: 'scene', k: 0.46, x: 50, y: 17, w: stageW(1500 / 560, 0.2), crossRev: 170, dx: 0, dy: 0, rot: 0, delay: -40, swim: { wob: 6, wp: 6, tilt: 1.2 } },
-      { n: 'manta', plane: 'scene', k: 0.64, x: 50, y: 27, w: stageW(1200 / 700, 0.3), cross: 95, dx: 0, dy: 0, rot: 0, delay: -22, swim: { wob: 16, wp: 3.6, tilt: 3 } },
-      { n: 'turtle', plane: 'scene', k: 0.86, x: 50, y: 52, w: stageW(760 / 520, 0.26), cross: 120, dx: 0, dy: 0, rot: 0, delay: -70, swim: { wob: 10, wp: 2.8, tilt: 3.5 } },
+      // a distant school, half lost in the blue (opacity = water haze): gives depth without another cartoon animal
+      { ...school('fishA', 22, 0, 70, -10, 1.2, 1), op: 0.5 }, { ...school('fishA', 24, 0, 70, -13, 1.0, 1), op: 0.45 }, { ...school('fishA', 21, 0, 70, -15, 0.9, 1), op: 0.45 },
+      { ...school('fishA', 25, 0, 70, -18, 1.1, 1), op: 0.5 }, { ...school('fishA', 23, 0, 70, -21, 0.8, 1), op: 0.4 }, { ...school('fishA', 26, 0, 70, -24, 1.0, 1), op: 0.45 },
+      { n: 'turtle', plane: 'scene', k: 0.86, x: 50, y: 36, w: stageW(760 / 520, 0.26), cross: 120, dx: 0, dy: 0, rot: 0, delay: -70, swim: { wob: 10, wp: 2.8, tilt: 3.5 } },
       school('fishA', 40, 0, 36, -2, 3.2), school('fishA', 43, 0, 36, -5, 2.6), school('fishA', 38, 0, 36, -8, 2.9), school('fishA', 45, 0, 36, -11, 2.2), school('fishA', 41, 0, 36, -14, 2.7),
       school('fishB', 62, 0, 48, -6, 2.8, 1), school('fishB', 59, 0, 48, -10, 2.4, 1), school('fishB', 65, 0, 48, -16, 2.6, 1), school('fishB', 61, 0, 48, -21, 2.1, 1),
       { n: 'jelly1', src: 'jelly', plane: 'scene', k: 0.64, x: 66, y: 0, w: stageW(520 / 720, 0.26), rise: 70, sw: 34, sway: 6.5, flut: 7, fa: 4, sy: 38 },

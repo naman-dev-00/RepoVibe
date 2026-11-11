@@ -397,7 +397,14 @@ test('nothing is approved without the owner: every built-in theme starts experim
   assert.deepEqual(JSON.parse(JSON.stringify(K.featuredThemes().map(t => t.id))), ['preset-1', 'preset-8', 'preset-19', 'preset-15', 'preset-9', 'preset-20']);
   assert.equal(K.themeStatus('custom-x'), 'custom');
   const shipped = fs.readFileSync(require('node:path').join(__dirname, '../shared/theme-review.js'), 'utf8');
-  assert.match(shipped, /globalThis\.RepoVibeThemeReview = \{\};/, 'the shipped review list is empty until the owner approves themes');
+  // the shipped list holds exactly the owner's decisions (2026-11-11): Enchanted Forest, Cosmic Galaxy, Futuristic Sci-Fi approved; nothing archived
+  const ctx = vm.createContext({}); vm.runInContext(shipped, ctx);
+  assert.deepEqual(JSON.parse(JSON.stringify(ctx.RepoVibeThemeReview)), { 'preset-8': 'approved', 'preset-19': 'approved', 'preset-15': 'approved' });
+  const S = coreWithReview(ctx.RepoVibeThemeReview), scol = S.themeCollection(S.normalizeConfig({}));
+  assert.deepEqual(JSON.parse(JSON.stringify(scol.approved.map(t => t.name))), ['Enchanted Forest', 'Futuristic Sci-Fi', 'Cosmic Galaxy']);
+  assert.equal(scol.archived.length, 0); assert.equal(scol.experimental.length, S.PRESETS.length - 3);
+  for (const id of ['preset-1', 'preset-3', 'preset-7', 'preset-10', 'preset-12']) assert.equal(S.themeStatus(id), 'experimental', `${id} awaits rework, not approved or archived`);
+  assert.deepEqual(JSON.parse(JSON.stringify(S.featuredThemes().map(t => t.id))), ['preset-8', 'preset-15', 'preset-19', 'preset-1', 'preset-9', 'preset-20'], 'approved take the first featured slots');
 });
 test('approved themes take the featured slots; archived themes leave discovery but saved assignments and custom themes keep working', () => {
   const K = coreWithReview({ 'preset-8': 'approved', 'preset-3': 'approved', 'preset-5': 'archived', 'preset-9': 'archived' });

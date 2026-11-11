@@ -1,9 +1,9 @@
-// @sprites signA:520x1150, signB:1100x460, holo:960x600, drone:760x300
+// @sprites signA:520x1150, signB:1100x460, holo:960x600, drone:760x300, ripple:1000x260
 // Rainy cyberpunk street canyon: SDF towers on both sides, emissive windows and neon signs, wet reflective road,
 // distant skyline in neon fog, rain streaks.
 const float CELL = 16.0;
 // Depth layers (see common.glsl): each block (tower + its sign) belongs to a slab by its distance along the street.
-const vec3 RO_CITY = vec3(-2.0, 2.6, -8.0);
+const vec3 RO_CITY = vec3(-1.2, 3.0, -8.0);
 const float D1 = 40.0, D2 = 110.0;
 bool gAll = false; // reflections trace the whole city regardless of layer
 bool blockInLayer(float id) {
@@ -17,11 +17,13 @@ bool blockInLayer(float id) {
 bool roadLayer() { return uLayer == 0 || uLayer == 1 || gAll; }
 
 float towerH(float id, float side) { return 40.0 + 120.0 * pow(hash11(id * 3.17 + side * 11.0), 1.6); }
-// returns distance; mat via out param: 0 road, 1 building, 2 sign
+// returns distance; mat via out param: 0 water, 1 building, 2 sign, 3 quay (walkway along the canal)
+const float QUAY = 8.2; // canal half-width; the walkway runs from the quay edge to the facades (x = 10.5)
 float map(vec3 p, out float mat, out vec3 info) {
   mat = 0.0; info = vec3(0.0);
-  float d = roadLayer() ? p.y : 1e9; // road
-  // buildings on both sides of a 18-wide street
+  float d = roadLayer() ? p.y : 1e9; // canal water
+  if (roadLayer()) { float qd = sdBox(vec3(abs(p.x) - (QUAY + 1.6), p.y - 0.35, 0.0), vec3(1.6, 0.35, 1e4)); if (qd < d) { d = qd; mat = 3.0; info = vec3(0.0, sign(p.x), 0.0); } }
+  // buildings on both sides of the canal
   float side = sign(p.x);
   float id = floor(p.z / CELL);
   if (!blockInLayer(id)) return min(d, max(CELL * 0.45, abs(fract(p.z / CELL) - 0.5) * CELL)); // step past other slabs' blocks
@@ -29,13 +31,16 @@ float map(vec3 p, out float mat, out vec3 info) {
   float w = 5.5 + 2.5 * hash11(id + side * 7.0);
   float h = towerH(id, side);
   float b = sdBox(q - vec3(10.5 + w, h * 0.5, 0.0), vec3(w, h * 0.5, CELL * 0.5 - 1.2));
+  // a setback upper section on taller towers (cleaner, more architectural silhouette)
+  float up = sdBox(q - vec3(12.0 + w, h + 6.0, 0.0), vec3(w - 1.5, 6.0, CELL * 0.5 - 3.0));
+  if (h > 80.0) b = min(b, up);
   if (b < d) { d = b; mat = 1.0; info = vec3(id, side, h); }
-  // vertical neon signs hanging over the street
+  // blade signs: perpendicular to the facade, projecting over the walkway (read face-on from the canal)
   float sid = hash11(id * 1.7 + side * 3.0);
-  if (sid > 0.2) {
-    float sh = 6.0 + 10.0 * hash11(id + 4.0 + side);
-    float sy = 8.0 + 14.0 * hash11(id * 2.3 + side);
-    float s = sdBox(q - vec3(10.1, sy + sh * 0.5, CELL * 0.2 * (hash11(id + 9.0) - 0.5)), vec3(0.25, sh * 0.5, 1.1));
+  if (sid > 0.42) {
+    float sh = 7.0 + 9.0 * hash11(id + 4.0 + side);
+    float sy = 7.0 + 12.0 * hash11(id * 2.3 + side);
+    float s = sdBox(q - vec3(9.3, sy + sh * 0.5, -CELL * 0.3), vec3(1.15, sh * 0.5, 0.18));
     if (s < d) { d = s; mat = 2.0; info = vec3(id, side, sid); }
   }
   return d;
@@ -57,21 +62,44 @@ vec3 skyline(vec3 rd) {
   }
   return col;
 }
+vec3 sideNeon(float side) { return side < 0.0 ? vec3(1.0, 0.16, 0.62) : vec3(0.12, 0.85, 1.0); }
 vec3 shadeBuilding(vec3 p, vec3 n, vec3 info, float t) {
-  vec3 col = vec3(0.02, 0.018, 0.03);
-  // windows on street-facing facades
-  if (abs(n.x) > 0.5) {
-    vec2 g = vec2(p.z * 1.6, p.y * 0.9);
+  vec3 col = vec3(0.022, 0.02, 0.034);
+  if (abs(n.x) > 0.5) {                          // canal-facing facade
+    float floorY = p.y / 3.2;                     // one storey = 3.2 m
+    vec2 g = vec2(p.z * 1.25, floorY);
     vec2 cid = floor(g), f = fract(g);
-    float win = step(0.3, f.x) * step(f.x, 0.7) * step(0.35, f.y) * step(f.y, 0.7);
-    float on = step(0.72, hash12(cid + info.x * 13.0));
-    vec3 wc = mix(vec3(1.0, 0.75, 0.45), vec3(0.45, 0.85, 1.0), step(0.7, hash12(cid * 1.3)));
-    col += win * on * wc * 0.55 * (0.4 + 0.6 * hash12(cid + 3.0));
-    // neon trim bands
-    float band = smoothstep(0.035, 0.0, abs(fract(p.y / 9.0) - 0.5)); // thin neon trim line every 9 m
-    col += band * neonCol(info.x + info.y) * 2.2 * step(0.55, hash11(info.x * 5.1 + info.y));
+    float win = step(0.18, f.x) * step(f.x, 0.82) * step(0.3, f.y) * step(f.y, 0.78);
+    float floorOn = step(0.45, hash12(vec2(cid.y, info.x * 3.1 + info.y)));        // whole floors tend to be lit or dark
+    float on = step(0.55, hash12(cid + info.x * 13.0)) * floorOn * step(4.0, p.y);
+    vec3 wc = mix(vec3(1.0, 0.72, 0.42), vec3(0.55, 0.82, 1.0), step(0.78, hash12(cid * 1.3)));
+    col += win * on * wc * 0.42 * (0.55 + 0.45 * hash12(cid + 3.0));
+    col += win * (1.0 - on) * vec3(0.03, 0.035, 0.06);                               // dark glass still reads as glass
+    float pil = smoothstep(0.06, 0.0, abs(fract(p.z / CELL * 4.0) - 0.5) - 0.44);    // pilasters between window bays
+    col *= 1.0 - 0.35 * pil;
+    float ledge = smoothstep(0.05, 0.0, abs(f.y - 0.06));                           // floor ledges catch the neon from the canal
+    col += ledge * sideNeon(info.y) * 0.05;
+    // storefront level: one continuous neon trim per side and warm shop light below it
+    col += smoothstep(0.12, 0.0, abs(p.y - 4.2)) * sideNeon(info.y) * 2.4;
+    float shop = floor(p.z / 4.0), sh = hash12(vec2(shop, info.y + 5.0));         // individual shopfronts, some shuttered
+    vec3 shopC = sh < 0.4 ? vec3(1.0, 0.6, 0.38) : sh < 0.7 ? vec3(0.5, 0.75, 1.0) : vec3(0.9, 0.4, 0.9);
+    float glass = step(p.y, 3.7) * step(0.9, p.y) * smoothstep(0.0, 0.08, fract(p.z / 4.0)) * smoothstep(1.0, 0.92, fract(p.z / 4.0));
+    col += glass * shopC * 0.075 * step(0.25, sh) * (0.7 + 0.3 * smoothstep(0.9, 3.7, p.y));
+    // roofline trim on every tower
+    col += smoothstep(0.25, 0.0, abs(p.y - (info.z - 0.4))) * sideNeon(-info.y) * 1.6;
   }
   return col;
+}
+vec3 shadeSign(vec3 p, vec3 info) {
+  // board face: dark frame, bright tube outline and glyph strokes (one column of characters)
+  float sh = 7.0 + 9.0 * hash11(info.x + 4.0 + info.y), sy = 7.0 + 12.0 * hash11(info.x * 2.3 + info.y);
+  vec2 lp = vec2((abs(p.x) - 9.3) / 1.15, (p.y - sy - sh * 0.5) / (sh * 0.5)); // [-1,1]^2 on the face
+  vec3 nc = neonCol(info.x * 1.3 + info.y);
+  float edge = 1.0 - smoothstep(0.78, 0.9, max(abs(lp.x), abs(lp.y) * (1.0 + 0.1 * sh / 8.0)));
+  float tube = smoothstep(0.1, 0.0, abs(max(abs(lp.x), abs(lp.y)) - 0.86));
+  vec2 g = vec2(lp.x * 1.5, lp.y * sh * 0.32); vec2 gi = floor(g), gf = fract(g);
+  float glyph = (step(abs(gf.y - 0.5), 0.09) * step(0.4, hash12(gi + info.x)) + step(abs(gf.x - 0.5), 0.12) * step(0.5, hash12(gi * 1.7 + info.y))) * step(abs(lp.x), 0.6) * step(abs(lp.y), 0.78);
+  return vec3(0.03, 0.015, 0.04) * edge + nc * (tube * 4.0 + min(glyph, 1.0) * 3.2) + nc * 0.25 * edge;
 }
 vec3 trace(vec3 ro, vec3 rd, out float tHit, out vec3 glow) {
   float t = 0.1, mat = 0.0; vec3 info; glow = vec3(0.0);
@@ -89,8 +117,13 @@ vec3 trace(vec3 ro, vec3 rd, out float tHit, out vec3 glow) {
   vec2 e = vec2(0.01 * t, 0.0);
   vec3 n = normalize(vec3(mapD(p + e.xyy) - mapD(p - e.xyy), mapD(p + e.yxy) - mapD(p - e.yxy), mapD(p + e.yyx) - mapD(p - e.yyx)));
   map(p, mat, info);
-  if (mat == 2.0) return neonCol(info.x * 1.3 + info.y) * 4.0;
+  if (mat == 2.0) return shadeSign(p, info);
   if (mat == 1.0) return shadeBuilding(p, n, info, t);
+  if (mat == 3.0) { // walkway: wet stone with an LED strip along the quay edge
+    float edge = smoothstep(0.1, 0.0, abs(abs(p.x) - QUAY) - 0.02) * step(0.55, p.y);
+    float tiles = 0.85 + 0.15 * step(0.5, fract(p.z * 0.5));
+    return vec3(0.03, 0.026, 0.04) * tiles + edge * sideNeon(info.y) * 2.6 + step(abs(n.x), 0.5) * 0.0;
+  }
   return vec3(0.015, 0.012, 0.02);
 }
 vec3 fogIt(vec3 col, vec3 rd, float t) {
@@ -200,37 +233,61 @@ vec4 drone(vec2 uv) {
   float ga = SAT(head + tail) * 0.9 + beam;
   return vec4(shape > 0.0 ? col + glow * 0.4 : glow / max(ga, 1e-3), SAT(max(shape, ga)));
 }
+// One rain-drop ripple seen in perspective (ellipse): a bright leading ring and two fading inner rings. The page animates it
+// (grows from the impact point and fades), so each drop reads as a live ripple on the canal.
+vec4 ripple(vec2 uv) {
+  float asp = uRes.x / uRes.y;
+  float r = length(vec2(uv.x / (0.5 * asp), uv.y / 0.5));
+  float aa = 2.5 / uRes.y;
+  float a = 0.0;
+  a += exp(-pow((r - 0.9) / max(0.04, aa * 2.0), 2.0)) * 1.0;
+  a += exp(-pow((r - 0.68) / 0.03, 2.0)) * 0.55;
+  a += exp(-pow((r - 0.48) / 0.028, 2.0)) * 0.28;
+  a *= SAT((1.0 - r) * 12.0 + 0.6);
+  float front = SAT(0.5 - uv.y);                                   // the near half of the ring catches more light
+  vec3 col = mix(vec3(0.95, 0.75, 1.0), vec3(0.75, 0.95, 1.0), SAT(uv.x / asp + 0.5)) * (1.1 + 0.5 * front);
+  return vec4(col, SAT(a * (0.8 + 0.5 * front)));
+}
 vec3 render(vec2 uv) {
   if (uLayer >= 10) {
     int k = uLayer - 10; vec4 r; float asp = uRes.x / uRes.y;
     if (k == 0) r = neonBoard(uv, vec2(0.17 * asp, 0.4), vec3(1.0, 0.22, 0.68), 3.0, true);
     else if (k == 1) r = neonBoard(uv, vec2(0.42 * asp, 0.3), vec3(0.2, 0.92, 1.0), 7.0, false);
     else if (k == 2) r = holoAd(uv);
-    else r = drone(uv);
+    else if (k == 3) r = drone(uv);
+    else r = ripple(uv);
     gAlpha = r.a; return r.rgb;
   }
   if (uLayer == 4) { vec4 f = foreground(uv); gAlpha = f.a; return f.rgb; }
   if (uLayer == 5) { vec4 r = rays(uv); gAlpha = r.a; return r.rgb; }
   vec3 ro = RO_CITY;
-  vec3 ta = vec3(0.5, 11.0, 70.0);
-  vec3 rd = camera(ro, ta, 0.02) * normalize(vec3(uv, 1.25));
+  // horizon at ~42 % from the top (where GitHub's scene window shows it), canal filling the lower half
+  vec3 ta = vec3(0.3, -2.9, 70.0);
+  vec3 rd = camera(ro, ta, 0.015) * normalize(vec3(uv, 1.05));
   float t; vec3 glow;
   vec3 col = trace(ro, rd, t, glow);
   if (!roadLayer()) { gAlpha = t < 600.0 ? 1.0 : SAT(length(glow) * 3.0); return t < 600.0 ? fogIt(col, rd, t) + glow : glow / max(gAlpha, 1e-3); }
   vec3 p = ro + rd * t;
-  if (t < 600.0 && p.y < 0.05) {
-    // wet asphalt: rippled mirror reflection + puddles
-    vec2 w = vec2(noise(p.xz * 1.7), noise(p.xz * 1.7 + 5.0)) * 0.035;
-    float puddle = smoothstep(0.0, 0.3, fbm(p.xz * 0.15, 4));
-    vec3 n = normalize(vec3(w.x, 1.0, w.y) + (1.0 - puddle) * vec3(w.x, 0.0, w.y) * 4.0);
+  if (t < 600.0 && p.y < max(0.05, 0.004 * t) && abs(p.x) < QUAY) {
+    // canal water: long gentle swell + fine wavelets that vary mostly along the view axis, so neon reflections stretch into
+    // vertical streaks (the wet-night look); a few rain-drop rings frozen mid-spread (the live rings are animated sprites)
+    vec2 wz = vec2(p.x * 1.1, p.z * 1.9);
+    float sw = noise(wz) * 0.5 + noise(wz * 2.1 + 3.0) * 0.25;
+    vec3 nn = vec3(0.0015 * noise(p.xz * 0.4 + 9.0), 1.0, 0.014 * sw + 0.006 * noise(p.xz * vec2(0.2, 0.5)));
+    for (int k = 0; k < 2; k++) {
+      vec2 cell = floor(p.xz * vec2(0.55, 0.22) + float(k) * 0.5), c = (cell + 0.5 + (hash22(cell + float(k) * 7.0) - 0.5) * 0.6) / vec2(0.55, 0.22) - float(k) * 0.5 / vec2(0.55, 0.22);
+      vec2 dv = (p.xz - c) * vec2(1.0, 1.0); float r = length(dv), R = 0.4 + 0.9 * hash12(cell + 3.0 + float(k));
+      float ring = exp(-pow((r - R) * 9.0, 2.0)) * SAT(1.0 - R / 1.4) * step(0.45, hash12(cell + 11.0 + float(k)));
+      nn.xz += normalize(dv + 1e-4) * ring * vec2(0.012, 0.04);
+    }
+    vec3 n = normalize(nn);
     vec3 rr = reflect(rd, n);
     float t2; vec3 g2;
     gAll = true; vec3 rc = trace(p + n * 0.05, rr, t2, g2); gAll = false;
     rc = fogIt(rc + g2, rr, t2);
-    float fres = 0.08 + 0.92 * pow(1.0 - SAT(dot(-rd, n)), 4.0);
-    col = mix(vec3(0.01, 0.008, 0.015), rc, SAT(fres * (0.55 + 0.45 * puddle)));
-    // lane markings
-    col += vec3(0.5, 0.45, 0.35) * 0.06 * step(abs(p.x - 0.0), 0.08) * step(0.5, fract(p.z * 0.08));
+    float fres = 0.12 + 0.88 * pow(1.0 - SAT(dot(-rd, n)), 4.0);
+    col = mix(vec3(0.008, 0.008, 0.016), rc, SAT(fres * 0.92));
+    col += vec3(0.22, 0.07, 0.3) * exp(-abs(rd.y) * 16.0) * 0.75; // low neon haze lying on the far water
   }
   col = fogIt(col, rd, t) + glow;
   if (uLayer == 0) {

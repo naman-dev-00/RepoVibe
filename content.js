@@ -112,7 +112,7 @@
 html.repv-open :where(${OPEN}) { background-color:transparent !important; background-image:none !important; box-shadow:none !important; border-color:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
 /* anchored, not floating: sidebar sections get a very light surface + themed frame + glow (text keeps its own backing),
    the README a themed frame + glow around an open interior */
-html.repv-open :is([class*="sidebarSection"], .BorderGrid-row):not(:where([class*="sidebarSection"], .BorderGrid-row) *):not(:empty) { background-color:${rgba(v.surface, light ? 0.86 : 0.26)} !important; border:1px solid ${edgeLine} !important; border-radius:var(--repv-radius); box-shadow:0 0 0 2px ${edgeRing}, 0 0 16px -2px ${glowNear}, inset 0 0 0 1px ${innerRim}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.05)} !important; padding-left:12px !important; padding-right:12px !important; margin-bottom:10px !important; }
+html.repv-open :is([class*="sidebarSection"], .BorderGrid-row):not(:where([class*="sidebarSection"], .BorderGrid-row) *):not(:empty) { background-color:${rgba(v.surface, light ? Math.max(0.72, a) : 0.26)} !important; border:1px solid ${edgeLine} !important; border-radius:var(--repv-radius); box-shadow:0 0 0 2px ${edgeRing}, 0 0 16px -2px ${glowNear}, inset 0 0 0 1px ${innerRim}, inset 0 1px 0 ${rgba('#ffffff', light ? 0.3 : 0.05)} !important; padding-left:12px !important; padding-right:12px !important; margin-bottom:10px !important; }
 html.repv-open :is(#readme, [data-repv-frame], .markdown-body:not(.comment-body, .js-comment-body)):not(:where(#readme, [data-repv-frame]) *):not(:where([data-repv-panel]) .markdown-body) { border-color:${edgeLine} !important; outline:1px solid ${edgeLine} !important; outline-offset:-1px; /* a 1 px themed line without changing the box (GitHub's card may or may not draw a border) */ border-radius:var(--repv-radius); box-shadow:0 0 0 2px ${edgeRing}, 0 0 18px -2px ${glowNear}, 0 0 38px -8px ${glowFar}, inset 0 0 0 1px ${innerRim}, inset 0 0 26px -12px ${glowFar} !important; }
 html.repv-open :is(${PROSE}) :is(${PROSE_BLOCKS}):not(:is(li, blockquote, td, th, p, dd, summary, table) *):not(:has(img, picture, video, svg:not(.octicon))) {
  background-color:${back} !important; box-shadow:0 0 0 6px ${back}, ${lift}; border-radius:6px; width:fit-content; max-width:100%; box-sizing:border-box; }
@@ -483,6 +483,27 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     'neon-city-3d': [
       { n: 'drone', plane: 'scene', k: 0.5, x: 50, y: 16, w: 8, cross: 38, rot: 0 },
       { n: 'dr2', src: 'drone', plane: 'scene', k: 0.8, x: 50, y: 30, w: 5, crossRev: 27, rot: 0, flip: 1 },
+      // rain-drop ripples on the canal: each grows from its impact point and fades (fx ripple); periods differ so drops never land in step
+      { n: 'rp1', src: 'ripple', plane: 'scene', k: 0.3, x: 50, y: 45.5, w: 1.3, dur: 2.9, delay: 0, fx: 'ripple' },
+      { n: 'rp2', src: 'ripple', plane: 'scene', k: 0.3, x: 46, y: 47, w: 1.8, dur: 3.3, delay: -1.1, fx: 'ripple' },
+      { n: 'rp3', src: 'ripple', plane: 'scene', k: 0.3, x: 55, y: 48, w: 2.1, dur: 2.6, delay: -0.4, fx: 'ripple' },
+      { n: 'rp4', src: 'ripple', plane: 'scene', k: 0.3, x: 41, y: 50, w: 2.7, dur: 3.1, delay: -2.0, fx: 'ripple' },
+      { n: 'rp5', src: 'ripple', plane: 'scene', k: 0.3, x: 52, y: 51, w: 3.0, dur: 3.6, delay: -1.6, fx: 'ripple' },
+      { n: 'rp6', src: 'ripple', plane: 'scene', k: 0.3, x: 60, y: 50.5, w: 2.9, dur: 2.7, delay: -0.8, fx: 'ripple' },
+      { n: 'rp7', src: 'ripple', plane: 'scene', k: 0.3, x: 36, y: 53, w: 3.6, dur: 3.4, delay: -2.4, fx: 'ripple' },
+      { n: 'rp8', src: 'ripple', plane: 'scene', k: 0.3, x: 47, y: 54, w: 3.9, dur: 2.8, delay: -0.2, fx: 'ripple' },
+      { n: 'rp9', src: 'ripple', plane: 'scene', k: 0.3, x: 65, y: 54, w: 3.9, dur: 3.2, delay: -1.9, fx: 'ripple' },
+      { n: 'rp10', src: 'ripple', plane: 'scene', k: 0.3, x: 56, y: 56, w: 4.5, dur: 3.7, delay: -1.3, fx: 'ripple' },
+      { n: 'rp11', src: 'ripple', plane: 'scene', k: 0.3, x: 30, y: 57, w: 4.8, dur: 2.9, delay: -2.9, fx: 'ripple' },
+      { n: 'rp12', src: 'ripple', plane: 'scene', k: 0.3, x: 71, y: 58, w: 5.1, dur: 3.5, delay: -0.6, fx: 'ripple' },
+      { n: 'rp13', src: 'ripple', plane: 'scene', k: 0.3, x: 5, y: 82, w: 9, dur: 3.3, delay: -1.5, fx: 'ripple' },
+      { n: 'rp14', src: 'ripple', plane: 'scene', k: 0.3, x: 9, y: 92, w: 9, dur: 2.8, delay: -2.2, fx: 'ripple' },
+      { n: 'rp15', src: 'ripple', plane: 'scene', k: 0.3, x: 3, y: 97, w: 9, dur: 3.6, delay: -0.9, fx: 'ripple' },
+      { n: 'rp16', src: 'ripple', plane: 'scene', k: 0.3, x: 93, y: 86, w: 9, dur: 3.1, delay: -2.6, fx: 'ripple' },
+      { n: 'rp17', src: 'ripple', plane: 'scene', k: 0.3, x: 97, y: 95, w: 9, dur: 2.9, delay: -0.3, fx: 'ripple' },
+      { n: 'rp18', src: 'ripple', plane: 'scene', k: 0.3, x: 90, y: 98, w: 9, dur: 3.4, delay: -1.8, fx: 'ripple' },
+      { n: 'rp19', src: 'ripple', plane: 'scene', k: 0.3, x: 42, y: 70, w: 8.7, dur: 3.0, delay: -1.0, fx: 'ripple' },
+      { n: 'rp20', src: 'ripple', plane: 'scene', k: 0.3, x: 58, y: 76, w: 9, dur: 3.3, delay: -2.1, fx: 'ripple' },
       { n: 'holo', plane: 'scene', k: 0.72, x: 72, y: 32, w: 13, dx: 8, dy: -5, rot: 0, dur: 12, fx: 'flicker' },
       { n: 'signA', plane: 'pop', at: 'band', x: 0.035, y: 0.5, h: 1.05, k: 2.6, dx: 5, dy: 2, rot: 0.8, dur: 6, fx: 'flicker' },
       { n: 'signB', plane: 'pop', at: 'band', x: 0.9, y: 0.45, h: 0.62, k: 2.3, dx: -6, dy: 2, rot: -0.6, dur: 7, fx: 'flicker' },
@@ -539,6 +560,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     if (!s.wind) img.style.animationDelay = s.delay !== undefined ? `${s.delay}s` : `${-((s.n.charCodeAt(0) * 7 + s.n.charCodeAt(s.n.length - 1) * 3 + s.n.length * 13) % 20)}s`; // desynchronised loops
     if (s.fx) img.dataset.fx = s.fx;
     wrap.appendChild(img);
+    if (s.op) wrap.style.opacity = String(s.op); // distance haze for far objects (the water/air colour shows through)
     if (s.plane === 'scene') { wrap.style.left = `${s.x}%`; wrap.style.top = `${s.y}%`; wrap.style.width = `${s.w}%`; if (s.z) wrap.style.zIndex = String(s.z); } // % of the 16:9 stage that shares the baked layers' cover geometry
     else wrap.dataset.pop = s.at;
     return wrap;
@@ -821,7 +843,10 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="spin"] { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate, repv-spin 40s linear infinite; }
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="spinY"] { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate, repv-spin-y 9s ease-in-out infinite alternate; }
  html.repv-depth-cinematic :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="spin"] { animation-duration:var(--dur, 30s), 22s; }
+ #repovibe-depth .repv-s > img[data-fx="ripple"] { animation:repv-ripple var(--dur, 3s) cubic-bezier(.15, .55, .35, 1) infinite; }
 }
+#repovibe-depth .repv-s > img[data-fx="ripple"] { opacity:.4; scale:.7; } /* at rest (Static, Lite, reduced motion): faint frozen rings */
+@keyframes repv-ripple { 0% { scale:.08; opacity:0; } 4% { opacity:1; } 55% { opacity:.78; } 100% { scale:1; opacity:0; } }
 #repovibe-depth .repv-s:has(> img[data-fall]) { top:0 !important; }
 #repovibe-depth .repv-s:has(> img[data-rise]) { top:0 !important; }
 html.repv-depth-static #repovibe-depth .repv-s:has(> img:is([data-fall], [data-rise], [data-approach])), html.repv-depth-still #repovibe-depth .repv-s:has(> img:is([data-fall], [data-rise], [data-approach])) { top:var(--sy, 40%) !important; } /* at rest: a leaf lies in the scene instead of hiding above it */

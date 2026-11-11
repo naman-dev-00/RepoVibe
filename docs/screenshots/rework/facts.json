@@ -1,0 +1,30 @@
+{
+ "source": "real github.com page replay (actions-checkout-code, logged out, captured locally; not committed)",
+ "cyberpunk-neon": {
+  "scene": "neon-city-3d",
+  "sprites": 23,
+  "popOuts": 3,
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0
+ },
+ "sakura-dreams": {
+  "scene": "sakura-garden",
+  "sprites": 12,
+  "popOuts": 2,
+  "textMin": 4.58,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0
+ },
+ "ocean-depths": {
+  "scene": "ocean-kingdom",
+  "sprites": 33,
+  "popOuts": 3,
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0
+ }
+}

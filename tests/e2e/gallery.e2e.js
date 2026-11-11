@@ -47,8 +47,10 @@ test('gallery: approved / experimental / custom groups with live counts, search,
     const info = await studio.evaluate(() => ({ total: RepoVibeCore.PRESETS.length, groups: Object.fromEntries([...document.querySelectorAll('.gallery-group')].map(g => [g.dataset.group, g.querySelectorAll('.gallery-card').length])),
       chips: Object.fromEntries([...document.querySelectorAll('.filter-chip')].map(c => [c.dataset.filter, +c.querySelector('.chip-count').textContent])), count: document.getElementById('galleryCount').textContent,
       current: [...document.querySelectorAll('.gallery-card.is-current')].map(c => c.querySelector('strong').firstChild.textContent) }));
-    assert.equal(info.groups.approved, 0, 'nothing approved without the owner'); assert.equal(info.groups.experimental, info.total); assert.equal(info.groups.custom, 1);
-    assert.equal(info.chips.all, info.total + 1, 'the count comes from the data'); assert.match(info.count, new RegExp(`^${info.total + 1} backgrounds · 0 approved · ${info.total} experimental · 1 custom$`));
+    // the owner approved Enchanted Forest, Cosmic Galaxy and Futuristic Sci-Fi (shared/theme-review.js); everything else stays experimental
+    assert.equal(info.groups.approved, 3, 'the three owner-approved themes'); assert.equal(info.groups.experimental, info.total - 3); assert.equal(info.groups.custom, 1);
+    assert.deepEqual(await studio.evaluate(() => [...document.querySelectorAll('.gallery-group[data-group="approved"] .gallery-card strong')].map(s => s.firstChild.textContent)), ['Enchanted Forest', 'Futuristic Sci-Fi', 'Cosmic Galaxy']);
+    assert.equal(info.chips.all, info.total + 1, 'the count comes from the data'); assert.match(info.count, new RegExp(`^${info.total + 1} backgrounds · 3 approved · ${info.total - 3} experimental · 1 custom$`));
     assert.deepEqual(info.current, ['Enchanted Forest'], 'current theme identified');
     // search by name
     await studio.fill('#gallerySearch', 'sakura');
@@ -61,7 +63,8 @@ test('gallery: approved / experimental / custom groups with live counts, search,
     await studio.click('.filter-chip[data-filter="experimental"]');
     assert.deepEqual(await studio.evaluate(() => [...document.querySelectorAll('.gallery-group')].map(g => g.dataset.group)), ['experimental']);
     await studio.click('.filter-chip[data-filter="approved"]');
-    assert.match(await studio.textContent('.gallery-group[data-group="approved"] .group-note'), /No themes have been approved yet/);
+    assert.deepEqual(await studio.evaluate(() => [...document.querySelectorAll('.gallery-group')].map(g => g.dataset.group)), ['approved']);
+    assert.equal(await studio.locator('.gallery-group[data-group="approved"] .gallery-card').count(), 3);
     await studio.click('.filter-chip[data-filter="all"]');
     // Apply (global target outside a repository) changes only the theme
     await studio.locator('.gallery-card', { hasText: 'Cosmic Galaxy' }).locator('button', { hasText: 'Apply' }).click();

@@ -123,26 +123,86 @@ def place(name, bbox, y0, **kw):
     d = dict(n=name, plane='scene', x=round(cx, 2), y=round(cy, 2), w=round((x1 - x0) / W * 100, 2))
     d.update(kw); return d
 
+def flower_stamps(sizes, seed=3):
+    """Five-petal blossom templates (luminance, alpha), rendered 4x supersampled then reduced: crisp at the target size."""
+    r = np.random.default_rng(seed); out = []
+    for d in sizes:
+        S4 = d * 4; im = Image.new('LA', (S4, S4), (0, 0)); dr = ImageDraw.Draw(im)
+        c = S4 / 2; rot = r.random() * 6.283
+        for i in range(5):
+            a = rot + i * 6.283 / 5; px, py = c + np.cos(a) * S4 * 0.22, c + np.sin(a) * S4 * 0.22
+            pr = S4 * 0.2
+            lum = int(235 - 25 * r.random())
+            dr.ellipse([px - pr, py - pr, px + pr, py + pr], fill=(lum, 255))
+        dr.ellipse([c - S4 * 0.09, c - S4 * 0.09, c + S4 * 0.09, c + S4 * 0.09], fill=(120, 255))   # darker centre
+        a = np.asarray(im.resize((d, d), Image.LANCZOS), dtype=np.float32) / 255
+        out.append(a)
+    return out
+
+def blossom_detail(plate, mask, size_map, count, seed=11, lift=(0.96, 1.16)):
+    """Paint crisp individual blossoms over the soft (upscaled) canopy: each takes the colour of the canopy beneath it, lifted
+    (petals catch light) with per-flower variation, so the clusters keep the reference's colour and lighting but gain real edges.
+    mask: HxW 0..1 where blossoms may grow; size_map: HxW blossom diameter in px."""
+    r = np.random.default_rng(seed); out = plate.copy()
+    stamps = {d: flower_stamps([d] * 4, seed + d) for d in range(4, 25)}
+    ys, xs = np.where(mask > 0.35)
+    if len(xs) == 0: return out
+    pick = r.choice(len(xs), size=min(count, len(xs)), replace=False)
+    lum = plate.mean(-1)
+    order = np.argsort(lum[ys[pick], xs[pick]])          # darker first, the brightest blossoms end up on top
+    for i in pick[order]:
+        y, x = ys[i], xs[i]
+        d = int(np.clip(size_map[y, x] * (0.75 + 0.5 * r.random()), 4, 24))
+        st = stamps[d][r.integers(4)]
+        y0, x0 = y - d // 2, x - d // 2
+        if y0 < 0 or x0 < 0 or y0 + d > H or x0 + d > W: continue
+        base = plate[y, x]
+        l = lift[0] + (lift[1] - lift[0]) * r.random()
+        col = np.clip(base * l + (1 - base) * 0.04 * r.random(), 0, 1)                       # keep the cluster's own light and shade
+        reg = out[y0:y0 + d, x0:x0 + d]
+        lumst = st[..., 0:1]; al = st[..., 1:2] * mask[y, x] * (0.55 + 0.25 * r.random())
+        petal = np.clip(col[None, None, :] * (0.78 + 0.3 * lumst), 0, 1)
+        reg[:] = reg * (1 - al) + petal * al
+    return out
+
 # ------------------------------------------------------------------ OCEAN
 def ocean():
     slug = 'ocean-kingdom'; y0 = 40
     crop = load('oceanbg.jpg', y0); plate = enhance(crop); h, s, v = hsv_arrays(crop)
+    # owner feedback: the background looked unclear / fake. (1) remove the blobby white specks baked into the source (upscaled they read as
+    # smudges; the live particle planes provide crisp marine snow instead), (2) local clarity on the reef, (3) crisp polyps on the corals.
+    lum_s = np.asarray(crop.convert('L'), dtype=np.float32) / 255
+    opened = np.asarray(Image.fromarray((lum_s * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(5)).filter(ImageFilter.MaxFilter(5)), dtype=np.float32) / 255
+    speck = ((lum_s - opened) > 0.12) & (h > 150) & (h < 230) & (s < 0.6)   # only specks in the blue water / on blue-lit rock, never coral tips
+    sp = hires_mask(morph(speck.astype(np.float32), 1, 0, 3), 1.0)
+    sp = np.asarray(Image.fromarray((sp * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(3)), dtype=np.float32) / 255
+    plate = np.where((sp > 0.05)[..., None], pushpull(plate, (sp < 0.05).astype(np.float32)), plate)
+    plate = blur(plate, 0.6) * sp[..., None] + plate * (1 - sp[..., None])
+    yyo = np.mgrid[0:H, 0:W][0].astype(np.float32) / H
+    reef = np.clip((yyo - 0.3) / 0.25, 0, 1)                                  # the water column above stays smooth
+    plate = np.clip(plate + (plate - blur(plate, 7)) * 0.7 * reef[..., None], 0, 1)
+    coral = (((h > 255) & (h < 310) & (s > 0.3)) | ((h > 18) & (h < 52) & (s > 0.5))) & (v > 0.3)
+    cm = hires_mask(blur(morph(coral.astype(np.float32), 3, 3), 1.0), 1.5)
+    xxo = np.mgrid[0:H, 0:W][1].astype(np.float32) / W
+    size_map = 4.0 + 5.0 * np.clip((yyo - 0.4) / 0.6, 0, 1) + 3.0 * np.clip(np.abs(xxo - 0.5) * 2 - 0.4, 0, 1)
+    lit = np.clip((plate.mean(-1) - 0.2) / 0.5, 0, 1)
+    plate = blossom_detail(plate, cm * (0.4 + 0.6 * lit), size_map, 22000, seed=17, lift=(0.92, 1.08))
     purple = (h > 255) & (h < 310) & (s > 0.30) & (v > 0.22)
     orange = (h > 18) & (h < 52) & (s > 0.50) & (v > 0.42)
     olive = (h > 48) & (h < 75) & (s > 0.35) & (v > 0.30)
     groups = [  # name, bbox in source coords (x0,y0,x1,y1), colour class, wind(deg), period, depth k
-        ('coralPurpleL', (0, 10, 98, 236), purple, 0.7, 7.4, 1.28),
-        ('coralOrangeA', (130, 188, 212, 256), orange, 1.7, 5.2, 0.86),
-        ('coralOrangeB', (204, 198, 278, 262), orange, 1.9, 4.8, 0.86),
-        ('coralPurpleS', (88, 238, 168, 268), purple, 1.5, 5.6, 0.86),
-        ('coralOrangeBig', (70, 268, 276, 402), orange, 1.1, 6.4, 1.28),
-        ('coralPurpleMid', (222, 244, 346, 338), purple, 1.3, 5.9, 0.86),
-        ('coralOrangeC', (318, 312, 392, 358), orange, 2.0, 4.4, 0.86),
-        ('coralOrangeD', (390, 332, 440, 366), orange, 2.2, 4.2, 0.86),
-        ('coralPurpleLow', (186, 378, 268, 466), purple, 1.2, 6.0, 1.28),
-        ('coralPurpleR', (388, 298, 476, 334), purple, 1.6, 5.0, 0.86),
-        ('coralBushR', (440, 244, 512, 304), olive, 1.8, 4.6, 0.86),
-        ('coralPurpleBR', (522, 388, 768, 432 + y0), purple, 0.9, 7.8, 1.28),
+        ('coralPurpleL', (0, 10, 98, 236), purple, 1.3, 7.4, 1.28),
+        ('coralOrangeA', (130, 188, 212, 256), orange, 3.2, 5.2, 0.86),
+        ('coralOrangeB', (204, 198, 278, 262), orange, 3.6, 4.8, 0.86),
+        ('coralPurpleS', (88, 238, 168, 268), purple, 2.8, 5.6, 0.86),
+        ('coralOrangeBig', (70, 268, 276, 402), orange, 2.1, 6.4, 1.28),
+        ('coralPurpleMid', (222, 244, 346, 338), purple, 2.5, 5.9, 0.86),
+        ('coralOrangeC', (318, 312, 392, 358), orange, 3.8, 4.4, 0.86),
+        ('coralOrangeD', (390, 332, 440, 366), orange, 4.2, 4.2, 0.86),
+        ('coralPurpleLow', (186, 378, 268, 466), purple, 2.3, 6.0, 1.28),
+        ('coralPurpleR', (388, 298, 476, 334), purple, 3.0, 5.0, 0.86),
+        ('coralBushR', (440, 244, 512, 304), olive, 3.4, 4.6, 0.86),
+        ('coralPurpleBR', (522, 388, 768, 432 + y0), purple, 1.7, 7.8, 1.28),
     ]
     union = np.zeros((SRC_H, SRC_W), np.float32); sprites = []; masks = {}
     for name, (bx0, by0, bx1, by1), cls, wind, fl, k in groups:
@@ -203,6 +263,16 @@ def ocean():
 def sakura():
     slug = 'sakura-garden'; y0 = 40
     crop = load('cherrybg.jpg', y0); plate = enhance(crop)
+    # crisp blossoms over the upscaled canopy and petal carpet (owner feedback: foliage looked blurry / fake)
+    hh, ss, vv = hsv_arrays(crop)
+    pink = (((hh > 290) | (hh < 25)) & (ss > 0.18) & (vv > 0.30)).astype(np.float32)
+    pm = hires_mask(blur(morph(pink, 3, 3), 1.2), 1.5)
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    # blossom size by depth: tiny on the far trees around the valley, large on the near canopies at the frame edges and on the ground
+    edge = np.clip(np.abs(xx / W - 0.5) * 2, 0, 1)
+    size_map = 4.0 + 6.0 * edge ** 1.4 + 5.0 * np.clip((yy / H - 0.62) / 0.38, 0, 1) ** 1.2
+    lit = np.clip((plate.mean(-1) - 0.25) / 0.45, 0, 1)                     # fewer blossoms in the shaded hollows of each cluster
+    plate = blossom_detail(plate, pm * (0.35 + 0.65 * lit), size_map, 90000)
     sky_poly = [(385, 26), (512, 26), (500, 50), (478, 62), (452, 75), (432, 90), (412, 100), (400, 106), (385, 100), (345, 114), (322, 120), (306, 100), (301, 60), (330, 40)]
     h, s, v = hsv_arrays(crop)
     skym = poly_mask(sky_poly, y0, 1.0) * ((v > 0.50) & (s < 0.35)).astype(np.float32)
