@@ -22,6 +22,7 @@ const T = { // preset surface/text/bg used for assertions
   cyber: { id: 'preset-1', surface: '#1b1538', text: '#f3edff', bg: '#100c25' },
   arctic: { id: 'preset-12', surface: '#cfe0ef', text: '#06121f', bg: '#dfeaf4' },
   synth: { id: 'preset-20', surface: '#33194a', text: '#fff1ff', bg: '#210c37' },
+  pixel: { id: 'preset-10', surface: '#163a5e', text: '#f2fbff', bg: '#0f2a4a' },  // approved + featured (Synthwave is archived since round 3 and no longer in the quick grid)
   aurora: { id: 'preset-17', surface: '#122b34', text: '#e8fff8', bg: '#0c1724' },
   galaxy: { id: 'preset-19', surface: '#17183d', text: '#f0edff', bg: '#0b0b25' }
 };
@@ -144,22 +145,22 @@ L.liveTest('LIVE 3: repository identification, popup quick theme + toggle, switc
     await popup.setViewportSize({ width: 384, height: 600 });
     await gh.bringToFront(); await popup.reload(); await popup.waitForSelector('.theme-tile');
     c.check((await popup.textContent('#repoName')) === A, 'Popup', `identifies the active real repository: "${await popup.textContent('#repoName')}"`);
-    await popup.click('.theme-tile >> text=Synthwave');
-    await waitTheme(gh, T.synth.surface);
-    c.check((await getConfig(context)).repoAssignments[A.toLowerCase()] === T.synth.id && themed(await L.themeState(gh), T.synth), 'Popup', 'quick theme "This repo" assigns Synthwave to actions/checkout and applies it live');
+    await popup.click('.theme-tile >> text=Pixel Paradise');
+    await waitTheme(gh, T.pixel.surface);
+    c.check((await getConfig(context)).repoAssignments[A.toLowerCase()] === T.pixel.id && themed(await L.themeState(gh), T.pixel), 'Popup', 'quick theme "This repo" assigns Pixel Paradise to actions/checkout and applies it live');
     await popup.click('.switch span');
     await waitInactive(gh);
     c.check(!(await L.themeState(gh)).active, 'Popup', 'popup toggle disables RepoVibe on the live page');
     await popup.click('.switch span');
-    await waitTheme(gh, T.synth.surface);
-    c.check(themed(await L.themeState(gh), T.synth), 'Popup', 'popup toggle re-enables RepoVibe');
+    await waitTheme(gh, T.pixel.surface);
+    c.check(themed(await L.themeState(gh), T.pixel), 'Popup', 'popup toggle re-enables RepoVibe');
     await popup.close();
 
     await setConfig(context, { enabled: true, defaultThemeId: 'native', repoAssignments: { [A.toLowerCase()]: T.cyber.id, [B.toLowerCase()]: T.synth.id } });
     await gh.reload(); await L.settle(gh);
     c.check(themed(await L.themeState(gh), T.cyber), A, 'per-repository theme (Cyberpunk) applied');
     await L.gotoLive(gh, `https://github.com/${B}`);
-    c.check(themed(await L.themeState(gh), T.synth), B, 'switching to another repository applies its own theme (Synthwave)');
+    c.check(themed(await L.themeState(gh), T.synth), B, 'switching to another repository applies its own theme (Synthwave: archived since round 3, still applied where assigned)');
     await gh.reload(); await L.settle(gh);
     c.check(themed(await L.themeState(gh), T.synth), B, 'theme persists across a full reload');
     await gh.goBack(); await L.settle(gh);
