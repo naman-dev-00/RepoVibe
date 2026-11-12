@@ -34,7 +34,7 @@ was designed for**. Verified before/after on the real-page replay: previous code
 (`docs/screenshots/rework3/curation-before|after/*-motion.jpg`, `facts.json`). Cyberpunk Neon itself keeps its rain.
 
 ## Sakura Dreams (painted, `scripts/wallpapers/sakura-paint.py`)
-* About **120 cherry trees** instead of ~18: an avenue of two rows on each side of the path receding into the distance, ~96 orchard trees spread
+* About **130 cherry trees** instead of 18: an avenue of two rows on each side of the path receding into the distance, ~90 orchard trees spread
   over the meadow on both sides (hazed by distance), and continuous blossom groves with scalloped crowns over the hills (~52 000 tiny flowers).
 * The near trees are larger and lean in so their crowns **arch over the top of the frame**; the mid trees are larger too.
 * Soft crown shade on the meadow under every tree; denser petal carpet. Every blossom is still an individual five-petal flower.
