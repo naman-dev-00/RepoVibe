@@ -55,7 +55,7 @@ test('Ocean Depths (painted from scratch): no cartoon manta/whale; the distant s
     });
     assert.ok(!f.srcs.some(x => /manta|whale/.test(x)), f.srcs.join());
     assert.ok(f.hazed >= 4, `hazed far school: ${f.hazed}`);
-    assert.ok(f.plantWind.length >= 10 && Math.min(...f.plantWind) >= 2.4, `kelp / sea fan / soft coral / seagrass sway amplitudes ${f.plantWind}`);
+    assert.ok(f.plantWind.length >= 12 && Math.min(...f.plantWind) >= 2.4, `kelp / sea fan / soft coral / seagrass sway amplitudes ${f.plantWind}`);
     for (const n of ['manta', 'whale']) assert.ok(!fs.existsSync(path.join(__dirname, '../../wallpapers/depth/ocean-kingdom', `s-${n}.webp`)), `${n} asset removed`);
     assert.deepEqual(errors, []);
   } finally { await close(); }
@@ -86,7 +86,7 @@ test('reworked worlds ship their assets: Pixel Paradise and Arctic Frost layers 
   for (const [slug, files] of [['pixel-paradise-3d', ['far', 'mid', 'near', 'front', 'rays', 's-palmA', 's-palmB', 's-cloudA', 's-cloudB', 's-gull', 's-cube', 's-crab']],
     ['arctic-frost-3d', ['far', 'mid', 'near', 'front', 'rays', 's-pineA', 's-pineB', 's-pineC', 's-fox', 's-flake']], ['neon-city-3d', ['s-ripple']],
     ['sakura-garden', ['far', 'mid', 's-treeNearL', 's-treeNearR', 's-treeMidL', 's-treeMidR', 's-sprayA', 's-sprayB', 't-clouds']],
-    ['ocean-kingdom', ['far', 's-kelpL1', 's-kelpR1', 's-fanL', 's-fanR', 's-softL', 's-grassA', 't-caustic', 't-mask-sand']]])
+    ['ocean-kingdom', ['far', 's-kelpL1', 's-kelpR1', 's-fanL', 's-fanR', 's-softL', 's-anemL', 't-caustic', 't-mask-sand']]])
     for (const f of files) assert.ok(fs.existsSync(path.join(D, slug, `${f}.webp`)), `${slug}/${f}.webp`);
   for (const f of ['s-crystal', 's-shard']) assert.ok(!fs.existsSync(path.join(D, 'arctic-frost-3d', `${f}.webp`)));
   assert.ok(!fs.readdirSync(path.join(D, 'ocean-kingdom')).some(f => f.startsWith('s-coral')), 'reference-plate coral cut-outs removed');

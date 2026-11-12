@@ -200,7 +200,7 @@ def seagrass(size, seed):
         x = w / 2 + (r.random() - 0.5) * w * 0.5; a = math.pi / 2 + (r.random() - 0.5) * 0.6; L = size * (0.5 + 0.5 * r.random())
         pts = [(x, h - 2)]; xx, yy = x, h - 2
         for k in range(8): a += (r.random() - 0.4) * 0.08 * (1 if x > w / 2 else -1); xx += math.cos(a) * L / 8; yy -= math.sin(a) * L / 8; pts.append((xx, yy))
-        tapered(d, pts, size * 0.03, size * 0.006, tuple(int(v * 255) for v in hexc('#5a9a4a') * (0.7 + 0.5 * r.random())) + (255,))
+        tapered(d, pts, size * 0.03, size * 0.006, tuple(int(v * 255) for v in hexc('#4f9a7a') * (0.65 + 0.45 * r.random())) + (255,))
     return finish(img)
 
 def brain(r_, seed, col=hexc('#c8a85a')):
@@ -288,6 +288,8 @@ def main():
         pc = pc * (0.75 + 0.35 * noise2(W, H, 4, seed + 8, 2)[..., None])
         rc = rc * (1 - pz[..., None]) + pc * (0.6 + 0.5 * lit[..., None]) * pz[..., None]
         rc = haze_mix(rc, hz, yy)
+        sh = np.clip(blur(np.roll(m, 14, 0), 10) - m, 0, 1) * fm * 0.45                     # soft contact shadow on the sand below each rock
+        col = col * (1 - sh[..., None]) + hexc('#0f3a52') * sh[..., None]
         col = col * (1 - m[..., None]) + rc * m[..., None]; rockm = np.maximum(rockm, m)
     # baked coral garden on the rocks (static; the swaying plants are sprites)
     corals = []
@@ -308,8 +310,9 @@ def main():
     for ytop, x, o, depth in sorted(corals, key=lambda c: c[0]):
         comp(col, o, x, ytop + o.shape[0] * 0.15, depth)
     # sand-floor seagrass tufts (baked, distant)
-    for i in range(70):
+    for i in range(160):
         x = rr.random() * W * 0.62 + W * 0.19; y = (0.73 + 0.1 * rr.random()) * H
+        if rockm[int(min(y, H - 1)), int(x)] > 0.05 or rockm[int(max(y - 40, 0)), int(x)] > 0.05: continue   # seagrass grows in the sand, never on the rocks
         comp(col, sprite_crop(seagrass(30 + 40 * rr.random(), 200 + i)), x, y, 0.35)
     # vignette baked in
     vig = np.clip(((X - 0.5) ** 2 * 1.5 + (Y - 0.5) ** 2 * 1.8) - 0.12, 0, 1) ** 1.2 * 0.55
@@ -325,8 +328,6 @@ def main():
         ('fanL', seafan(420, 480, hexc('#7a2a8a'), hexc('#e48ad8'), 5), 560, 1150, 0.86, 2.4, 5.4),
         ('fanR', seafan(380, 440, hexc('#a3324a'), hexc('#ffa0a0'), 6), 1980, 1130, 0.86, 2.6, 5.0),
         ('fanR2', seafan(300, 340, hexc('#5a3a9a'), hexc('#c8a8ff'), 14), 2160, 1240, 0.86, 3.0, 4.6),
-        ('grassC', seagrass(130, 15), 1050, 1160, 0.86, 4.4, 3.7), ('grassA', seagrass(160, 9), 1180, 1110, 0.86, 4.2, 3.8),
-        ('grassB', seagrass(140, 10), 1420, 1120, 0.86, 4.6, 3.6), ('grassD', seagrass(150, 16), 1530, 1170, 0.86, 4.0, 3.9),
         ('softL', softcoral(260, hexc('#c45ab8'), 7), 760, 1290, 1.28, 3.4, 4.6), ('softR', softcoral(240, hexc('#e0708a'), 8), 1820, 1300, 1.28, 3.6, 4.4),
         ('softL2', softcoral(200, hexc('#e08a4a'), 17), 900, 1390, 1.28, 3.8, 4.2), ('softR2', softcoral(210, hexc('#8a6ad8'), 18), 1680, 1395, 1.28, 3.9, 4.0),
         ('anemL', anemone(220, hexc('#d9708a'), hexc('#fff0c8'), 19), 1010, 1440, 1.28, 4.0, 3.4), ('anemR', anemone(200, hexc('#e8a050'), hexc('#fff6d0'), 20), 1560, 1440, 1.28, 4.2, 3.2),
@@ -352,7 +353,7 @@ def main():
     sizes['rays'] = save(Image.fromarray(to8(np.concatenate([np.stack([np.full_like(rays, 0.95), np.full_like(rays, 1.0), np.full_like(rays, 0.9)], -1), np.clip(rays * 0.6, 0, 0.62)[..., None]], -1)), 'RGBA'), 'rays.webp', 80)
     for n in ('mid', 'near', 'front'): sizes[n] = save(Image.new('RGBA', (16, 9), (0, 0, 0, 0)), f'{n}.webp', 80)
     for f in os.listdir(OUT):       # drop the old reference-plate coral cut-outs
-        if f.startswith('s-coral'): os.remove(os.path.join(OUT, f))
+        if f.startswith('s-coral') or f.startswith('s-grass'): os.remove(os.path.join(OUT, f))   # old cut-outs / removed seagrass sprites
     fl = Image.fromarray(to8(flat)); fl.save(os.path.join(ROOT, 'wallpapers/ocean-kingdom.webp'), 'WEBP', quality=90, method=6)
     fl.resize((480, 270), Image.LANCZOS).save(os.path.join(ROOT, 'wallpapers/thumbs/ocean-kingdom.webp'), 'WEBP', quality=82, method=6)
     p = os.path.join(ROOT, 'shared/worlds.js'); s = open(p).read(); b, e = '/*REF-OCEAN-BEGIN*/', '/*REF-OCEAN-END*/'
