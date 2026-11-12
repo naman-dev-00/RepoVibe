@@ -93,7 +93,7 @@ test('reworked worlds ship their assets: Pixel Paradise and Arctic Frost layers 
 });
 
 test('Lite / Auto on a slow machine: weather never freezes — rain, snow and petals keep falling, ripples run, plants sway, swimmers swim', async () => {
-  for (const [id, label, must] of [['preset-1', 'cyberpunk', ['repv-rain', 'repv-ripple']], ['preset-12', 'arctic', ['repv-tile']], ['preset-3', 'sakura', ['repv-tile', 'repv-gust-r']], ['preset-7', 'ocean', ['repv-cross', 'repv-gust-r']]]) {
+  for (const [id, label, must] of [['preset-1', 'cyberpunk', ['repv-rain', 'repv-ripple']], ['preset-12', 'arctic', ['repv-tile']], ['preset-3', 'sakura', ['repv-tile', 'repv-gust-r']], ['preset-7', 'ocean', ['repv-cross-rev', 'repv-gust-r']]]) {
     const { context, errors, close } = await launch({ colorScheme: 'dark' });
     try {
       context.setDefaultTimeout(30000);
