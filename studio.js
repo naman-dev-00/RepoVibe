@@ -153,7 +153,7 @@
   }
   function paintWallpapers() {
     const grid = $('wallpaperGrid');
-    const tiles = C.WALLPAPERS.map(w => wallpaperTile(w.ref, w.name, w.thumb, w.style === '3d' ? 'is-3d' : ''));
+    const tiles = C.pickerWallpapers(draft.wallpaperRef).map(w => wallpaperTile(w.ref, C.wallpaperArchived(w.slug) ? `${w.name} (archived, still in use)` : w.name, w.thumb, w.style === '3d' ? 'is-3d' : ''));
     for (const u of uploaded) tiles.push(wallpaperTile(`idb:${u.id}`, u.name || 'My upload', objectUrls.get(u.id), 'uploaded'));
     if (/^idb:/.test(draft.wallpaperRef) && !uploaded.some(u => `idb:${u.id}` === draft.wallpaperRef)) tiles.push(wallpaperTile(draft.wallpaperRef, 'Missing wallpaper', '', 'uploaded'));
     grid.replaceChildren(...tiles);

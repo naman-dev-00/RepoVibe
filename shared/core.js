@@ -56,6 +56,7 @@
   const THEME_STATUSES = ['approved', 'experimental', 'archived'];
   // id → 'approved' | 'archived' (shared/theme-review.js, owner-maintained); every built-in not listed there is 'experimental'
   const THEME_REVIEW = Object.freeze({ ...(root.RepoVibeThemeReview || {}) });
+  const WALLPAPER_REVIEW = Object.freeze({ ...(root.RepoVibeWallpaperReview || {}) });
   // The six quick picks shown in the popup until enough themes are approved (approved themes take these slots first).
   const FEATURED_FALLBACK = ['preset-1', 'preset-8', 'preset-19', 'preset-15', 'preset-9', 'preset-20'];
   // The eight additional immersive worlds (layered 2.5D scenes with their own autonomous motion), on existing preset ids.
@@ -388,6 +389,9 @@
   }
   function themeStatus(id) { const s = THEME_REVIEW[id]; return THEME_STATUSES.includes(s) ? s : (PRESETS.some(p => p.id === id) ? 'experimental' : 'custom'); }
   /** Gallery groups. `inUseArchived` lists archived themes still referenced by a saved assignment, so they stay reachable. */
+  /** Backgrounds the Studio picker offers: archived ones are hidden unless the theme being edited already uses it (never silently lost). */
+  function wallpaperArchived(slug) { return WALLPAPER_REVIEW[slug] === 'archived'; }
+  function pickerWallpapers(selectedRef) { return WALLPAPERS.filter(w => !wallpaperArchived(w.slug) || w.ref === selectedRef); }
   function themeCollection(config) {
     const used = new Set([config?.defaultThemeId, ...Object.values(config?.repoAssignments || {}), ...Object.values(config?.ownerAssignments || {}), ...Object.values(config?.autoAssignments || {})]);
     const by = s => PRESETS.filter(p => themeStatus(p.id) === s);
@@ -399,8 +403,12 @@
     return ids.slice(0, 6).map(id => PRESETS.find(p => p.id === id));
   }
   /** Effective live-wallpaper motion: 'none' | theme motion, at 'ambient' or 'cinematic' intensity. */
+  // Each live ambience layer was designed for one artwork (rain for the neon canal, fireflies for the forest...). A theme customised onto
+  // another background keeps its colours but not that layer — no rain falling over Alpine Lake or Synthwave Valley.
+  const MOTION_HOME = { rain: 'builtin:neon-city-3d', fireflies: 'builtin:enchanted-forest', stars: 'builtin:cosmic-galaxy', holo: 'builtin:scifi-ai' };
   function motionFor(theme, config, reducedMotion) {
     if (!theme || reducedMotion || config.motionMode === 'static' || !theme.motion || theme.motion === 'none') return { kind: 'none', mode: 'static' };
+    if (MOTION_HOME[theme.motion] && theme.wallpaperRef !== MOTION_HOME[theme.motion]) return { kind: 'none', mode: 'static' };
     return { kind: theme.motion, mode: config.motionMode };
   }
   root.RepoVibeCore = Object.freeze({
@@ -409,6 +417,6 @@
     MOTIONS, MOTION_MODES, FLAGSHIP_MOTION, WORLD_PRESETS, DEFAULT_REPO_MAPPINGS, seedDefaultMappings, motionFor,
     safeWallpaperRef, fnv1a, pickAutoTheme, requiredGlass, wallpaperTone, panelOpacity, normalizeConfig, normalizeTheme, safeWallpaper,
     repositoryFromUrl, themeById, themeResolution, loadConfig, saveConfig, updateConfig, themeUsage, assignTheme, isPreset,
-    contrastRatio, isLightColor, THEME_STATUSES, themeStatus, themeCollection, featuredThemes
+    contrastRatio, isLightColor, THEME_STATUSES, themeStatus, wallpaperArchived, pickerWallpapers, themeCollection, featuredThemes
   });
 })(globalThis);

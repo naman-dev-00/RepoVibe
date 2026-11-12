@@ -8,6 +8,16 @@ globalThis.RepoVibeThemeReview = {
   // 2026-11-11, owner's review: approved for the main curated gallery
   'preset-8': 'approved',  // Enchanted Forest
   'preset-19': 'approved', // Cosmic Galaxy
-  'preset-15': 'approved'  // Futuristic Sci-Fi
-  // Rework requested (stay experimental, not archived): Cyberpunk Neon, Sakura Dreams, Ocean Depths, Pixel Paradise, Arctic Frost.
+  'preset-15': 'approved', // Futuristic Sci-Fi
+  // 2026-11-12, owner's review (round 3)
+  'preset-10': 'approved', // Pixel Paradise
+  'preset-12': 'approved', // Arctic Frost
+  'preset-20': 'archived'  // Synthwave (owner keeps only the "Synthwave valley" background; existing assignments keep working)
+  // Still experimental (rework requested): Sakura Dreams, Ocean Depths.
+};
+/* Background (wallpaper) curation, same rules: 'archived' hides a background from the Studio's picker; any theme that already uses it keeps it. */
+globalThis.RepoVibeWallpaperReview = {
+  // 2026-11-12, owner's review: removed from the visible collection
+  'pixel-island': 'archived', 'galaxy-planet': 'archived', 'neon-rain-street': 'archived', 'alien-world': 'archived',
+  'synthwave-grid': 'archived', 'synthwave-highway': 'archived' // Synthwave variants other than "Synthwave valley"
 };

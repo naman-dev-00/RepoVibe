@@ -119,3 +119,39 @@ test('Lite / Auto on a slow machine: weather never freezes — rain, snow and pe
     } finally { await close(); }
   }
 });
+
+test('round 3 curation: no rain over Alpine Lake or Synthwave Valley; archived backgrounds leave the Studio picker; saved Synthwave assignment still works', async () => {
+  const { context, errors, close } = await launch({ colorScheme: 'dark' });
+  try {
+    context.setDefaultTimeout(30000);
+    const base = { id: 'custom-rain', name: 'Neon over the lake', description: 'x', bg: '#100c25', surface: '#1b1538', surfaceAlt: '#292044', text: '#f3edff', muted: '#c4bbe3', accent: '#c6a8ff', border: '#49337e', gradientTo: '#25104c', gradientThird: '#051f31', code: '#15122a', backgroundMode: 'image', motion: 'rain', flagship: true };
+    await setConfig(context, { enabled: true, motionMode: 'ambient', defaultThemeId: 'custom-rain', repoAssignments: { 'acme/synth': 'preset-20' },
+      customThemes: { 'custom-rain': { ...base, wallpaperRef: 'builtin:alpine-lake' }, 'custom-synth': { ...base, id: 'custom-synth', wallpaperRef: 'builtin:synthwave-3d' } } });
+    const page = await context.newPage(); await page.goto('https://github.com/acme/project');
+    await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('alpine-lake'));
+    await page.waitForTimeout(300);
+    const rainy = () => page.evaluate(() => document.documentElement.className.includes('repv-motion-rain') || document.getAnimations().some(a => a.animationName === 'repv-rain'));
+    assert.equal(await rainy(), false, 'Alpine Lake: no rain');
+    await updateConfig(context, "c.defaultThemeId = 'custom-synth';");
+    await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('synthwave-3d'));
+    await page.waitForTimeout(300);
+    assert.equal(await rainy(), false, 'Synthwave Valley: no rain');
+    await updateConfig(context, "c.defaultThemeId = 'preset-1';");
+    await page.waitForFunction(() => document.documentElement.className.includes('repv-motion-rain') || !!document.querySelector('#repovibe-depth[data-scene="neon-city-3d"]'));
+    // the archived Synthwave theme still applies where it was assigned
+    await page.goto('https://github.com/acme/synth');
+    await page.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('synthwave-highway'));
+    // Studio background picker: archived backgrounds are gone, kept ones are offered
+    const studio = await extPage(context, 'studio.html'); await studio.setViewportSize({ width: 1400, height: 1000 });
+    await studio.click('.sidebar-link[data-view="background"]');
+    await studio.waitForSelector('#wallpaperGrid .wallpaper-tile');
+    const tiles = await studio.evaluate(() => [...document.querySelectorAll('#wallpaperGrid .wallpaper-tile')].map(t => [t.dataset.ref.replace('builtin:', ''), t.title]));
+    const refs = tiles.map(t => t[0]);
+    for (const gone of ['pixel-island', 'galaxy-planet', 'neon-rain-street', 'alien-world', 'synthwave-grid']) assert.ok(!refs.includes(gone), `${gone} hidden`);
+    // the Studio is editing acme/synth (Synthwave): its own archived background stays visible, labelled, so it is never silently lost
+    const hw = tiles.find(t => t[0] === 'synthwave-highway');
+    assert.ok(!hw || /archived, still in use/.test(hw[1]), `synthwave-highway only as the in-use tile: ${hw}`);
+    for (const kept of ['alpine-lake', 'synthwave-3d']) assert.ok(refs.includes(kept), `${kept} offered`);
+    assert.deepEqual(errors, []);
+  } finally { await close(); }
+});
