@@ -196,6 +196,22 @@ def tree_sprite(name, base_x, base_y, trunk_len, trunk_w, lean, depth, seed, box
             flowers.append((depthv, fx, fy, light))
     cap = 60000 if bsize >= 12 else 22000 if bsize >= 8 else 2500        # enough to fill the crown, bounded render time
     if len(flowers) > cap: flowers = [flowers[i] for i in r.choice(len(flowers), cap, replace=False)]
+    # cel-shaded crown mass: every cluster first laid down as a rounded clump (shadow tone, then a lit cap offset toward the light),
+    # so the crown reads as full rounded masses; the individual blossoms on top add the detail
+    if bsize >= 6:
+        shadow_c, lit_c = hexc('#d67aa4'), hexc('#f6b6cf')
+        yy_, xx_ = np.mgrid[0:ch, 0:cw].astype(np.float32)
+        for (cx_, cy_, crr) in clusters:
+            x0_, x1_, y0_, y1_ = max(int(cx_ - crr * 1.1), 0), min(int(cx_ + crr * 1.1), cw), max(int(cy_ - crr), 0), min(int(cy_ + crr), ch)
+            if x1_ <= x0_ or y1_ <= y0_: continue
+            ys_, xs_ = yy_[y0_:y1_, x0_:x1_], xx_[y0_:y1_, x0_:x1_]
+            d0 = ((xs_ - cx_) / (crr * 0.95)) ** 2 + ((ys_ - cy_) / (crr * 0.75)) ** 2
+            a0 = np.clip((1 - d0) * 6, 0, 1) * 0.97
+            d1 = ((xs_ - cx_ + crr * 0.18) / (crr * 0.78)) ** 2 + ((ys_ - cy_ + crr * 0.2) / (crr * 0.56)) ** 2
+            a1 = np.clip((1 - d1) * 6, 0, 1)
+            c0 = shadow_c * (1 - a1[..., None]) + lit_c * a1[..., None]
+            reg = col[y0_:y1_, x0_:x1_]; reg[:] = reg * (1 - a0[..., None]) + c0 * a0[..., None]
+            alpha[y0_:y1_, x0_:x1_] = np.maximum(alpha[y0_:y1_, x0_:x1_], a0)
     flowers.sort(key=lambda f: f[0])
     for i, (dv, fx, fy, light) in enumerate(flowers):
         d = int(np.clip(bsize * (0.7 + 0.6 * dv) * (0.85 + 0.3 * r.random()), 4, 60))
@@ -237,17 +253,43 @@ def main():
     os.makedirs(OUT, exist_ok=True); sizes = {}
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32); X, Y = xx / W, yy / H
     # ---------------- sky (far)
-    top, mid, hor = hexc('#8fa3d6'), hexc('#e8c6dc'), hexc('#ffe3d6')
-    t = np.clip(Y / 0.5, 0, 1)[..., None]
-    sky = np.where(t < 0.55, top * (1 - t / 0.55) + mid * (t / 0.55), mid * (1 - (t - 0.55) / 0.45) + hor * ((t - 0.55) / 0.45))
+    top, mid, hor = hexc('#3f7fe0'), hexc('#8fc2f4'), hexc('#ffe6ee')
+    t = np.clip(Y / 0.56, 0, 1)[..., None]
+    sky = np.where(t < 0.5, top * (1 - t / 0.5) + mid * (t / 0.5), mid * (1 - (t - 0.5) / 0.5) + hor * ((t - 0.5) / 0.5))
+    # anime cumulus: big rounded towers with flat bases, two-tone cel shading (white lit tops, lavender-blue shade), crisp edges
+    cr = np.random.default_rng(91)
+    for (cx, cy, sc) in ((0.16, 0.2, 1.0), (0.42, 0.13, 0.75), (0.8, 0.22, 1.15), (0.62, 0.31, 0.55), (0.03, 0.36, 0.6), (0.97, 0.4, 0.5)):
+        cl = np.full((H, W), 1e9, np.float32); topd = np.full((H, W), 1e9, np.float32)
+        for k in range(14):
+            bx = cx + (cr.random() - 0.5) * 0.2 * sc; by = cy - cr.random() * 0.1 * sc; r_ = (0.035 + 0.05 * cr.random()) * sc
+            d = np.hypot((X - bx) * 1.78, Y - by) - r_
+            cl = np.minimum(cl, d)
+            topd = np.minimum(topd, np.hypot((X - bx + 0.012 * sc) * 1.78, Y - by + 0.018 * sc) - r_ * 0.86)
+        base = cy + 0.03 * sc
+        inside = (cl < 0) & (Y < base)
+        lit = (topd < 0) & inside
+        ccol = np.where(lit[..., None], hexc('#ffffff'), np.where((Y > base - 0.025 * sc)[..., None], hexc('#b7b8e6'), hexc('#dfe3f8')))
+        edge = blur(inside.astype(np.float32), 0.8)
+        sky = sky * (1 - edge[..., None]) + ccol * edge[..., None]
     sun = np.exp(-(((X - 0.5) * 1.78) ** 2 + (Y - 0.36) ** 2) / 0.0025)[..., None]; glow = np.exp(-(((X - 0.5) * 1.78) ** 2 + (Y - 0.36) ** 2) / 0.05)[..., None]
-    sky = sky + hexc('#fff6e6') * sun * 0.45 + hexc('#ffd9c8') * glow * 0.22
+    sky = sky + hexc('#fff6e6') * sun * 0.25 + hexc('#ffe1d8') * glow * 0.18
     sky = np.clip(sky + (noise2(W, H, 400, 3, 3)[..., None] - 0.5) * 0.015, 0, 1)
     sizes['far'] = save(Image.fromarray(to8(sky)), 'far.webp', 90)
     # ---------------- mid: mountains, groves, meadow, path
     col = sky.copy(); alpha = np.zeros((H, W), np.float32)
     x1d = np.linspace(0, 1, W, dtype=np.float32)
-    ranges = [(0.44, 0.17, 5, hexc('#b9b2d6'), 0.62), (0.5, 0.13, 9, hexc('#9a8fbf'), 0.42), (0.55, 0.09, 13, hexc('#7d6e9e'), 0.25)]
+    # the iconic peak at the end of the road: a broad volcano cone, snow cap with ragged lower edge, lit left face / shaded right face
+    peak_h = 0.3 * H; px0 = 0.5 * W; base_y = 0.56 * H
+    cone = base_y - peak_h * np.clip(1 - np.abs(xx - px0) / (0.5 * W), 0, 1) ** 1.9 + 0.012 * H * noise2(W, 1, 30, 71, 3)[0][None, :]
+    cone = np.maximum(cone, base_y - peak_h * 0.94)               # flat crater rim (never higher than the rim)
+    cm = blur(((yy >= cone) & (cone < base_y - 2)).astype(np.float32), 0.9) * (yy < base_y + 0.04 * H)
+    snowline = base_y - peak_h * (0.5 + 0.08 * np.sin(xx / 37) + 0.05 * noise2(W, H, 25, 72, 3))
+    left = xx < px0 + 0.02 * W * np.sin(yy / 50)
+    mc = np.where((yy < snowline)[..., None], np.where(left[..., None], hexc('#ffffff'), hexc('#c9cdf0')), np.where(left[..., None], hexc('#8c9ad8'), hexc('#6f78bc')))
+    hk = (0.15 + 0.35 * np.clip((yy - cone) / (0.25 * H), 0, 1))[..., None]          # aerial haze, stronger toward the foot
+    mc = mc * (1 - hk) + hexc('#e6ecfb') * hk
+    col = col * (1 - cm[..., None]) + mc * cm[..., None]; alpha = np.maximum(alpha, cm)
+    ranges = [(0.53, 0.09, 9, hexc('#9aa6dc'), 0.45), (0.565, 0.06, 13, hexc('#8a8fcf'), 0.3)]
     for base, amp, seed, c, haze in ranges:
         top = ridge(x1d, base, amp, seed) * H
         m = blur((yy >= top[None, :]).astype(np.float32), 1.0)
@@ -266,7 +308,7 @@ def main():
     hills = ridge(x1d, horizon, 0.05, 21, 2.0) * H
     hm = (yy >= hills[None, :]).astype(np.float32)
     ground_t = np.clip((Y - horizon) / (1 - horizon), 0, 1)
-    grass = (hexc('#a9bd7e') * (1 - ground_t[..., None]) + hexc('#6f9a4e') * ground_t[..., None]) * (0.85 + 0.2 * noise2(W, H, 12, 45, 3)[..., None]) * 0.72 + hexc('#f0c4d4') * 0.28
+    grass = (hexc('#9fd27a') * (1 - ground_t[..., None]) + hexc('#5fae5a') * ground_t[..., None]) * (0.9 + 0.12 * noise2(W, H, 12, 45, 3)[..., None]) * 0.8 + hexc('#f6cede') * 0.2
     col = col * (1 - hm[..., None]) + grass * hm[..., None]; alpha = np.maximum(alpha, hm)
     # distant groves: pink masses made of tiny individual blossoms along the hills
     # round grove crowns along the hills (scalloped tops), almost continuous: the valley reads as a forest in bloom
@@ -280,9 +322,19 @@ def main():
     # the path: converges to the vanishing point between the trees
     vp = (0.5 * W, horizon * H + 10)
     halfw = lambda y: (y - vp[1]) / (H - vp[1]) * 0.26 * W + 6
-    pm = ((yy > vp[1]) & (np.abs(xx - vp[0] - (yy - vp[1]) * 0.08 * np.sin((yy - vp[1]) / 260)) < halfw(yy))).astype(np.float32)
-    pm = blur(pm, 1.2)
-    stone = hexc('#d9b8b4') * (0.9 + 0.12 * noise2(W, H, 14, 41, 3)[..., None])
+    # a straight stone-paved road to the vanishing point (no bends): paving rows in perspective, staggered joints, lighter curbs
+    hw = halfw(np.maximum(yy, vp[1] + 1))
+    rel = (xx - vp[0]) / hw                                              # -1..1 across the road
+    pm = blur(((yy > vp[1]) & (np.abs(rel) < 1)).astype(np.float32), 0.8)
+    depth = (H - vp[1]) / np.maximum(yy - vp[1], 1)                       # ∝ distance along the road
+    row = np.floor(depth * 9); rowf = depth * 9 - row
+    colj = np.abs(((rel * 3.5 + (row % 2) * 0.5) % 1) - 0.5) * 2         # 1 at stone centres, 0 at joints
+    joint = (rowf < 0.06) | (colj > 0.94)
+    tone = 0.88 + 0.1 * (np.sin(row * 12.9898 + np.floor(rel * 3.5 + (row % 2) * 0.5) * 78.233) * 0.5 + 0.5)
+    stone = hexc('#efd6d8') * tone[..., None]
+    stone = np.where(joint[..., None], hexc('#c8a7b2'), stone)
+    curb = (np.abs(rel) > 0.93) & (np.abs(rel) < 1)
+    stone = np.where(curb[..., None], hexc('#fbf0f2'), stone)
     col = col * (1 - pm[..., None]) + stone * pm[..., None]
     # fallen petals on the meadow and path: thousands of small flattened petals, larger toward the viewer
     pr = np.random.default_rng(51)

@@ -433,7 +433,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     'cosmic-galaxy': { pfar: [glowTile(53, 600, 600, 70, ['#eef2ff', '#cfd8ff', '#fff4e0'], 0.9, 2.2), '600px 600px'], pmid: [glowTile(57, 820, 820, 36, ['#d8ccff', '#bfe0ff'], 1.4, 3), '820px 820px'],
       pnear: [bokehTile(59, 1500, 1000, 4, ['#c9b8ff', '#9fd0ff']), '1500px 1000px'], mist: 'radial-gradient(45% 32% at 20% 30%, rgba(150,80,255,.14), transparent 70%), radial-gradient(40% 30% at 82% 72%, rgba(60,140,255,.12), transparent 70%)' },
     // drizzle, not a downpour: few, short, hairline streaks that fall gently — the same light rain whose drops ring the canal below
-    'neon-city-3d': { pfar: [rainTile(61, 26, 0.32, 0.45, 0.6), '200px 200px'], pmid: [rainTile(67, 14, 0.55, 0.6, 0.75), '400px 400px'],
+    'neon-city-3d': { pfar: [rainTile(61, 46, 0.6, 0.5, 0.75), '200px 200px'], pmid: [rainTile(67, 24, 0.95, 0.62, 0.95), '400px 400px'],
       pnear: [bokehTile(71, 1400, 900, 7, ['#ff4fd8', '#4fe3ff', '#b48cff']), '1400px 900px'], mist: 'radial-gradient(60% 20% at 50% 88%, rgba(150,170,255,.16), transparent 70%), radial-gradient(40% 24% at 15% 40%, rgba(255,60,200,.14), transparent 70%), radial-gradient(35% 22% at 85% 40%, rgba(60,200,255,.12), transparent 70%)' },
     'scifi-ai': { pfar: [glowTile(73, 640, 480, 26, ['#7fdcff', '#c8f2ff'], 1, 2.4), '640px 480px'], pmid: [glowTile(79, 900, 640, 12, ['#5fd0ff', '#ffffff'], 2, 4), '900px 640px'],
       pnear: [bokehTile(83, 1400, 900, 5, ['#9fe6ff', '#ffffff']), '1400px 900px'], mist: 'radial-gradient(60% 24% at 50% 80%, rgba(160,225,255,.20), transparent 70%)' }
@@ -486,26 +486,26 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
       { n: 'dr2', src: 'drone', plane: 'scene', k: 0.8, x: 50, y: 30, w: 5, crossRev: 27, rot: 0, flip: 1 },
       // drizzle drop rings on the canal: each drop lands once every 7–10 s (ring spreads and fades in the first ~third of its cycle, then the water is calm
       // there until the next drop), periods differ so drops never land in step — about two small rings at a time across the scene, matching the light drizzle
-      { n: 'rp1', src: 'ripple', plane: 'scene', k: 0.3, x: 50, y: 45.5, w: 0.9, dur: 7.8, delay: 0.0, fx: 'ripple' },
-      { n: 'rp2', src: 'ripple', plane: 'scene', k: 0.3, x: 46, y: 47, w: 1.3, dur: 8.9, delay: -3.2, fx: 'ripple' },
-      { n: 'rp3', src: 'ripple', plane: 'scene', k: 0.3, x: 55, y: 48, w: 1.5, dur: 7.0, delay: -1.2, fx: 'ripple' },
-      { n: 'rp4', src: 'ripple', plane: 'scene', k: 0.3, x: 41, y: 50, w: 1.9, dur: 8.4, delay: -5.8, fx: 'ripple' },
-      { n: 'rp5', src: 'ripple', plane: 'scene', k: 0.3, x: 52, y: 51, w: 2.2, dur: 9.7, delay: -4.6, fx: 'ripple' },
-      { n: 'rp6', src: 'ripple', plane: 'scene', k: 0.3, x: 60, y: 50.5, w: 2.1, dur: 7.3, delay: -2.3, fx: 'ripple' },
-      { n: 'rp7', src: 'ripple', plane: 'scene', k: 0.3, x: 36, y: 53, w: 2.6, dur: 9.2, delay: -7.0, fx: 'ripple' },
-      { n: 'rp8', src: 'ripple', plane: 'scene', k: 0.3, x: 47, y: 54, w: 2.8, dur: 7.6, delay: -0.6, fx: 'ripple' },
-      { n: 'rp9', src: 'ripple', plane: 'scene', k: 0.3, x: 65, y: 54, w: 2.8, dur: 8.6, delay: -5.5, fx: 'ripple' },
-      { n: 'rp10', src: 'ripple', plane: 'scene', k: 0.3, x: 56, y: 56, w: 3.2, dur: 10.0, delay: -3.8, fx: 'ripple' },
-      { n: 'rp11', src: 'ripple', plane: 'scene', k: 0.3, x: 30, y: 57, w: 3.5, dur: 7.8, delay: -8.4, fx: 'ripple' },
-      { n: 'rp12', src: 'ripple', plane: 'scene', k: 0.3, x: 71, y: 58, w: 3.7, dur: 9.5, delay: -1.7, fx: 'ripple' },
-      { n: 'rp13', src: 'ripple', plane: 'scene', k: 0.3, x: 5, y: 82, w: 6.5, dur: 8.9, delay: -4.3, fx: 'ripple' },
-      { n: 'rp14', src: 'ripple', plane: 'scene', k: 0.3, x: 9, y: 92, w: 6.5, dur: 7.6, delay: -6.4, fx: 'ripple' },
-      { n: 'rp15', src: 'ripple', plane: 'scene', k: 0.3, x: 3, y: 97, w: 6.5, dur: 9.7, delay: -2.6, fx: 'ripple' },
-      { n: 'rp16', src: 'ripple', plane: 'scene', k: 0.3, x: 93, y: 86, w: 6.5, dur: 8.4, delay: -7.5, fx: 'ripple' },
-      { n: 'rp17', src: 'ripple', plane: 'scene', k: 0.3, x: 97, y: 95, w: 6.5, dur: 7.8, delay: -0.9, fx: 'ripple' },
-      { n: 'rp18', src: 'ripple', plane: 'scene', k: 0.3, x: 90, y: 98, w: 6.5, dur: 9.2, delay: -5.2, fx: 'ripple' },
-      { n: 'rp19', src: 'ripple', plane: 'scene', k: 0.3, x: 42, y: 70, w: 6.3, dur: 8.1, delay: -2.9, fx: 'ripple' },
-      { n: 'rp20', src: 'ripple', plane: 'scene', k: 0.3, x: 58, y: 76, w: 6.5, dur: 8.9, delay: -6.1, fx: 'ripple' },
+      { n: 'rp1', src: 'ripple', plane: 'scene', k: 0.3, x: 50, y: 45.5, w: 1.3, dur: 7.8, delay: 0.0, fx: 'ripple' },
+      { n: 'rp2', src: 'ripple', plane: 'scene', k: 0.3, x: 46, y: 47, w: 1.9, dur: 8.9, delay: -3.2, fx: 'ripple' },
+      { n: 'rp3', src: 'ripple', plane: 'scene', k: 0.3, x: 55, y: 48, w: 2.2, dur: 7.0, delay: -1.2, fx: 'ripple' },
+      { n: 'rp4', src: 'ripple', plane: 'scene', k: 0.3, x: 41, y: 50, w: 2.8, dur: 8.4, delay: -5.8, fx: 'ripple' },
+      { n: 'rp5', src: 'ripple', plane: 'scene', k: 0.3, x: 52, y: 51, w: 3.2, dur: 9.7, delay: -4.6, fx: 'ripple' },
+      { n: 'rp6', src: 'ripple', plane: 'scene', k: 0.3, x: 60, y: 50.5, w: 3.1, dur: 7.3, delay: -2.3, fx: 'ripple' },
+      { n: 'rp7', src: 'ripple', plane: 'scene', k: 0.3, x: 36, y: 53, w: 3.8, dur: 9.2, delay: -7.0, fx: 'ripple' },
+      { n: 'rp8', src: 'ripple', plane: 'scene', k: 0.3, x: 47, y: 54, w: 4.1, dur: 7.6, delay: -0.6, fx: 'ripple' },
+      { n: 'rp9', src: 'ripple', plane: 'scene', k: 0.3, x: 65, y: 54, w: 4.1, dur: 8.6, delay: -5.5, fx: 'ripple' },
+      { n: 'rp10', src: 'ripple', plane: 'scene', k: 0.3, x: 56, y: 56, w: 4.7, dur: 10.0, delay: -3.8, fx: 'ripple' },
+      { n: 'rp11', src: 'ripple', plane: 'scene', k: 0.3, x: 30, y: 57, w: 5.1, dur: 7.8, delay: -8.4, fx: 'ripple' },
+      { n: 'rp12', src: 'ripple', plane: 'scene', k: 0.3, x: 71, y: 58, w: 5.4, dur: 9.5, delay: -1.7, fx: 'ripple' },
+      { n: 'rp13', src: 'ripple', plane: 'scene', k: 0.3, x: 5, y: 82, w: 9.5, dur: 8.9, delay: -4.3, fx: 'ripple' },
+      { n: 'rp14', src: 'ripple', plane: 'scene', k: 0.3, x: 9, y: 92, w: 9.5, dur: 7.6, delay: -6.4, fx: 'ripple' },
+      { n: 'rp15', src: 'ripple', plane: 'scene', k: 0.3, x: 3, y: 97, w: 9.5, dur: 9.7, delay: -2.6, fx: 'ripple' },
+      { n: 'rp16', src: 'ripple', plane: 'scene', k: 0.3, x: 93, y: 86, w: 9.5, dur: 8.4, delay: -7.5, fx: 'ripple' },
+      { n: 'rp17', src: 'ripple', plane: 'scene', k: 0.3, x: 97, y: 95, w: 9.5, dur: 7.8, delay: -0.9, fx: 'ripple' },
+      { n: 'rp18', src: 'ripple', plane: 'scene', k: 0.3, x: 90, y: 98, w: 9.5, dur: 9.2, delay: -5.2, fx: 'ripple' },
+      { n: 'rp19', src: 'ripple', plane: 'scene', k: 0.3, x: 42, y: 70, w: 9.2, dur: 8.1, delay: -2.9, fx: 'ripple' },
+      { n: 'rp20', src: 'ripple', plane: 'scene', k: 0.3, x: 58, y: 76, w: 9.5, dur: 8.9, delay: -6.1, fx: 'ripple' },
       { n: 'holo', plane: 'scene', k: 0.72, x: 72, y: 32, w: 13, dx: 8, dy: -5, rot: 0, dur: 12, fx: 'flicker' },
       { n: 'signA', plane: 'pop', at: 'band', x: 0.035, y: 0.5, h: 1.05, k: 2.6, dx: 5, dy: 2, rot: 0.8, dur: 6, fx: 'flicker' },
       { n: 'signB', plane: 'pop', at: 'band', x: 0.9, y: 0.45, h: 0.62, k: 2.3, dx: -6, dy: 2, rot: -0.6, dur: 7, fx: 'flicker' },
@@ -851,7 +851,7 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
  #repovibe-depth .repv-s > img[data-fx="ripple"] { animation:repv-ripple var(--dur, 8s) linear infinite; }
 }
 #repovibe-depth .repv-s > img[data-fx="ripple"] { opacity:.28; scale:.6; } /* at rest (Static, reduced motion): faint frozen rings */
-@keyframes repv-ripple { 0% { scale:.06; opacity:0; } 1.5% { opacity:.95; } 18% { opacity:.7; } 34% { scale:1; opacity:0; } 100% { scale:1; opacity:0; } } /* a drizzle drop: quick ring, then calm water until the next drop */
+@keyframes repv-ripple { 0% { scale:.06; opacity:0; } 1.5% { opacity:1; } 22% { opacity:.8; } 38% { scale:1; opacity:0; } 100% { scale:1; opacity:0; } } /* a drizzle drop: quick ring, then calm water until the next drop */
 #repovibe-depth .repv-s:has(> img[data-fall]) { top:0 !important; }
 #repovibe-depth .repv-s:has(> img[data-rise]) { top:0 !important; }
 html.repv-depth-static #repovibe-depth .repv-s:has(> img:is([data-fall], [data-rise], [data-approach])), html.repv-depth-still #repovibe-depth .repv-s:has(> img:is([data-fall], [data-rise], [data-approach])) { top:var(--sy, 40%) !important; } /* at rest: a leaf lies in the scene instead of hiding above it */

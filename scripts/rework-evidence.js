@@ -10,7 +10,7 @@ const fs = require('node:fs'), path = require('node:path');
 const { launch, extPage, setConfig, visualContrast } = require('../tests/e2e/helpers');
 const R = require('../tests/e2e/real-snapshot');
 const ROUND = process.env.ROUND || '2';
-const DIRS = { 1: ['rework', 'rework/before', 'Before (e98753f)'], 2: ['rework2', 'rework/after', 'Before (3a8945c, round 1)'], 3: ['rework3', 'rework2/after', 'Before (07a4a06, round 2)'] }[ROUND];
+const DIRS = { 1: ['rework', 'rework/before', 'Before (e98753f)'], 2: ['rework2', 'rework/after', 'Before (3a8945c, round 1)'], 3: ['rework3', 'rework2/after', 'Before (07a4a06, round 2)'], 4: ['rework4', 'rework3/after', 'Before (0787fca, round 3)'] }[ROUND];
 const ROOT = path.join(__dirname, '..'), OUT = path.join(ROOT, 'docs/screenshots', DIRS[0]), VIDS = path.join(ROOT, 'docs/recordings', DIRS[0]);
 const BEFORE = path.join(ROOT, 'docs/screenshots', DIRS[1]), BEFORE_LABEL = DIRS[2];
 // Round 2 uses the default quality (Auto), which is what users get: on slow (software-rendered) machines it drops to Lite, where weather
@@ -54,7 +54,7 @@ async function open(context) {
       facts[name] = { ...f, textMin: +vc.min.toFixed(2), aaFails: vc.fails.length, failSummary: vc.failSummary, errors: errors.filter(e => e.includes('chrome-extension://')).length };
       const video = page.video(); await page.close();
       const sheet = await extPage(context);
-      const before = path.join(BEFORE, `${name}-github.jpg`);
+      const before = [BEFORE, path.join(ROOT, 'docs/screenshots/rework2/after')].map(d => path.join(d, `${name}-github.jpg`)).find(f => fs.existsSync(f)); // Cyberpunk was unchanged in round 3
       const b64 = p => fs.existsSync(p) ? `data:image/jpeg;base64,${fs.readFileSync(p).toString('base64')}` : '';
       // motion: fraction of scene-band pixels (outside GitHub's content column) that change by > 12/255 between consecutive frames
       const motion = await sheet.evaluate(async fr => {

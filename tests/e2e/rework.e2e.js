@@ -155,3 +155,24 @@ test('round 3 curation: no rain over Alpine Lake or Synthwave Valley; archived b
     assert.deepEqual(errors, []);
   } finally { await close(); }
 });
+
+test('Ocean Depths: turtles and fish swim forward (the way they face), never backwards; the middle rock carries no plants', async () => {
+  const { context, errors, close } = await launch({ colorScheme: 'dark' });
+  try {
+    context.setDefaultTimeout(30000);
+    await setConfig(context, { enabled: true, defaultThemeId: 'preset-7', motionMode: 'ambient', depthQuality: 'full', depthTuning: TUNE });
+    const page = await context.newPage(); await page.goto('https://github.com/acme/project/layout');
+    await page.waitForSelector('#repovibe-depth .repv-s[data-sprite="turtle"] img', { state: 'attached' });
+    // the sea-life sprites face left: every crossing swimmer must travel right → left (cross="rev") unless mirrored
+    const sw = await page.evaluate(() => [...document.querySelectorAll('#repovibe-depth .repv-s')].filter(w => /turtle|fish/.test(w.querySelector('img').src) && w.querySelector('img[data-cross]'))
+      .map(w => ({ n: w.dataset.sprite, rev: w.querySelector('img').dataset.cross === 'rev', mirrored: w.style.scale === '-1 1' })));
+    assert.ok(sw.length >= 10, `crossing swimmers: ${sw.length}`);
+    for (const s of sw) assert.equal(s.rev !== s.mirrored, true, `${s.n} must travel the way it faces`);
+    const x = () => page.evaluate(() => document.querySelector('#repovibe-depth .repv-s[data-sprite="turtle"] img').getBoundingClientRect().x);
+    const x0 = await x(); await page.waitForTimeout(1500); const x1 = await x();
+    assert.ok(x1 < x0, `turtle moves left, head first (${x0.toFixed(1)} → ${x1.toFixed(1)})`);
+    // no seagrass sprites (they grew on the middle rock); plants still sway elsewhere
+    assert.equal(await page.evaluate(() => document.querySelectorAll('#repovibe-depth .repv-s[data-sprite^="grass"]').length), 0);
+    assert.deepEqual(errors, []);
+  } finally { await close(); }
+});

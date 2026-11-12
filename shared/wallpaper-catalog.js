@@ -492,8 +492,8 @@
         "#331f28"
       ],
       "toneSoft": [
-        "#f5d9f1",
-        "#3b262f"
+        "#fdfdff",
+        "#3c272f"
       ],
       "depth": [
         "far",
@@ -521,11 +521,11 @@
       "style": "3d",
       "tone": [
         "#fdfffe",
-        "#1b3331"
+        "#1b3330"
       ],
       "toneSoft": [
         "#eafefe",
-        "#1b3835"
+        "#1b3735"
       ],
       "depth": [
         "far",
@@ -544,10 +544,6 @@
         "fanR2",
         "fishA",
         "fishB",
-        "grassA",
-        "grassB",
-        "grassC",
-        "grassD",
         "jelly",
         "kelpL1",
         "kelpL2",
