@@ -221,6 +221,14 @@ def comp(dst, dsta, rgba, box, haze=0.0, hz=None):
     dst[cy0:cy1, cx0:cx1] = dst[cy0:cy1, cx0:cx1] * (1 - a) + c * a
     if dsta is not None: dsta[cy0:cy1, cx0:cx1] = np.maximum(dsta[cy0:cy1, cx0:cx1], a[..., 0])
 
+def ground_shade(col, cx, cy, rx, ry, k=0.28):
+    """Soft shade cast by a crown onto the meadow (cool, slightly purple), elliptical, feathered."""
+    x0, x1, y0, y1 = max(int(cx - rx), 0), min(int(cx + rx), W), max(int(cy - ry), 0), min(int(cy + ry), H)
+    if x1 <= x0 or y1 <= y0: return
+    yy, xx = np.mgrid[y0:y1, x0:x1].astype(np.float32)
+    a = np.clip(1 - ((xx - cx) / rx) ** 2 - ((yy - cy) / ry) ** 2, 0, 1) ** 1.5 * k
+    col[y0:y1, x0:x1] = col[y0:y1, x0:x1] * (1 - a[..., None]) + hexc('#6a5a78') * a[..., None]
+
 def place(name, box, **kw):
     x0, y0, x1, y1 = box
     d = dict(n=name, plane='scene', x=round((x0 + x1) / 2 / W * 100, 2), y=round((y0 + y1) / 2 / H * 100, 2), w=round((x1 - x0) / W * 100, 2)); d.update(kw); return d
@@ -261,12 +269,14 @@ def main():
     grass = (hexc('#a9bd7e') * (1 - ground_t[..., None]) + hexc('#6f9a4e') * ground_t[..., None]) * (0.85 + 0.2 * noise2(W, H, 12, 45, 3)[..., None]) * 0.72 + hexc('#f0c4d4') * 0.28
     col = col * (1 - hm[..., None]) + grass * hm[..., None]; alpha = np.maximum(alpha, hm)
     # distant groves: pink masses made of tiny individual blossoms along the hills
-    grove = ((yy >= hills[None, :] - 0.06 * H * (0.5 + 0.5 * noise2(W, 1, 120, 31, 4))) & (yy < hills[None, :] + 0.03 * H)).astype(np.float32)
-    grove *= (noise2(W, H, 90, 33, 4) > 0.45)
+    # round grove crowns along the hills (scalloped tops), almost continuous: the valley reads as a forest in bloom
+    crest = hills - 0.075 * H * (0.55 + 0.45 * noise2(W, 1, 140, 31, 4)[0]) - 0.012 * H * np.abs(np.sin(np.arange(W) / 23.0 + noise2(W, 1, 60, 32, 3)[0] * 6))
+    grove = ((yy >= crest[None, :]) & (yy < hills[None, :] + 0.04 * H)).astype(np.float32)
+    grove *= (noise2(W, H, 120, 33, 4) > 0.3)
     col = col * (1 - grove[..., None] * 0.85) + hexc('#d98fb0') * grove[..., None] * 0.85; alpha = np.maximum(alpha, grove)
-    gy, gx = np.where(grove > 0.5); pick = rng.choice(len(gx), size=min(26000, len(gx)), replace=False)
+    gy, gx = np.where(grove > 0.5); pick = rng.choice(len(gx), size=min(52000, len(gx)), replace=False)
     for i in pick:
-        put_blossom(col, alpha, gx[i], gy[i], 4 + int(rng.random() * 2), float(np.clip(0.45 + 0.4 * (rng.random() - 0.3) - (gy[i] - hills[gx[i]]) / (0.05 * H) * 0.3, 0.05, 0.95)), 0.95)
+        put_blossom(col, alpha, gx[i], gy[i], 4 + int(rng.random() * 2), float(np.clip(0.45 + 0.4 * (rng.random() - 0.3) - (gy[i] - crest[gx[i]]) / (0.08 * H) * 0.45, 0.05, 0.95)), 0.95)
     # the path: converges to the vanishing point between the trees
     vp = (0.5 * W, horizon * H + 10)
     halfw = lambda y: (y - vp[1]) / (H - vp[1]) * 0.26 * W + 6
@@ -289,15 +299,32 @@ def main():
         light = 0.55 + 0.4 * pr.random()
         pc = (PALE * light + MID * (1 - light)) * (0.9 + 0.1 * persp)
         reg = col[ys0:ys0 + d, xs0:xs0 + d]; reg[:] = reg * (1 - a[..., None]) + pc * a[..., None]
-    # row of small trees along the path (baked; they do not sway at this distance)
-    for side in (-1, 1):
-        for i in range(7):
-            d_ = 1 - i / 7
-            ty = vp[1] + 18 + (H * 0.18) * d_ ** 2.2
-            tx = vp[0] + side * (halfw(ty) + 40 + 90 * d_ ** 1.6)
-            h = 40 + 170 * d_ ** 2
-            rgba, tb = tree_sprite('row', tx, ty, h * 0.42, max(2, h * 0.07), side * -0.08, 5, 100 + i * 7 + (side > 0), None, max(4, int(3 + 5 * d_)), h * 0.16, 11)
-            comp(col, alpha, rgba, tb, 0.35 * (1 - d_), hexc('#f0d6e2'))
+    # a grove of cherry trees spread over the meadow on both sides (behind the avenue), hazed with distance
+    meadow = []
+    mr = np.random.default_rng(77)
+    for i in range(96):
+        side = -1 if i % 2 else 1
+        ty = vp[1] + 14 + (H * 0.2) * mr.random() ** 1.7
+        dd = (ty - vp[1]) / (H - vp[1])
+        tx = vp[0] + side * (halfw(ty) + 160 + mr.random() * W * 0.45)
+        if tx < -80 or tx > W + 80: continue
+        meadow.append((ty, tx, 34 + 420 * dd ** 1.2, side, i))
+    for ty, tx, h, side, i in sorted(meadow):
+        dd = (ty - vp[1]) / (H - vp[1])
+        ground_shade(col, tx + h * 0.15, ty + 4, h * 0.55, h * 0.07)
+        rgba, tb = tree_sprite('meadow', tx, ty, h * 0.4, max(2, h * 0.07), side * -0.05 + (mr.random() - 0.5) * 0.12, 5, 300 + i, None, max(4, int(3 + 6 * dd)), h * 0.17, 12)
+        comp(col, alpha, rgba, tb, 0.42 * (1 - dd) ** 1.5, hexc('#f0d6e2'))
+    # the avenue: two rows of cherry trees lining the path on each side, receding to the vanishing point
+    for row in (1, 0):
+        for side in (-1, 1):
+            for i in range(11):
+                d_ = 1 - i / 11
+                ty = vp[1] + 16 + (H * 0.2) * d_ ** 2.1 + row * 6
+                tx = vp[0] + side * (halfw(ty) + 30 + (70 + 160 * row) * d_ ** 1.5 + row * 26)
+                h = (36 + 210 * d_ ** 2) * (0.9 + 0.2 * ((i * 7 + row) % 5) / 4)
+                ground_shade(col, tx - side * h * 0.15, ty + 3, h * 0.6, h * 0.07)
+                rgba, tb = tree_sprite('row', tx, ty, h * 0.42, max(2, h * 0.07), side * -0.09, 5, 100 + i * 7 + (side > 0) + row * 50, None, max(4, int(3 + 6 * d_)), h * 0.17, 12)
+                comp(col, alpha, rgba, tb, 0.34 * (1 - d_), hexc('#f0d6e2'))
     # gentle vignette baked in (no extra full-viewport layer)
     vig = np.clip(((X - 0.5) ** 2 * 1.3 + (Y - 0.5) ** 2 * 1.4) - 0.12, 0, 1) ** 1.2 * 0.35
     col = col * (1 - vig[..., None]) + hexc('#4a2a44') * vig[..., None]
@@ -306,10 +333,10 @@ def main():
     flat = sky * (1 - alpha[..., None]) + col * alpha[..., None]
     # ---------------- swaying trees
     trees = [  # name, base x, base y, trunk len, trunk width, lean, depth, seed, box, blossom px, cluster r, density, wind, period, k
-        ('treeNearL', 120, 1440, 330, 74, -0.42, 7, 3, None, 14, 56, 17, 0.45, 7.0, 1.28),
-        ('treeNearR', 2440, 1440, 340, 78, 0.44, 7, 7, None, 14, 58, 17, 0.4, 7.6, 1.28),
-        ('treeMidL', 700, 990, 105, 18, -0.08, 6, 13, None, 8, 24, 15, 0.9, 5.4, 0.86),
-        ('treeMidR', 1880, 980, 100, 17, 0.1, 6, 17, None, 8, 23, 15, 1.0, 5.0, 0.86),
+        ('treeNearL', 90, 1440, 390, 86, -0.5, 7, 3, None, 15, 64, 18, 0.45, 7.0, 1.28),
+        ('treeNearR', 2470, 1440, 400, 90, 0.52, 7, 7, None, 15, 66, 18, 0.4, 7.6, 1.28),
+        ('treeMidL', 560, 1060, 150, 26, -0.16, 6, 13, None, 10, 32, 16, 0.9, 5.4, 0.86),
+        ('treeMidR', 2000, 1050, 145, 25, 0.18, 6, 17, None, 10, 31, 16, 1.0, 5.0, 0.86),
     ]
     sprites = []; order = ['treeMidL', 'treeMidR', 'treeNearL', 'treeNearR']
     rendered = {}

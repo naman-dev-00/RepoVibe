@@ -10,8 +10,9 @@ const fs = require('node:fs'), path = require('node:path');
 const { launch, extPage, setConfig, visualContrast } = require('../tests/e2e/helpers');
 const R = require('../tests/e2e/real-snapshot');
 const ROUND = process.env.ROUND || '2';
-const ROOT = path.join(__dirname, '..'), OUT = path.join(ROOT, ROUND === '1' ? 'docs/screenshots/rework' : 'docs/screenshots/rework2'), VIDS = path.join(ROOT, ROUND === '1' ? 'docs/recordings/rework' : 'docs/recordings/rework2');
-const BEFORE = ROUND === '1' ? path.join(OUT, 'before') : path.join(ROOT, 'docs/screenshots/rework/after'), BEFORE_LABEL = ROUND === '1' ? 'Before (e98753f)' : 'Before (3a8945c, round 1)';
+const DIRS = { 1: ['rework', 'rework/before', 'Before (e98753f)'], 2: ['rework2', 'rework/after', 'Before (3a8945c, round 1)'], 3: ['rework3', 'rework2/after', 'Before (07a4a06, round 2)'] }[ROUND];
+const ROOT = path.join(__dirname, '..'), OUT = path.join(ROOT, 'docs/screenshots', DIRS[0]), VIDS = path.join(ROOT, 'docs/recordings', DIRS[0]);
+const BEFORE = path.join(ROOT, 'docs/screenshots', DIRS[1]), BEFORE_LABEL = DIRS[2];
 // Round 2 uses the default quality (Auto), which is what users get: on slow (software-rendered) machines it drops to Lite, where weather
 // used to freeze. Motion is also measured: the share of scene-band pixels that change between frames 0.5 s apart.
 const QUALITY = process.env.QUALITY || (ROUND === '1' ? 'full' : 'auto');

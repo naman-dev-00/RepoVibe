@@ -121,6 +121,8 @@ def seafan(width, height, col, edge_col, seed):
     fan = blur((a[..., 3] > 0.3).astype(np.float32), 7) > 0.18
     lat = ((np.abs(np.sin(xx * 0.55 + np.sin(yy * 0.07) * 3)) < 0.18) | (np.abs(np.sin(yy * 0.6 + xx * 0.12)) < 0.16)) & fan
     la = lat.astype(np.float32) * 0.55 * (1 - a[..., 3])
+    pol = (noise2(a.shape[1], a.shape[0], 2, seed + 9, 1) > 0.8) & (a[..., 3] > 0.5)              # tiny white polyps along the branches
+    a[..., :3] = np.where(pol[..., None], np.clip(edge_col * 1.25, 0, 1)[None, None], a[..., :3])
     a[..., :3] = a[..., :3] * (1 - la[..., None]) + (col * 0.9)[None, None] * la[..., None]
     a[..., 3] = np.maximum(a[..., 3], la)
     return a
@@ -150,6 +152,10 @@ def kelp(height, seed, col=hexc('#6f6a26')):
         d.polygon(left + right[::-1], fill=tuple(int(v * 255) for v in tone) + (165,))
         d.line(left, fill=tuple(int(min(255, v * 330)) for v in tone) + (230,), width=max(1, int(SS * 1.3)))         # lit rim
         d.line([(x * SS, y * SS) for x, y in blade_c], fill=tuple(int(v * 180) for v in tone) + (220,), width=max(1, int(SS)))  # midrib
+        for k2 in range(1, n - 1, 1):                                                                                           # side veins
+            (bx, by) = blade_c[k2]; (lx, ly) = left[k2]; (rx_, ry_) = right[k2]
+            for (ex, ey) in ((lx / SS, ly / SS), (rx_ / SS, ry_ / SS)):
+                d.line([(bx * SS, by * SS), (((bx * 0.35 + ex * 0.65) + 2) * SS, ((by * 0.35 + ey * 0.65) - 3) * SS)], fill=tuple(int(v * 200) for v in tone) + (150,), width=1)
         d.ellipse([(px - 5) * SS, (py - 6) * SS, (px + 5) * SS, (py + 4) * SS], fill=tuple(int(min(255, v * 300)) for v in col) + (255,))
     a = finish(img)
     yy = np.mgrid[0:a.shape[0], 0:a.shape[1]][0].astype(np.float32) / a.shape[0]
@@ -170,6 +176,22 @@ def softcoral(size, col, seed):
             px, py = pts[k]
             for s in (-1, 1):
                 d.line([(px * SS, py * SS), ((px + s * size * 0.04) * SS, (py - size * 0.03) * SS)], fill=tuple(int(v * 255) for v in col * (0.8 + 0.4 * t)) + (255,), width=max(1, int(SS * 1.2)))
+    return finish(img)
+
+def anemone(size, col, tip, seed):
+    """Sea anemone: a short column with a crown of long curling tentacles, pale glowing tips."""
+    r = np.random.default_rng(seed); w, h = int(size * 1.3), int(size); img = canvas(w, h); d = ImageDraw.Draw(img)
+    cx, by = w / 2, h - 2
+    d.ellipse([(cx - size * 0.16) * SS, (by - size * 0.28) * SS, (cx + size * 0.16) * SS, (by) * SS], fill=tuple(int(v * 255) for v in col * 0.6) + (255,))
+    for i in range(48):
+        a = math.pi / 2 + (r.random() - 0.5) * 2.2; L = size * (0.45 + 0.35 * r.random()); curl = (r.random() - 0.5) * 0.9
+        x, y = cx + (r.random() - 0.5) * size * 0.22, by - size * 0.24; pts = [(x, y)]
+        for k in range(10):
+            a += curl / 10; x += math.cos(a) * L / 10; y -= math.sin(a) * L / 10; pts.append((x, y))
+        t = r.random(); c = col * (0.65 + 0.5 * t)
+        tapered(d, pts, size * 0.028, size * 0.012, tuple(int(min(255, v * 255)) for v in c) + (255,))
+        ex, ey = pts[-1]; rr = size * 0.012
+        d.ellipse([(ex - rr) * SS, (ey - rr) * SS, (ex + rr) * SS, (ey + rr) * SS], fill=tuple(int(v * 255) for v in tip) + (255,))
     return finish(img)
 
 def seagrass(size, seed):
@@ -215,11 +237,19 @@ def main():
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32); X, Y = xx / W, yy / H
     # ---------------- water column + surface seen from below
     col = water_at(Y)
-    surf = np.clip(1 - Y / 0.16, 0, 1)
-    waves = noise2(W, H, 70, 3, 4); wv = np.abs(np.sin(waves * 46 + noise2(W, H, 30, 4, 3) * 9))
-    sun = np.exp(-(((X - 0.5) * 1.78) ** 2 + (Y + 0.05) ** 2) / 0.05)
-    col = col + (hexc('#e9fff6') * np.clip(1 - wv / 0.14, 0, 1)[..., None] * 0.45 + hexc('#fff8d8') * sun[..., None] * 0.55) * surf[..., None] ** 1.6
-    col = col + hexc('#d9fff4') * np.exp(-(((X - 0.5) * 1.78) ** 2 + (Y - 0.02) ** 2) / 0.012)[..., None] * 0.6  # Snell's window glare
+    # the surface overhead, seen from below: a rippling ceiling in perspective (cells shrink toward the far edge), bright where the sun is
+    surf = np.clip(1 - Y / 0.42, 0, 1)
+    sy_ = np.maximum(Y, 0.001); u = (X - 0.5) / (0.35 + sy_ * 1.2); v = 1 / (sy_ * 4.5 + 0.25)          # perspective onto the surface plane
+    sw1 = np.sin(u * 38 + noise2(W, H, 90, 3, 4) * 7 + v * 3.1) * np.sin(v * 9 + u * 6 + noise2(W, H, 60, 4, 3) * 6)
+    net = np.clip(1 - np.abs(sw1) * 3.2, 0, 1) ** 2                                    # bright lines where wave facets focus the light
+    SUNY = 0.17
+    sun = np.exp(-(((X - 0.5) * 1.78) ** 2 + (Y - SUNY) ** 2) / 0.005)
+    glow = np.exp(-(((X - 0.5) * 1.78) ** 2 + (Y - SUNY) ** 2) / 0.07)
+    ang0 = np.arctan2(xx - 0.5 * W, (yy - SUNY * H) + 1e-3)
+    burst = (0.5 + 0.5 * np.sin(ang0 * 26 + np.sin(ang0 * 5) * 2)) ** 6 * np.exp(-np.hypot((X - 0.5) * 1.78, Y - SUNY) / 0.26)
+    col = col + hexc('#eafff6') * (net * (0.25 + 0.6 * glow))[..., None] * surf[..., None] ** 1.3
+    col = col + hexc('#fff6d4') * (sun * 0.9 + glow * 0.35 + burst * 0.35 * surf)[..., None]           # the sun through the surface, with a starburst
+    col = col + hexc('#c8fff0') * np.exp(-(((X - 0.5) * 1.78) ** 2 + (Y - 0.1) ** 2) / 0.12)[..., None] * 0.2 * surf[..., None]   # Snell's window
     # distant reef silhouettes in haze
     for base, amp, seed, hz in ((0.6, 0.12, 5, 0.82), (0.66, 0.16, 9, 0.66)):
         n = noise2(W, 1, 220, seed, 5)[0]; top = (base - amp * n * (0.4 + 0.9 * np.abs(X[0] - 0.5) * 2)) * H
@@ -278,8 +308,8 @@ def main():
     for ytop, x, o, depth in sorted(corals, key=lambda c: c[0]):
         comp(col, o, x, ytop + o.shape[0] * 0.15, depth)
     # sand-floor seagrass tufts (baked, distant)
-    for i in range(30):
-        x = rr.random() * W * 0.5 + W * 0.25; y = (0.74 + 0.08 * rr.random()) * H
+    for i in range(70):
+        x = rr.random() * W * 0.62 + W * 0.19; y = (0.73 + 0.1 * rr.random()) * H
         comp(col, sprite_crop(seagrass(30 + 40 * rr.random(), 200 + i)), x, y, 0.35)
     # vignette baked in
     vig = np.clip(((X - 0.5) ** 2 * 1.5 + (Y - 0.5) ** 2 * 1.8) - 0.12, 0, 1) ** 1.2 * 0.55
@@ -289,12 +319,17 @@ def main():
     # ---------------- swaying plant sprites
     plants = []   # name, organism, base x, base y, k, wind, period
     defs = [
-        ('kelpL1', kelp(900, 1), 140, 1440, 1.28, 2.6, 6.2), ('kelpL2', kelp(760, 2), 330, 1440, 1.28, 3.0, 5.6),
-        ('kelpR1', kelp(940, 3), 2440, 1440, 1.28, 2.4, 6.6), ('kelpR2', kelp(700, 4), 2250, 1440, 1.28, 3.2, 5.2),
+        ('kelpL3', kelp(620, 11), 40, 1440, 1.28, 3.4, 5.0), ('kelpL1', kelp(900, 1), 150, 1440, 1.28, 2.6, 6.2), ('kelpL2', kelp(760, 2), 330, 1440, 1.28, 3.0, 5.6),
+        ('kelpR3', kelp(600, 12), 2530, 1440, 1.28, 3.6, 4.8), ('kelpR1', kelp(940, 3), 2440, 1440, 1.28, 2.4, 6.6), ('kelpR2', kelp(700, 4), 2250, 1440, 1.28, 3.2, 5.2),
+        ('fanL2', seafan(300, 340, hexc('#8a3a5a'), hexc('#ffb0c8'), 13), 400, 1250, 0.86, 2.8, 4.9),
         ('fanL', seafan(420, 480, hexc('#7a2a8a'), hexc('#e48ad8'), 5), 560, 1150, 0.86, 2.4, 5.4),
         ('fanR', seafan(380, 440, hexc('#a3324a'), hexc('#ffa0a0'), 6), 1980, 1130, 0.86, 2.6, 5.0),
+        ('fanR2', seafan(300, 340, hexc('#5a3a9a'), hexc('#c8a8ff'), 14), 2160, 1240, 0.86, 3.0, 4.6),
+        ('grassC', seagrass(130, 15), 1050, 1160, 0.86, 4.4, 3.7), ('grassA', seagrass(160, 9), 1180, 1110, 0.86, 4.2, 3.8),
+        ('grassB', seagrass(140, 10), 1420, 1120, 0.86, 4.6, 3.6), ('grassD', seagrass(150, 16), 1530, 1170, 0.86, 4.0, 3.9),
         ('softL', softcoral(260, hexc('#c45ab8'), 7), 760, 1290, 1.28, 3.4, 4.6), ('softR', softcoral(240, hexc('#e0708a'), 8), 1820, 1300, 1.28, 3.6, 4.4),
-        ('grassA', seagrass(160, 9), 1180, 1110, 0.86, 4.2, 3.8), ('grassB', seagrass(140, 10), 1420, 1120, 0.86, 4.6, 3.6),
+        ('softL2', softcoral(200, hexc('#e08a4a'), 17), 900, 1390, 1.28, 3.8, 4.2), ('softR2', softcoral(210, hexc('#8a6ad8'), 18), 1680, 1395, 1.28, 3.9, 4.0),
+        ('anemL', anemone(220, hexc('#d9708a'), hexc('#fff0c8'), 19), 1010, 1440, 1.28, 4.0, 3.4), ('anemR', anemone(200, hexc('#e8a050'), hexc('#fff6d0'), 20), 1560, 1440, 1.28, 4.2, 3.2),
     ]
     sprites = []
     for name, org, bx, by, k, wind, fl in defs:
@@ -310,11 +345,11 @@ def main():
     sizes['t-caustic'] = save(Image.fromarray(to8(np.concatenate([np.stack([np.full_like(cau, 0.85), np.full_like(cau, 1.0), np.full_like(cau, 1.0)], -1), (cau * 0.5)[..., None]], -1)), 'RGBA'), 't-caustic.webp', 85)
     sm = blur(fm * (1 - rockm) * np.clip((X - 0.2) * 3, 0, 1) * np.clip((0.82 - X) * 3, 0, 1), 6)
     sizes['t-mask-sand'] = save(Image.fromarray(to8(np.concatenate([np.ones((H, W, 3), np.float32), sm[..., None]], -1)), 'RGBA'), 't-mask-sand.webp', 70)
-    sx, sy = 0.5 * W, -0.15 * H; ang = np.arctan2(xx - sx, yy - sy); dist = np.hypot(xx - sx, yy - sy) / H
+    sx, sy = 0.5 * W, 0.15 * H; ang = np.arctan2(xx - sx, yy - sy + 1e-3); dist = np.hypot(xx - sx, yy - sy) / H
     rays = np.zeros((H, W), np.float32)
     for f, a_, ph in ((38, 1.0, 0.0), (71, 0.6, 1.7), (23, 0.7, 3.1)): rays += a_ * np.maximum(np.sin(ang * f + ph + 2.0 * np.sin(ang * 7 + ph)), 0) ** 3
-    rays = blur(rays / rays.max() * np.exp(-dist * 1.15) * np.clip(1.3 - dist, 0, 1), 3)
-    sizes['rays'] = save(Image.fromarray(to8(np.concatenate([np.stack([np.full_like(rays, 0.95), np.full_like(rays, 1.0), np.full_like(rays, 0.9)], -1), np.clip(rays * 0.45, 0, 0.5)[..., None]], -1)), 'RGBA'), 'rays.webp', 80)
+    rays = blur(rays / rays.max() * np.exp(-dist * 0.95) * np.clip(1.4 - dist, 0, 1) * np.clip(dist * 8, 0, 1), 3)
+    sizes['rays'] = save(Image.fromarray(to8(np.concatenate([np.stack([np.full_like(rays, 0.95), np.full_like(rays, 1.0), np.full_like(rays, 0.9)], -1), np.clip(rays * 0.6, 0, 0.62)[..., None]], -1)), 'RGBA'), 'rays.webp', 80)
     for n in ('mid', 'near', 'front'): sizes[n] = save(Image.new('RGBA', (16, 9), (0, 0, 0, 0)), f'{n}.webp', 80)
     for f in os.listdir(OUT):       # drop the old reference-plate coral cut-outs
         if f.startswith('s-coral'): os.remove(os.path.join(OUT, f))

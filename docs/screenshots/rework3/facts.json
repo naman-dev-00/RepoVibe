@@ -1,0 +1,58 @@
+{
+ "source": "real github.com page replay (actions-checkout-code, logged out, captured locally; not committed)",
+ "sakura-dreams": {
+  "scene": "sakura-garden",
+  "sprites": 12,
+  "popOuts": 2,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-fall",
+   "repv-flutter",
+   "repv-gust-r",
+   "repv-gust-x",
+   "repv-leaf-flutter",
+   "repv-leaf-sway",
+   "repv-leaf-turn",
+   "repv-tile",
+   "repv-tile-gust"
+  ],
+  "textMin": 4.58,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   43.77,
+   38.76,
+   38.65
+  ]
+ },
+ "ocean-depths": {
+  "scene": "ocean-kingdom",
+  "sprites": 43,
+  "popOuts": 5,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-cross",
+   "repv-cross-rev",
+   "repv-drift",
+   "repv-flutter",
+   "repv-gust-r",
+   "repv-leaf-flutter",
+   "repv-leaf-sway",
+   "repv-rise",
+   "repv-swim",
+   "repv-tile"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   8.29,
+   6.6,
+   6.44
+  ]
+ }
+}
