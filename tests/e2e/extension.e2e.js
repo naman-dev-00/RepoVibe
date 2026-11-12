@@ -115,9 +115,9 @@ test('popup renders, applies a quick theme globally, and toggles the engine', as
     await popup.waitForSelector('.theme-tile');
     assert.equal(await popup.locator('.theme-tile').count(), 6);
     await popup.check('input[name="scope"][value="global"]', { force: true });
-    await popup.click('.theme-tile >> text=Retro Terminal');
-    assert.match(await popup.textContent('#status'), /Retro Terminal applied globally/);
-    assert.equal((await getConfig(context)).defaultThemeId, 'preset-9');
+    await popup.click('.theme-tile >> text=Pixel Paradise');
+    assert.match(await popup.textContent('#status'), /Pixel Paradise applied globally/);
+    assert.equal((await getConfig(context)).defaultThemeId, 'preset-10');
     await gh.waitForFunction(() => document.documentElement.classList.contains('repv-active'));
     await popup.click('.switch span');
     await gh.waitForFunction(() => !document.documentElement.classList.contains('repv-active'));

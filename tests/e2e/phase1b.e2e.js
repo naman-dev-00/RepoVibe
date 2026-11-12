@@ -107,8 +107,8 @@ test('wallpaper controls update the live preview: opacity, brightness, blur, ove
     const gh = await openGitHub(context);
     const studio = await openStudioFor(context, gh);
     await studio.click('.sidebar-link[data-view="background"]');
-    await studio.click('.wallpaper-tile[data-ref="builtin:galaxy-planet"]');
-    await gh.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('galaxy-planet.webp'));
+    await studio.click('.wallpaper-tile[data-ref="builtin:aurora-lake"]');
+    await gh.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--repv-wallpaper').includes('aurora-lake.webp'));
     const slide = (id, v) => studio.evaluate(([id, v]) => { const r = document.getElementById(id); r.value = String(v); r.dispatchEvent(new Event('input', { bubbles: true })); }, [id, v]);
     await slide('wallpaperOpacity', 60); await slide('wallpaperBrightness', 80); await slide('wallpaperBlur', 5); await slide('wallpaperOverlay', 50);
     await studio.selectOption('#wallpaperPosition', 'top'); await studio.selectOption('#wallpaperSize', 'contain');
@@ -117,7 +117,7 @@ test('wallpaper controls update the live preview: opacity, brightness, blur, ove
     await gh.waitForFunction(() => getComputedStyle(document.body, '::before').filter === 'blur(5px)');
     const s = await gh.evaluate(() => { const r = getComputedStyle(document.documentElement); const box = getComputedStyle(document.querySelector('.Box')); return { image: r.backgroundImage, size: r.backgroundSize, pos: r.backgroundPosition, boxBg: box.backgroundColor, boxBlur: box.backdropFilter, panel: r.getPropertyValue('--repv-panel-opacity').trim() }; });
     // Every slider is a visible layer of the root scene stack: opacity veil, overlay, brightness veil, image (Midnight bg).
-    assert.match(s.image, /^linear-gradient\(rgba\(11, 18, 32, 0\.4\)[^)]*\)\), linear-gradient\(rgba\(11, 18, 32, 0\.5\)[^)]*\)\), linear-gradient\(rgba\(0, 0, 0, 0\.2\)[^)]*\)\), url\("chrome-extension:\/\/[^"]+galaxy-planet\.webp"\)(, none)?$/, `scene stack: ${s.image}`);
+    assert.match(s.image, /^linear-gradient\(rgba\(11, 18, 32, 0\.4\)[^)]*\)\), linear-gradient\(rgba\(11, 18, 32, 0\.5\)[^)]*\)\), linear-gradient\(rgba\(0, 0, 0, 0\.2\)[^)]*\)\), url\("chrome-extension:\/\/[^"]+aurora-lake\.webp"\)(, none)?$/, `scene stack: ${s.image}`);
     assert.match(s.size, /, contain(, auto)?$/); assert.match(s.pos, /, 50% 0%(, [^,]+)?$/);
     assert.equal(s.boxBg, Number(s.panel) >= 1 ? 'rgb(21, 30, 48)' : `rgba(21, 30, 48, ${s.panel})`, 'panel glass = the guarded opacity');
     assert.ok(Number(s.panel) >= 0.55, 'never below the chosen panel opacity'); assert.match(s.boxBlur, /blur\(20px\)/);
@@ -338,7 +338,7 @@ test('gallery shows real artwork previews with Apply and Customize; Apply saves 
     await studio.setViewportSize({ width: 1400, height: 1000 });
     await studio.waitForFunction(() => [...document.querySelectorAll('.gallery-card .art-image')].filter(i => i.complete && i.naturalWidth > 0).length >= 8);
     const cards = await studio.evaluate(() => [...document.querySelectorAll('.gallery-card')].map(c => ({ img: !!c.querySelector('.art-image'), apply: !!c.querySelector('.card-actions .primary-button'), customize: !!c.querySelector('.card-actions .outline-button') })));
-    assert.equal(cards.length, 20); assert.ok(cards.every(c => c.img && c.apply && c.customize));
+    assert.equal(cards.length, 19, '20 built-ins minus the archived Synthwave'); assert.ok(cards.every(c => c.img && c.apply && c.customize));
     await studio.evaluate(() => Promise.all([...document.querySelectorAll('.gallery-card .art-image')].map(i => i.decode().catch(() => {}))));
     const broken = await studio.evaluate(() => [...document.querySelectorAll('.gallery-card .art-image')].filter(i => !i.naturalWidth).length);
     assert.equal(broken, 0, 'every gallery artwork loads');
