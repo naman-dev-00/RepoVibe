@@ -263,14 +263,27 @@
       "slug": "digital-rain",
       "name": "Digital rain",
       "category": "Abstract",
-      "style": "illustrated",
+      "style": "3d",
       "tone": [
-        "#164a27",
-        "#000502"
+        "#ffffff",
+        "#000100"
       ],
       "toneSoft": [
-        "#0c391b",
-        "#010703"
+        "#207540",
+        "#000201"
+      ],
+      "depth": [
+        "far",
+        "mid",
+        "rays"
+      ],
+      "sprites": [
+        "streamA",
+        "streamB",
+        "streamC",
+        "streamD",
+        "streamE",
+        "streamF"
       ]
     },
     {

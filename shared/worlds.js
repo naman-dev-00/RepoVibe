@@ -130,6 +130,29 @@
     ]
   };
 
+  /* ---- Matrix: a data city under falling code. Three seamless code-rain planes at different depths (small/dim/slow → large/soft/fast) slide
+     straight down by exactly one tile per loop, and individual bright streams fall from above the stage to below it at their own speeds:
+     the code moves continuously top → bottom. Painted by scripts/wallpapers/matrix-paint.py. */
+  // [image, x %, width %, depth k, seconds per fall, phase 0..1]
+  const STREAMS = [['streamE', 3, 1.2, 0.46, 13, 0.1], ['streamB', 8, 1.5, 0.64, 10, 0.55], ['streamA', 13.5, 2.25, 0.86, 7.5, 0.3], ['streamD', 18, 3.45, 1.28, 5.6, 0.8],
+    ['streamC', 23, 1.95, 0.64, 9, 0.05], ['streamE', 27.5, 1.2, 0.46, 12, 0.62], ['streamF', 32, 4.35, 1.28, 5, 0.42], ['streamB', 37, 1.65, 0.64, 9.5, 0.9],
+    ['streamA', 42, 2.1, 0.86, 8, 0.18], ['streamE', 46, 1.2, 0.46, 14, 0.7], ['streamC', 50.5, 2.25, 0.86, 7, 0.48], ['streamB', 55, 1.5, 0.64, 10.5, 0.26],
+    ['streamD', 60, 3.3, 1.28, 6, 0.95], ['streamE', 64, 1.2, 0.46, 12.5, 0.36], ['streamA', 68.5, 2.1, 0.86, 7.8, 0.66], ['streamC', 73, 1.8, 0.64, 9.2, 0.12],
+    ['streamF', 78, 4.2, 1.28, 5.3, 0.58], ['streamB', 82.5, 1.5, 0.64, 10, 0.02], ['streamA', 87, 2.25, 0.86, 7.2, 0.86], ['streamE', 91, 1.2, 0.46, 13.5, 0.44],
+    ['streamD', 95, 3.3, 1.28, 5.8, 0.22], ['streamC', 98.5, 1.95, 0.64, 8.6, 0.74]];
+  W['digital-rain'] = {
+    tiles: [
+      { plane: 'pfar', image: 't-codeFar', rel: 0.5, w: 1024, h: 1024, sx: 0, sy: 1, t: 16 },
+      { plane: 'pmid', image: 't-codeMid', rel: 0.8, w: 1024, h: 1024, sx: 0, sy: 1, t: 11 },
+      { plane: 'pnear', image: 't-codeNear', rel: 1.25, w: 1024, h: 1024, sx: 0, sy: 1, t: 7 }
+    ],
+    sprites: [
+      // anchored by the bottom edge on the stage's top edge: a stream starts fully above the scene and leaves fully below it
+      ...STREAMS.map(([src, x, w, k, dur, ph], i) => ({ n: `st${i + 1}`, src, plane: 'scene', k, x, y: 0, w, anchor: 'bottom', fx: 'stream', dur, delay: +(-dur * ph).toFixed(2), rest: ph, z: k > 1 ? 4 : 2,
+        ...(k < 0.5 ? { op: 0.7 } : {}) }))
+    ]
+  };
+
   /* ---- Synthwave: the grid scans toward the viewer, a car drives into the scene, palms sway in neon haze, the sun pulses. */
   const scan = (delay, i) => at('gridLine', 0.0, -0.06, 75, 0.03, { k: 0.64, z: 2, approach: 7, ax: '0vw', ay: '44vh', a0: 0.9, delay, noShadow: 1 });
   W['synthwave-highway'] = {

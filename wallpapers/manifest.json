@@ -1,5 +1,5 @@
 {
-  "$schema": "Wallpaper manifest \u2014 see docs/WALLPAPER_PIPELINE.md",
+  "$schema": "Wallpaper manifest — see docs/WALLPAPER_PIPELINE.md",
   "wallpapers": [
     {
       "slug": "scifi-ai",
@@ -183,13 +183,14 @@
       "slug": "digital-rain",
       "name": "Digital rain",
       "category": "Abstract",
-      "style": "illustrated",
-      "source": "procedural-2d",
-      "generator": "scripts/wallpapers/scenes.js",
-      "width": 1920,
-      "height": 1080,
+      "style": "3d",
+      "source": "painted-layers",
+      "generator": "scripts/wallpapers/matrix-paint.py",
+      "width": 2560,
+      "height": 1440,
       "license": "RepoVibe (original work)",
-      "attribution": "RepoVibe contributors"
+      "attribution": "RepoVibe contributors",
+      "description": "A data city on a glowing grid under continuously falling 0/1 code: three seamless code-rain planes at different depths and individual bright streams. Layered 2.5D."
     },
     {
       "slug": "gothic-castle",

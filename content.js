@@ -92,7 +92,8 @@
     // derive both from the accent), strength by the theme's character. Borders read ~1.5 px (1 px border + 0.5 px ring).
     const WORLD_EDGE = { 'enchanted-forest': ['#5fe0b9', '#9dffd8', 0.34], 'cosmic-galaxy': ['#a98bff', '#6f9bff', 0.38], 'neon-city-3d': ['#ff4fd8', '#3ff0ff', 0.5], 'scifi-ai': ['#7fe6ff', '#e8fbff', 0.4],
       'sakura-garden': ['#ff8fb8', '#ffd0e0', 0.34], 'ocean-kingdom': ['#4fd5e8', '#9af0ff', 0.36], 'arctic-frost-3d': ['#4a9fe6', '#bfe4ff', 0.3], 'aurora-borealis': ['#5fe8b0', '#9a8cff', 0.38],
-      'synthwave-highway': ['#ff4fd8', '#3ff0ff', 0.5], 'dark-library': ['#d9a441', '#ffd27a', 0.3], 'pixel-paradise-3d': ['#3ad6d0', '#ffe27a', 0.34], 'sunset-coast': ['#ff9a4d', '#ffd08a', 0.34] };
+      'synthwave-highway': ['#ff4fd8', '#3ff0ff', 0.5], 'dark-library': ['#d9a441', '#ffd27a', 0.3], 'pixel-paradise-3d': ['#3ad6d0', '#ffe27a', 0.34], 'sunset-coast': ['#ff9a4d', '#ffd08a', 0.34],
+      'digital-rain': ['#2cff7a', '#9dffbf', 0.42] };
     const wslug = (/^builtin:([a-z0-9-]+)$/.exec(v.wallpaperRef || '') || [])[1];
     const [edgeC, glowC, glowS] = WORLD_EDGE[wslug] || [v.accent, v.accent, { neon: 0.45, glass: 0.3, soft: 0.24, minimal: 0.14, pixel: 0.2 }[v.vibe] ?? 0.24];
     const edgeLine = rgba(edgeC, light ? 0.68 : 0.8), edgeRing = rgba(edgeC, light ? 0.42 : 0.5); // major surfaces: border 1 px + ring 2 px ≈ 3 px themed edge (box-shadow ring: no layout change)
@@ -567,6 +568,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     img.style.setProperty('--dx', `${(s.dx || 0) * m}px`); img.style.setProperty('--dy', `${(s.dy || 0) * m}px`); img.style.setProperty('--rot', `${(s.rot || 0) * (cinematic ? 1.4 : 1)}deg`);
     if (!s.wind) img.style.animationDelay = s.delay !== undefined ? `${s.delay}s` : `${-((s.n.charCodeAt(0) * 7 + s.n.charCodeAt(s.n.length - 1) * 3 + s.n.length * 13) % 20)}s`; // desynchronised loops
     if (s.fx) img.dataset.fx = s.fx;
+    if (s.fx === 'stream') img.style.setProperty('--rest', String(s.rest ?? 0.5));
     if (s.fx === 'flow') {   // a seamless ribbon (two periods side by side) streams through a clipping wrapper; the wrapper undulates
       wrap.dataset.flow = s.flow < 0 ? 'rev' : ''; wrap.style.setProperty('--sd', `${(s.sway || 13) / (cinematic ? 1.3 : 1)}s`); wrap.style.setProperty('--sk', `${s.skew ?? 2.5}deg`);
       wrap.style.animationDelay = `${-(s.n.length * 3.7 % 11)}s`;
@@ -813,7 +815,7 @@ html.repv-depth-lite #repovibe-depth > :is([data-l="pfar"], [data-l="mist"], [da
    because a still weather plane reads as a frozen picture. Main objects keep drifting, plants keep swaying, ripples keep running;
    distant belt rocks rest; pop-out objects lose their filter shadow. */
 html.repv-depth-lite #repovibe-depth > .repv-l:not([data-l="pmid"]) > i { animation:none !important; }
-html.repv-depth-lite #repovibe-depth .repv-b[data-k="0.46"] > .repv-s > img:not([data-fx="ripple"], [data-fx="drop"], [data-fx="flow"], [data-wind], [data-cross], [data-swim], [data-fall], [data-rise], [data-approach]) { animation:none !important; } /* only idle drift rests (e.g. distant belt rocks); travellers never freeze mid-path */
+html.repv-depth-lite #repovibe-depth .repv-b[data-k="0.46"] > .repv-s > img:not([data-fx="ripple"], [data-fx="drop"], [data-fx="flow"], [data-fx="stream"], [data-wind], [data-cross], [data-swim], [data-fall], [data-rise], [data-approach]) { animation:none !important; } /* only idle drift rests (e.g. distant belt rocks); travellers never freeze mid-path */
 html.repv-depth-lite #repovibe-popout > .repv-s::before { display:none; }
 /* Minimal (Auto only, < 25 fps): no light shafts; the one moving weather plane, layers, moving objects and pop-out stay */
 html.repv-depth-minimal #repovibe-depth > [data-l="rays"] { visibility:hidden; }
@@ -858,12 +860,17 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
  html.repv-depth-cinematic :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="spin"] { animation-duration:var(--dur, 30s), 22s; }
  #repovibe-depth .repv-s > img[data-fx="ripple"] { animation:repv-ripple var(--dur, 8s) linear infinite; }
  #repovibe-depth .repv-s > img[data-fx="drop"] { animation:repv-drop var(--dur, 8s) linear infinite; }
+ #repovibe-depth .repv-s > img[data-fx="stream"] { animation:repv-stream var(--dur, 8s) linear infinite; }
  #repovibe-depth .repv-s > img[data-fx="flow"] { animation:repv-flow var(--dur, 80s) linear infinite, repv-aurora-glow var(--gl, 7s) ease-in-out infinite alternate; }
  #repovibe-depth .repv-s[data-flow="rev"] > img[data-fx="flow"] { animation-name:repv-flow-rev, repv-aurora-glow; }
  #repovibe-depth .repv-s[data-flow] { animation:repv-aurora-sway var(--sd, 13s) ease-in-out infinite alternate; }
 }
 #repovibe-depth .repv-s > img[data-fx="ripple"] { opacity:.28; scale:.6; } /* at rest (Static, reduced motion): faint frozen rings */
 #repovibe-depth .repv-s > img[data-fx="drop"] { opacity:0; } /* at rest (Static, reduced motion): no drop hangs in the air */
+/* code streams (Matrix): each column falls from above the stage to below it — the whole travel is one loop, so the code moves continuously
+   top → bottom; at rest (Static, reduced motion) a stream stays where its loop phase puts it, fully inside the scene */
+#repovibe-depth .repv-s > img[data-fx="stream"] { transform:translate3d(0, calc((max(56.25vw, 100vh) + 100%) * var(--rest, .5)), 0); }
+@keyframes repv-stream { from { transform:translate3d(0, 0, 0); } to { transform:translate3d(0, calc(max(56.25vw, 100vh) + 100%), 0); } }
 @keyframes repv-drop { 0%, 87.5% { transform:translate3d(0, -560%, 0); opacity:0; } 88.5% { opacity:.95; } 99.6% { transform:translate3d(0, 0, 0); opacity:.95; } 100% { transform:translate3d(0, 0, 0); opacity:0; } } /* falls, lands as its ring starts (0 % of the shared cycle) */
 /* Aurora ribbons: one period visible through the wrapper (overflow clipped, soft edges); the image is two periods wide and slides by one period */
 #repovibe-depth .repv-s[data-flow] { overflow:hidden; transform-origin:50% 85%; -webkit-mask-image:linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); mask-image:linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); }

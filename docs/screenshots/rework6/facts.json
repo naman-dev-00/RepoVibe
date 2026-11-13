@@ -1,0 +1,23 @@
+{
+ "source": "real github.com page replay (actions-checkout-code, logged out, captured locally; not committed)",
+ "matrix": {
+  "scene": "digital-rain",
+  "sprites": 22,
+  "popOuts": 0,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-stream",
+   "repv-tile"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   5.27,
+   5.75,
+   6.12
+  ]
+ }
+}
