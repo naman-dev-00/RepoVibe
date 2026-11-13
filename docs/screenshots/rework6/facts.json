@@ -47,5 +47,30 @@
    0.72,
    1.92
   ]
+ },
+ "cozy-coding": {
+  "scene": "cozy-room",
+  "sprites": 9,
+  "popOuts": 2,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-drift",
+   "repv-flick",
+   "repv-flutter",
+   "repv-glow",
+   "repv-gust-r",
+   "repv-tile",
+   "repv-tile-gust"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   1.94,
+   1.39,
+   2.34
+  ]
  }
 }

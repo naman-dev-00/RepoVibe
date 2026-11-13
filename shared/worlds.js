@@ -173,6 +173,29 @@
     ]
   };
 
+  /* ---- Cozy Coding: an anime-style night workspace. Snow falls past the window (the wall layer has a real window hole, so the city behind it
+     shifts with depth), steam curls from the mug, the desk lamp, monitors and fairy lights breathe, the cat's tail and the monstera sway.
+     Painted by scripts/wallpapers/cozy-paint.py. Stage px → %: x / 25.6, y / 14.4. */
+  W['cozy-room'] = {
+    tiles: [
+      { plane: 'pfar', image: 't-snow', rel: 0.2, w: 768, h: 768, sx: 0, sy: 1, t: 24 },                                                  // far flakes: behind the wall, seen through the window only
+      { plane: 'pmid', image: 't-snow', region: [0.563, 0.112, 0.902, 0.548], rel: 0.34, w: 768, h: 768, sx: 0, sy: 1, t: 15, gust: true }  // near flakes, clipped to the window opening
+    ],
+    sprites: [
+      { n: 'screenGlow', plane: 'scene', k: 0.86, x: 36.3, y: 43, w: 46, dx: 0, dy: 0, rot: 0, dur: 8, fx: 'pulse', gl: 5.5, z: 1 },
+      { n: 'lampGlow', plane: 'scene', k: 0.86, x: 14.1, y: 42.4, w: 24, dx: 0, dy: 0, rot: 0, dur: 7, fx: 'pulse', gl: 3.8, z: 4 },
+      { n: 'fairy', plane: 'scene', k: 0.64, x: 26.17, y: 6.25, w: 52.34, dx: 0, dy: 0, rot: 0, dur: 6, fx: 'pulse', gl: 1.7, z: 2 },
+      { n: 'steam', plane: 'scene', k: 0.86, x: 17.3, y: 45.4, w: 3.6, dx: 10, dy: -22, rot: 3, dur: 4.5, fx: 'pulse', gl: 2.3, z: 4, op: 0.55 },
+      { n: 'steamB', src: 'steam', plane: 'scene', k: 0.86, x: 17.9, y: 44.4, w: 2.8, dx: -9, dy: -26, rot: -4, dur: 6, fx: 'pulse', gl: 3.1, z: 4, flip: 1, op: 0.4 },
+      { n: 'tail', plane: 'scene', k: 0.86, x: 88.9, y: 55.97, w: 7.81, z: 4, wind: 7, ox: '10%', oy: '75%', fl: 2.6 },
+      { n: 'cursor', plane: 'scene', k: 0.86, x: 44.6, y: 47.6, w: 0.42, dx: 0, dy: 0, rot: 0, dur: 5, fx: 'flicker', z: 4 },
+      { n: 'leaf', plane: 'scene', k: 1.8, x: 12.1, y: 75, w: 20.3, z: 5, wind: 2.4, ox: '4%', oy: '83%', fl: 4.4 },
+      { n: 'leafB', src: 'leaf', plane: 'scene', k: 1.8, x: -1.5, y: 68, w: 17, z: 5, wind: 3.0, ox: '4%', oy: '83%', fl: 5.2, flip: 1 },
+      { n: 'leafP', src: 'leaf', plane: 'pop', at: 'band', x: 0.02, y: 0.62, h: 0.75, k: 2.7, dx: 6, dy: -3, rot: -2, dur: 10, noShadow: 1, wind: 1.8, ox: '4%', oy: '83%' },
+      { n: 'leafQ', src: 'leaf', plane: 'pop', at: 'band', x: 0.985, y: 0.6, h: 0.6, k: 2.8, dx: -6, dy: -3, rot: 2, dur: 12, noShadow: 1, flip: 1, wind: 1.6, ox: '96%', oy: '83%' }
+    ]
+  };
+
   /* ---- Synthwave: the grid scans toward the viewer, a car drives into the scene, palms sway in neon haze, the sun pulses. */
   const scan = (delay, i) => at('gridLine', 0.0, -0.06, 75, 0.03, { k: 0.64, z: 2, approach: 7, ax: '0vw', ay: '44vh', a0: 0.9, delay, noShadow: 1 });
   W['synthwave-highway'] = {

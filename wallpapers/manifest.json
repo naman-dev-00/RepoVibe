@@ -171,13 +171,14 @@
       "slug": "cozy-room",
       "name": "Cozy room",
       "category": "Anime-inspired",
-      "style": "illustrated",
-      "source": "procedural-2d",
-      "generator": "scripts/wallpapers/scenes.js",
-      "width": 1920,
-      "height": 1080,
+      "style": "3d",
+      "source": "painted-layers",
+      "generator": "scripts/wallpapers/cozy-paint.py",
+      "width": 2560,
+      "height": 1440,
       "license": "RepoVibe (original work)",
-      "attribution": "RepoVibe contributors"
+      "attribution": "RepoVibe contributors",
+      "description": "An anime-style night workspace: desk with two monitors of code, lamp, mug, shelves, fairy lights, a sleeping cat and a window onto a snowy moonlit city. Layered 2.5D."
     },
     {
       "slug": "digital-rain",

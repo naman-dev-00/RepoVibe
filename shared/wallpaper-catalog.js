@@ -249,14 +249,30 @@
       "slug": "cozy-room",
       "name": "Cozy room",
       "category": "Anime-inspired",
-      "style": "illustrated",
+      "style": "3d",
       "tone": [
-        "#d9b79a",
-        "#100e0b"
+        "#fff4f8",
+        "#161b25"
       ],
       "toneSoft": [
-        "#d7b69b",
-        "#120f0c"
+        "#e9bdb1",
+        "#222327"
+      ],
+      "depth": [
+        "far",
+        "mid",
+        "near",
+        "front",
+        "rays"
+      ],
+      "sprites": [
+        "cursor",
+        "fairy",
+        "lampGlow",
+        "leaf",
+        "screenGlow",
+        "steam",
+        "tail"
       ]
     },
     {
