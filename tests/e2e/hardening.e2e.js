@@ -182,11 +182,11 @@ test('Studio save does not overwrite a change made in the popup meanwhile', asyn
     const popup = await extPage(context);
     await popup.waitForSelector('.theme-tile');
     await popup.check('input[name="scope"][value="global"]', { force: true });
-    await popup.click('.theme-tile >> text=Pixel Paradise');
+    await popup.click('.theme-tile >> text=Ocean Depths');
     await studio.click('.gallery-card >> text=Galaxy');
     await studio.click('#saveButton');
     const config = await getConfig(context);
-    assert.equal(config.defaultThemeId, 'preset-10', 'popup change preserved');
+    assert.equal(config.defaultThemeId, 'preset-7', 'popup change preserved');
     assert.equal(config.repoAssignments['acme/project'], 'preset-19');
     assert.deepEqual(errors, []);
   } finally { await close(); }

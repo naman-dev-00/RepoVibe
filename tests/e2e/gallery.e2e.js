@@ -47,14 +47,14 @@ test('gallery: approved / experimental / custom groups with live counts, search,
     const info = await studio.evaluate(() => ({ total: RepoVibeCore.PRESETS.length, groups: Object.fromEntries([...document.querySelectorAll('.gallery-group')].map(g => [g.dataset.group, g.querySelectorAll('.gallery-card').length])),
       chips: Object.fromEntries([...document.querySelectorAll('.filter-chip')].map(c => [c.dataset.filter, +c.querySelector('.chip-count').textContent])), count: document.getElementById('galleryCount').textContent,
       current: [...document.querySelectorAll('.gallery-card.is-current')].map(c => c.querySelector('strong').firstChild.textContent) }));
-    // owner's review (shared/theme-review.js): ten approved, six archived (hidden: not in use here), the four rework targets experimental
-    assert.equal(info.groups.approved, 10, 'the ten owner-approved themes'); assert.equal(info.groups.experimental, info.total - 16); assert.equal(info.groups.custom, 1);
+    // owner's review (shared/theme-review.js): twelve approved, six archived (hidden: not in use here), the two redesign targets experimental
+    assert.equal(info.groups.approved, 12, 'the twelve owner-approved themes'); assert.equal(info.groups.experimental, info.total - 18); assert.equal(info.groups.custom, 1);
     assert.equal(info.groups.inUseArchived, undefined, 'an archived theme nobody uses does not clutter the gallery');
     const approvedNames = await studio.evaluate(() => [...document.querySelectorAll('.gallery-group[data-group="approved"] .gallery-card strong')].map(s => s.firstChild.textContent));
-    assert.deepEqual([...approvedNames].sort(), ['Arctic Frost', 'Cosmic Galaxy', 'Cyberpunk Neon', 'Enchanted Forest', 'Futuristic Sci-Fi', 'Obsidian', 'Ocean Depths', 'Pixel Paradise', 'Retro Terminal', 'Solar Flare']);
+    assert.deepEqual([...approvedNames].sort(), ['Arctic Frost', 'Cosmic Galaxy', 'Cyberpunk Neon', 'Dracula', 'Enchanted Forest', 'Futuristic Sci-Fi', 'Matrix', 'Obsidian', 'Ocean Depths', 'Pixel Paradise', 'Retro Terminal', 'Solar Flare']);
     const shownNames = await studio.evaluate(() => [...document.querySelectorAll('.gallery-card strong')].map(s => s.firstChild.textContent));
     for (const gone of ['Synthwave', 'Sakura Dreams', 'Dark Academia', 'Midnight Developer', 'Lavender Nights', 'Sunset Boulevard']) assert.ok(!shownNames.includes(gone), `archived ${gone} is not shown`);
-    assert.equal(info.chips.all, info.total - 5, 'the count comes from the data (14 visible built-ins + 1 custom)'); assert.match(info.count, new RegExp(`^${info.total - 5} backgrounds · 10 approved · ${info.total - 16} experimental · 1 custom$`));
+    assert.equal(info.chips.all, info.total - 5, 'the count comes from the data (14 visible built-ins + 1 custom)'); assert.match(info.count, new RegExp(`^${info.total - 5} backgrounds · 12 approved · ${info.total - 18} experimental · 1 custom$`));
     assert.deepEqual(info.current, ['Enchanted Forest'], 'current theme identified');
     // search by name
     await studio.fill('#gallerySearch', 'ocean');
@@ -68,7 +68,7 @@ test('gallery: approved / experimental / custom groups with live counts, search,
     assert.deepEqual(await studio.evaluate(() => [...document.querySelectorAll('.gallery-group')].map(g => g.dataset.group)), ['experimental']);
     await studio.click('.filter-chip[data-filter="approved"]');
     assert.deepEqual(await studio.evaluate(() => [...document.querySelectorAll('.gallery-group')].map(g => g.dataset.group)), ['approved']);
-    assert.equal(await studio.locator('.gallery-group[data-group="approved"] .gallery-card').count(), 10);
+    assert.equal(await studio.locator('.gallery-group[data-group="approved"] .gallery-card').count(), 12);
     await studio.click('.filter-chip[data-filter="all"]');
     // Apply (global target outside a repository) changes only the theme
     await studio.locator('.gallery-card', { hasText: 'Cosmic Galaxy' }).locator('button', { hasText: 'Apply' }).click();

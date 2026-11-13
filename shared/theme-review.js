@@ -24,8 +24,11 @@ globalThis.RepoVibeThemeReview = {
   'preset-1': 'approved',  // Cyberpunk Neon
   'preset-2': 'archived',  // Midnight Developer — removed from the collection; existing assignments keep working
   'preset-13': 'archived', // Lavender Nights — removed from the collection; existing assignments keep working
-  'preset-18': 'archived'  // Sunset Boulevard — removed from the collection; existing assignments keep working
-  // Still experimental (rework requested): Matrix, Aurora, Cozy Coding, Dracula.
+  'preset-18': 'archived', // Sunset Boulevard — removed from the collection; existing assignments keep working
+  // 2026-11-13, owner's review (round 6): the rebuilt worlds
+  'preset-5': 'approved',  // Matrix
+  'preset-6': 'approved'   // Dracula
+  // Still experimental (full redesign from the owner's reference images, then re-review): Aurora, Cozy Coding.
 };
 /* Background (wallpaper) curation, same rules: 'archived' hides a background from the Studio's picker; any theme that already uses it keeps it. */
 globalThis.RepoVibeWallpaperReview = {
