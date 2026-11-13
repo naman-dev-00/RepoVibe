@@ -15,9 +15,9 @@
   "failSummary": "",
   "errors": 0,
   "motionChangedPct": [
-   5.27,
-   5.75,
-   6.12
+   5.55,
+   5.5,
+   5.84
   ]
  },
  "dracula": {
@@ -43,9 +43,9 @@
   "failSummary": "",
   "errors": 0,
   "motionChangedPct": [
-   1.86,
-   0.72,
-   1.92
+   1.88,
+   0.99,
+   1.99
   ]
  },
  "cozy-coding": {
@@ -68,9 +68,9 @@
   "failSummary": "",
   "errors": 0,
   "motionChangedPct": [
-   1.94,
-   1.39,
-   2.34
+   1.85,
+   1.01,
+   1.96
   ]
  },
  "aurora": {
@@ -96,9 +96,9 @@
   "failSummary": "",
   "errors": 0,
   "motionChangedPct": [
-   21.98,
-   22.57,
-   20.8
+   20.88,
+   23.43,
+   19.24
   ]
  }
 }
