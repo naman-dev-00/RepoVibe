@@ -109,16 +109,19 @@
     ]
   };
 
-  /* ---- Aurora: three aurora curtains drift, breathe and change hue independently; pines sway on a still night; a meteor streaks. */
+  /* ---- Aurora: three flowing aurora ribbons (rays stream along each ribbon, the ribbon undulates and breathes, in different directions and
+     tempos), a clear star field drifting slowly across the sky; pines sway on a still night; a meteor streaks. */
   W['aurora-borealis'] = {
     tiles: [
-      { plane: 'pfar', shape: 'dot', seed: 2, w: 900, h: 600, n: 46, colors: ['#ffffff', '#cfe8ff', '#fff6d6'], r: [0.9, 1.7], still: true },
-      { plane: 'pmid', shape: 'dot', seed: 6, w: 1000, h: 700, n: 20, colors: ['#bff7e6', '#ffffff'], r: [1.4, 2.4], still: true }
+      // the sky turns: both star planes drift slowly and seamlessly to the west (the shader's baked stars stay as the deep field)
+      { plane: 'pfar', shape: 'dot', seed: 2, w: 900, h: 600, n: 64, colors: ['#ffffff', '#dff0ff', '#fff6d6'], r: [1.1, 2.0], sx: -1, sy: 0, t: 320 },
+      { plane: 'pmid', shape: 'dot', seed: 6, w: 1000, h: 700, n: 26, colors: ['#ffffff', '#e8fff6'], r: [1.8, 3.0], sx: -1, sy: 0, t: 210 }
     ],
     sprites: [
-      at('curtainA', 0.0, 0.24, 2200 / 900, 0.62, { k: 0.46, dx: 40, dy: -8, rot: 0.8, dur: 34, fx: 'pulse', gl: 9, z: 1 }),
-      at('curtainB', -0.3, 0.2, 2000 / 800, 0.5, { k: 0.46, dx: -50, dy: 10, rot: -0.6, dur: 41, fx: 'pulse', gl: 12, delay: -14, z: 1 }),
-      at('curtainC', 0.35, 0.28, 1800 / 700, 0.46, { k: 0.46, dx: 36, dy: -12, rot: 0.5, dur: 47, fx: 'pulse', gl: 15, delay: -29, z: 1 }),
+      // ribbons: 3200×640 = two periods of 1600×640; w is one period's width on the stage. flow 1 streams right→left, -1 left→right; dur = one period
+      at('ribbonA', 0.02, 0.28, 1600 / 640, 0.74, { k: 0.46, z: 1, fx: 'flow', dur: 70, flow: 1, gl: 7, sway: 13, skew: 3 }),
+      at('ribbonB', -0.38, 0.25, 1600 / 640, 0.6, { k: 0.46, z: 1, fx: 'flow', dur: 95, flow: -1, gl: 9, sway: 17, skew: -2.5 }),
+      at('ribbonC', 0.42, 0.33, 1600 / 640, 0.52, { k: 0.46, z: 1, fx: 'flow', dur: 120, flow: 1, gl: 11, sway: 21, skew: 2 }),
       base('pineL', -0.66, -0.1, 900 / 1300, 0.62, { k: 0.86, z: 3, wind: 1.1, fl: 6.2 }), base('pineR', 0.7, -0.1, 760 / 1200, 0.56, { k: 0.86, z: 3, wind: 1.2, fl: 5.8 }),
       at('cabin', 0.5, -0.082, 420 / 300, 0.05, { k: 0.5, dx: 0, dy: 0, rot: 0, dur: 5, fx: 'flicker' }),
       at('meteor', 0.2, 0.3, 8, 0.05, { k: 0.46, cross: 22, dx: 0, dy: 0, rot: 0, delay: -9 }),

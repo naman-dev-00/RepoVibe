@@ -1,0 +1,77 @@
+{
+ "alpine-lake": {
+  "rainClass": false,
+  "rainAnimations": 0
+ },
+ "synthwave-valley": {
+  "rainClass": false,
+  "rainAnimations": 0
+ },
+ "gallery": {
+  "count": "17 backgrounds · 6 approved · 11 experimental · 0 custom",
+  "groups": {
+   "approved": [
+    "Enchanted Forest",
+    "Futuristic Sci-Fi",
+    "Cosmic Galaxy",
+    "Ocean Depths",
+    "Pixel Paradise",
+    "Arctic Frost"
+   ],
+   "experimental": [
+    "Cyberpunk Neon",
+    "Aurora",
+    "Sunset Boulevard",
+    "Solar Flare",
+    "Midnight Developer",
+    "Cozy Coding",
+    "Matrix",
+    "Dracula",
+    "Retro Terminal",
+    "Lavender Nights",
+    "Obsidian"
+   ],
+   "custom": []
+  }
+ },
+ "picker": [
+  "Holographic AI hall",
+  "Cosmic galaxy",
+  "Enchanted forest",
+  "Alpine lake at golden hour",
+  "Neon rain canyon",
+  "Aurora fjord",
+  "Synthwave valley",
+  "Desert dunes at dusk",
+  "Ocean twilight",
+  "Midnight skyline",
+  "Sakura street",
+  "Cozy room",
+  "Digital rain",
+  "Gothic castle",
+  "Ocean depths",
+  "Forest waterfall",
+  "Pixel dusk",
+  "Solar sunset",
+  "Snow peaks",
+  "Lavender fantasy",
+  "Academia library",
+  "Monochrome lines",
+  "Obsidian shards",
+  "Aurora lake",
+  "Sunset village",
+  "Ocean Depths",
+  "Arctic Frost",
+  "Pixel Paradise",
+  "Sunset Boulevard",
+  "Aurora"
+ ],
+ "popupFeatured": [
+  "Ocean Depths",
+  "Enchanted Forest",
+  "Pixel Paradise",
+  "Arctic Frost",
+  "Futuristic Sci-Fi",
+  "Cosmic Galaxy"
+ ]
+}

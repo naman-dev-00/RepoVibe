@@ -93,7 +93,7 @@ test('reworked worlds ship their assets: Pixel Paradise and Arctic Frost layers 
 });
 
 test('Lite / Auto on a slow machine: weather never freezes — rain, snow and petals keep falling, ripples run, plants sway, swimmers swim', async () => {
-  for (const [id, label, must] of [['preset-1', 'cyberpunk', ['repv-rain', 'repv-ripple']], ['preset-12', 'arctic', ['repv-tile']], ['preset-3', 'sakura', ['repv-tile', 'repv-gust-r']], ['preset-7', 'ocean', ['repv-cross-rev', 'repv-gust-r']]]) {
+  for (const [id, label, must] of [['preset-1', 'cyberpunk', ['repv-drop', 'repv-ripple']], ['preset-17', 'aurora', ['repv-flow', 'repv-aurora-sway', 'repv-tile']], ['preset-12', 'arctic', ['repv-tile']], ['preset-3', 'sakura', ['repv-tile', 'repv-gust-r']], ['preset-7', 'ocean', ['repv-cross-rev', 'repv-gust-r']]]) {
     const { context, errors, close } = await launch({ colorScheme: 'dark' });
     try {
       context.setDefaultTimeout(30000);
@@ -108,6 +108,7 @@ test('Lite / Auto on a slow machine: weather never freezes — rain, snow and pe
         return { run, pmidVisible: pmid ? getComputedStyle(pmid).visibility : null, pmidAnims: pm };
       });
       for (const m of must) assert.ok(info.run.includes(m), `${label} (Lite): ${m} must run; running: ${info.run.join()}`);
+      if (label === 'cyberpunk') { assert.deepEqual(errors, []); continue; }   // Cyberpunk has no free weather plane: its drops are paired with their rings
       assert.equal(info.pmidVisible, 'visible', `${label}: the weather plane stays visible`);
       assert.ok(info.pmidAnims >= 1, `${label}: the visible weather plane animates (no frozen overlay)`);
       // the plane really travels: its transform changes over time
@@ -173,6 +174,45 @@ test('Ocean Depths: turtles and fish swim forward (the way they face), never bac
     assert.ok(x1 < x0, `turtle moves left, head first (${x0.toFixed(1)} → ${x1.toFixed(1)})`);
     // no seagrass sprites (they grew on the middle rock); plants still sway elsewhere
     assert.equal(await page.evaluate(() => document.querySelectorAll('#repovibe-depth .repv-s[data-sprite^="grass"]').length), 0);
+    assert.deepEqual(errors, []);
+  } finally { await close(); }
+});
+
+test('Cyberpunk Neon: every drop is paired with its ring (same spot, same clock) — no free-falling rain that misses the water', async () => {
+  const { context, errors, close } = await launch({ colorScheme: 'dark' });
+  try {
+    context.setDefaultTimeout(30000);
+    await setConfig(context, { enabled: true, defaultThemeId: 'preset-1', motionMode: 'ambient', depthQuality: 'full', depthTuning: TUNE });
+    const page = await context.newPage(); await page.goto('https://github.com/acme/project/layout');
+    await page.waitForSelector('#repovibe-depth .repv-s[data-sprite="dp1"] img', { state: 'attached' }); await page.waitForTimeout(400);
+    const pairs = await page.evaluate(() => [...document.querySelectorAll('#repovibe-depth .repv-s[data-sprite^="rp"]')].map(r => {
+      const d = document.querySelector(`#repovibe-depth .repv-s[data-sprite="${r.dataset.sprite.replace('rp', 'dp')}"]`);
+      const rr = r.getBoundingClientRect(), dr = d.getBoundingClientRect(), ri = r.firstChild, di = d.firstChild;
+      return { n: r.dataset.sprite, dx: Math.abs((rr.x + rr.width / 2) - (dr.x + dr.width / 2)), dy: Math.abs((rr.y + rr.height / 2) - (dr.y + dr.height)),
+        sameDur: getComputedStyle(ri).animationDuration === getComputedStyle(di).animationDuration, sameDelay: ri.style.animationDelay === di.style.animationDelay };
+    }));
+    assert.equal(pairs.length, 20);
+    for (const p of pairs) assert.ok(p.dx < 1.5 && p.dy < 1.5 && p.sameDur && p.sameDelay, `${p.n} drop lands on its ring: ${JSON.stringify(p)}`);
+    assert.equal(await page.evaluate(() => document.getAnimations().filter(a => a.animationName === 'repv-rain').length), 0, 'no unpaired rain planes');
+    assert.deepEqual(errors, []);
+  } finally { await close(); }
+});
+
+test('Aurora: ribbons stream, undulate and breathe; stars drift; at rest in Static', async () => {
+  const { context, errors, close } = await launch({ colorScheme: 'dark' });
+  try {
+    context.setDefaultTimeout(30000);
+    await setConfig(context, { enabled: true, defaultThemeId: 'preset-17', motionMode: 'ambient', depthQuality: 'full', depthTuning: TUNE });
+    const page = await context.newPage(); await page.goto('https://github.com/acme/project/layout');
+    await page.waitForSelector('#repovibe-depth .repv-s[data-sprite="ribbonA"] img', { state: 'attached' }); await page.waitForTimeout(400);
+    const tr = () => page.evaluate(() => ['ribbonA', 'ribbonB', 'ribbonC'].map(n => { const w = document.querySelector(`#repovibe-depth .repv-s[data-sprite="${n}"]`); return [getComputedStyle(w.firstChild).transform, getComputedStyle(w).transform, getComputedStyle(w).overflow]; }));
+    const a = await tr(); await page.waitForTimeout(700); const b = await tr();
+    for (let i = 0; i < 3; i++) { assert.notEqual(a[i][0], b[i][0], `ribbon ${i} streams`); assert.notEqual(a[i][1], b[i][1], `ribbon ${i} undulates`); assert.equal(a[i][2], 'hidden'); }
+    const run = await page.evaluate(() => [...new Set(document.getAnimations().filter(x => x.playState === 'running').map(x => x.animationName))]);
+    for (const m of ['repv-flow', 'repv-flow-rev', 'repv-aurora-glow', 'repv-aurora-sway', 'repv-tile']) assert.ok(run.includes(m), `${m}: ${run}`);
+    await updateConfig(context, "c.motionMode = 'static';");
+    await page.waitForFunction(() => document.documentElement.classList.contains('repv-depth-static'));
+    assert.equal(await page.evaluate(() => document.getAnimations().filter(x => /^repv-(flow|aurora)/.test(x.animationName)).length), 0, 'Static: aurora at rest');
     assert.deepEqual(errors, []);
   } finally { await close(); }
 });

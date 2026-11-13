@@ -8,9 +8,18 @@ vec3 skyBase(vec2 uv) {
   float y = SAT((uv.y - HZ) / 0.65);
   vec3 col = mix(vec3(0.05, 0.1, 0.2), vec3(0.01, 0.015, 0.07), pow(y, 0.7));
   col += vec3(0.04, 0.14, 0.2) * exp(-(uv.y - HZ) * 7.0);
-  vec2 g = uv * 140.0; vec2 ci = floor(g); vec2 h = hash22(ci); float star = step(0.985, h.x) * smoothstep(0.35, 0.0, length(fract(g) - 0.5 + (h - 0.5) * 0.5)) ;
-  col += vec3(0.85, 0.92, 1.0) * star * (0.5 + 0.7 * h.y);
-  vec2 g2 = uv * 55.0; vec2 c2 = floor(g2); vec2 h2 = hash22(c2 * 1.7); col += vec3(1.0, 0.95, 0.85) * step(0.97, h2.x) * smoothstep(0.3, 0.0, length(fract(g2) - 0.5)) * 0.9;
+  // a clear, deep star field: three magnitudes, crisp cores with a soft halo, slightly tinted; a faint band of the galaxy across the sky
+  float sky = SAT((uv.y - HZ - 0.02) / 0.1);
+  vec2 g = uv * 150.0; vec2 ci = floor(g); vec2 h = hash22(ci); vec2 o = fract(g) - 0.5 + (h - 0.5) * 0.6;
+  float star = step(0.972, h.x) * (smoothstep(0.12, 0.0, length(o)) + 0.25 * smoothstep(0.45, 0.0, length(o)));
+  col += mix(vec3(0.8, 0.88, 1.0), vec3(1.0, 0.95, 0.85), h.y) * star * (0.6 + 0.9 * h.y) * sky;
+  vec2 g2 = uv * 60.0; vec2 c2 = floor(g2); vec2 h2 = hash22(c2 * 1.7); vec2 o2 = fract(g2) - 0.5 + (h2 - 0.5) * 0.5;
+  col += vec3(1.0, 0.97, 0.9) * step(0.955, h2.x) * (smoothstep(0.09, 0.0, length(o2)) * 1.6 + smoothstep(0.4, 0.0, length(o2)) * 0.35) * sky;
+  vec2 g3 = uv * 22.0; vec2 c3 = floor(g3); vec2 h3 = hash22(c3 * 3.1); vec2 o3 = fract(g3) - 0.5 + (h3 - 0.5) * 0.4;   // a few bright stars with spikes
+  float b3 = step(0.93, h3.x) * sky; float spike = exp(-abs(o3.x) * 90.0) * exp(-abs(o3.y) * 9.0) + exp(-abs(o3.y) * 90.0) * exp(-abs(o3.x) * 9.0);
+  col += vec3(0.95, 0.98, 1.0) * b3 * (smoothstep(0.06, 0.0, length(o3)) * 2.2 + smoothstep(0.3, 0.0, length(o3)) * 0.3 + spike * 0.5);
+  float band = exp(-pow((uv.y - 0.32 - 0.18 * uv.x) * 5.0, 2.0)) * (0.5 + 0.5 * fbm(uv * 9.0, 4)) * sky;       // milky way
+  col += vec3(0.1, 0.12, 0.2) * band * 0.6;
   return col;
 }
 float ridge(float x, float base, float amp, float f, float s) { return base + amp * pow(0.5 + 0.5 * fbm(vec2(x * f + s, s * 2.0), 6), 1.2); }

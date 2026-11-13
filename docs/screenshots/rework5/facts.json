@@ -1,0 +1,53 @@
+{
+ "source": "real github.com page replay (actions-checkout-code, logged out, captured locally; not committed)",
+ "aurora": {
+  "scene": "aurora-borealis",
+  "sprites": 7,
+  "popOuts": 2,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-aurora-glow",
+   "repv-aurora-sway",
+   "repv-cross",
+   "repv-flow",
+   "repv-flow-rev",
+   "repv-flutter",
+   "repv-gust-r",
+   "repv-tile"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   14.9,
+   18.04,
+   19.09
+  ]
+ },
+ "cyberpunk-neon": {
+  "scene": "neon-city-3d",
+  "sprites": 43,
+  "popOuts": 3,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-cross",
+   "repv-cross-rev",
+   "repv-drift",
+   "repv-drop",
+   "repv-flick",
+   "repv-ripple"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   4.51,
+   4.96,
+   2.86
+  ]
+ }
+}

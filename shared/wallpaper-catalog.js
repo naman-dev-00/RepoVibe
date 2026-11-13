@@ -126,6 +126,7 @@
       ],
       "sprites": [
         "drone",
+        "drop",
         "holo",
         "ripple",
         "signA",
@@ -710,12 +711,12 @@
       "category": "Nature",
       "style": "3d",
       "tone": [
-        "#e5ede1",
-        "#121c3b"
+        "#e6e9e1",
+        "#15243c"
       ],
       "toneSoft": [
-        "#9ae9e1",
-        "#172546"
+        "#9be9e1",
+        "#1c3246"
       ],
       "depth": [
         "far",
@@ -727,12 +728,12 @@
       "sprites": [
         "bough",
         "cabin",
-        "curtainA",
-        "curtainB",
-        "curtainC",
         "meteor",
         "pineL",
-        "pineR"
+        "pineR",
+        "ribbonA",
+        "ribbonB",
+        "ribbonC"
       ]
     }
   ].map(Object.freeze));

@@ -432,8 +432,8 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
       pnear: [bokehTile(41, 1400, 900, 6, ['#fff0a0', '#a8ffd8']), '1400px 900px'], mist: 'radial-gradient(60% 22% at 30% 78%, rgba(130,235,215,.16), transparent 70%), radial-gradient(50% 18% at 78% 66%, rgba(120,205,255,.12), transparent 70%), radial-gradient(70% 16% at 50% 92%, rgba(150,230,220,.12), transparent 70%)' },
     'cosmic-galaxy': { pfar: [glowTile(53, 600, 600, 70, ['#eef2ff', '#cfd8ff', '#fff4e0'], 0.9, 2.2), '600px 600px'], pmid: [glowTile(57, 820, 820, 36, ['#d8ccff', '#bfe0ff'], 1.4, 3), '820px 820px'],
       pnear: [bokehTile(59, 1500, 1000, 4, ['#c9b8ff', '#9fd0ff']), '1500px 1000px'], mist: 'radial-gradient(45% 32% at 20% 30%, rgba(150,80,255,.14), transparent 70%), radial-gradient(40% 30% at 82% 72%, rgba(60,140,255,.12), transparent 70%)' },
-    // drizzle, not a downpour: few, short, hairline streaks that fall gently — the same light rain whose drops ring the canal below
-    'neon-city-3d': { pfar: [rainTile(61, 46, 0.6, 0.5, 0.75), '200px 200px'], pmid: [rainTile(67, 24, 0.95, 0.62, 0.95), '400px 400px'],
+    // no free-falling rain planes: every drop in this scene is a 'drop' sprite paired with the ring it makes on the canal (see SPRITES)
+    'neon-city-3d': {
       pnear: [bokehTile(71, 1400, 900, 7, ['#ff4fd8', '#4fe3ff', '#b48cff']), '1400px 900px'], mist: 'radial-gradient(60% 20% at 50% 88%, rgba(150,170,255,.16), transparent 70%), radial-gradient(40% 24% at 15% 40%, rgba(255,60,200,.14), transparent 70%), radial-gradient(35% 22% at 85% 40%, rgba(60,200,255,.12), transparent 70%)' },
     'scifi-ai': { pfar: [glowTile(73, 640, 480, 26, ['#7fdcff', '#c8f2ff'], 1, 2.4), '640px 480px'], pmid: [glowTile(79, 900, 640, 12, ['#5fd0ff', '#ffffff'], 2, 4), '900px 640px'],
       pnear: [bokehTile(83, 1400, 900, 5, ['#9fe6ff', '#ffffff']), '1400px 900px'], mist: 'radial-gradient(60% 24% at 50% 80%, rgba(160,225,255,.20), transparent 70%)' }
@@ -520,6 +520,12 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
       { n: 'mPanel', src: 'panel', plane: 'pop', at: 'margin', side: 'right', y: 0.55, h: 0.4, k: 2.3, dx: -6, dy: 4, rot: -1, dur: 10, fx: 'pulse' }
     ]
   };
+  // Cyberpunk: every ring on the canal is made by a visible drop. Each 'drop' sprite is generated from its ripple (same x, duration and delay),
+  // stands on the ring's centre and falls during the last 12 % of the shared cycle, so it lands exactly where and when the ring starts.
+  SPRITES['neon-city-3d'].push(...SPRITES['neon-city-3d'].filter(s => s.fx === 'ripple').map(s => {
+    // anchored by its bottom edge on the ring's centre, so the pairing holds at every viewport aspect ratio
+    return { n: s.n.replace('rp', 'dp'), src: 'drop', plane: 'scene', k: s.k, x: s.x, y: s.y, w: s.w * 0.11, anchor: 'bottom', dur: s.dur, delay: s.delay, fx: 'drop' };
+  }));
   const spritesOf = slug => SPRITES[slug] || WORLDS[slug]?.sprites || [];
   function spriteUrl(slug, n) { return chrome.runtime.getURL(`wallpapers/depth/${slug}/s-${n}.webp`); }
   function tuning() { const t = config.depthTuning || {}; return { parallax: (t.parallax ?? 100) / 100, motion: (t.motion ?? 100) / 100, particles: (t.particles ?? 100) / 100, foreground: (t.foreground ?? 100) / 100 }; }
@@ -561,8 +567,13 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     img.style.setProperty('--dx', `${(s.dx || 0) * m}px`); img.style.setProperty('--dy', `${(s.dy || 0) * m}px`); img.style.setProperty('--rot', `${(s.rot || 0) * (cinematic ? 1.4 : 1)}deg`);
     if (!s.wind) img.style.animationDelay = s.delay !== undefined ? `${s.delay}s` : `${-((s.n.charCodeAt(0) * 7 + s.n.charCodeAt(s.n.length - 1) * 3 + s.n.length * 13) % 20)}s`; // desynchronised loops
     if (s.fx) img.dataset.fx = s.fx;
+    if (s.fx === 'flow') {   // a seamless ribbon (two periods side by side) streams through a clipping wrapper; the wrapper undulates
+      wrap.dataset.flow = s.flow < 0 ? 'rev' : ''; wrap.style.setProperty('--sd', `${(s.sway || 13) / (cinematic ? 1.3 : 1)}s`); wrap.style.setProperty('--sk', `${s.skew ?? 2.5}deg`);
+      wrap.style.animationDelay = `${-(s.n.length * 3.7 % 11)}s`;
+    }
     wrap.appendChild(img);
     if (s.op) wrap.style.opacity = String(s.op); // distance haze for far objects (the water/air colour shows through)
+    if (s.anchor === 'bottom') wrap.style.translate = '-50% -100%';
     if (s.plane === 'scene') { wrap.style.left = `${s.x}%`; wrap.style.top = `${s.y}%`; wrap.style.width = `${s.w}%`; if (s.z) wrap.style.zIndex = String(s.z); } // % of the 16:9 stage that shares the baked layers' cover geometry
     else wrap.dataset.pop = s.at;
     return wrap;
@@ -797,13 +808,12 @@ html.repv-depth-cinematic #repovibe-depth { --amp:30px; }
 #repovibe-depth > .repv-veil { position:absolute; inset:0; }
 #repovibe-depth > [data-l="rays"] { opacity:.8; } /* light-coloured alpha art: no blend mode (avoids an extra render surface) */
 html.repv-depth-lite #repovibe-depth > :is([data-l="pfar"], [data-l="mist"], [data-l="pnear"]) { visibility:hidden; }
-#repovibe-depth[data-scene="neon-city-3d"] > :is([data-l="pfar"], [data-l="pmid"]) > i { top:-420px; } /* the rain loop travels 400 px: start above the view so no empty band sweeps in */
 /* Lite (manual, or Auto below 40 fps): fewer full-viewport planes and no camera drift — the main cost of software compositing.
    The weather never freezes: the mid particle plane (rain, snow, petals, bubbles) keeps falling — a single compositor transform —
    because a still weather plane reads as a frozen picture. Main objects keep drifting, plants keep swaying, ripples keep running;
    distant belt rocks rest; pop-out objects lose their filter shadow. */
 html.repv-depth-lite #repovibe-depth > .repv-l:not([data-l="pmid"]) > i { animation:none !important; }
-html.repv-depth-lite #repovibe-depth .repv-b[data-k="0.46"] > .repv-s > img:not([data-fx="ripple"], [data-wind], [data-cross], [data-swim], [data-fall], [data-rise], [data-approach]) { animation:none !important; } /* only idle drift rests (e.g. distant belt rocks); travellers never freeze mid-path */
+html.repv-depth-lite #repovibe-depth .repv-b[data-k="0.46"] > .repv-s > img:not([data-fx="ripple"], [data-fx="drop"], [data-fx="flow"], [data-wind], [data-cross], [data-swim], [data-fall], [data-rise], [data-approach]) { animation:none !important; } /* only idle drift rests (e.g. distant belt rocks); travellers never freeze mid-path */
 html.repv-depth-lite #repovibe-popout > .repv-s::before { display:none; }
 /* Minimal (Auto only, < 25 fps): no light shafts; the one moving weather plane, layers, moving objects and pop-out stay */
 html.repv-depth-minimal #repovibe-depth > [data-l="rays"] { visibility:hidden; }
@@ -816,8 +826,6 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
  #repovibe-depth > [data-l="pnear"] > i { animation:repv-bokeh 22s ease-in-out infinite alternate; }
  #repovibe-depth > [data-l="mist"] > i { animation:repv-fog 30s ease-in-out infinite alternate; }
  #repovibe-depth > [data-l="rays"] > i { animation:repv-breathe 9s ease-in-out infinite alternate; }
- #repovibe-depth[data-scene="neon-city-3d"] > [data-l="pfar"] > i { animation:repv-rain 2.6s linear infinite; }  /* distant drizzle: fine, slow */
- #repovibe-depth[data-scene="neon-city-3d"] > [data-l="pmid"] > i { animation:repv-rain 1.5s linear infinite; }  /* near drizzle: a little longer and faster */
  html.repv-depth-cinematic #repovibe-depth > .repv-l:not([data-tile]) > i { animation:repv-cam 26s ease-in-out infinite alternate; }
  html.repv-depth-cinematic #repovibe-depth > .repv-l[data-l="front"] > i { animation:repv-sway 7s ease-in-out infinite alternate; }
  html.repv-depth-cinematic #repovibe-depth > .repv-l[data-l="rays"] > i { animation:repv-breathe 5s ease-in-out infinite alternate, repv-cam 26s ease-in-out infinite alternate; }
@@ -849,8 +857,21 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
  :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="spinY"] { animation:repv-drift var(--dur, 30s) ease-in-out infinite alternate, repv-spin-y 9s ease-in-out infinite alternate; }
  html.repv-depth-cinematic :is(#repovibe-depth, #repovibe-popout) .repv-s > img[data-fx="spin"] { animation-duration:var(--dur, 30s), 22s; }
  #repovibe-depth .repv-s > img[data-fx="ripple"] { animation:repv-ripple var(--dur, 8s) linear infinite; }
+ #repovibe-depth .repv-s > img[data-fx="drop"] { animation:repv-drop var(--dur, 8s) linear infinite; }
+ #repovibe-depth .repv-s > img[data-fx="flow"] { animation:repv-flow var(--dur, 80s) linear infinite, repv-aurora-glow var(--gl, 7s) ease-in-out infinite alternate; }
+ #repovibe-depth .repv-s[data-flow="rev"] > img[data-fx="flow"] { animation-name:repv-flow-rev, repv-aurora-glow; }
+ #repovibe-depth .repv-s[data-flow] { animation:repv-aurora-sway var(--sd, 13s) ease-in-out infinite alternate; }
 }
 #repovibe-depth .repv-s > img[data-fx="ripple"] { opacity:.28; scale:.6; } /* at rest (Static, reduced motion): faint frozen rings */
+#repovibe-depth .repv-s > img[data-fx="drop"] { opacity:0; } /* at rest (Static, reduced motion): no drop hangs in the air */
+@keyframes repv-drop { 0%, 87.5% { transform:translate3d(0, -560%, 0); opacity:0; } 88.5% { opacity:.95; } 99.6% { transform:translate3d(0, 0, 0); opacity:.95; } 100% { transform:translate3d(0, 0, 0); opacity:0; } } /* falls, lands as its ring starts (0 % of the shared cycle) */
+/* Aurora ribbons: one period visible through the wrapper (overflow clipped, soft edges); the image is two periods wide and slides by one period */
+#repovibe-depth .repv-s[data-flow] { overflow:hidden; transform-origin:50% 85%; -webkit-mask-image:linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); mask-image:linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); }
+#repovibe-depth .repv-s[data-flow] > img { width:200%; max-width:none; }
+@keyframes repv-flow { from { transform:translate3d(0, 0, 0); } to { transform:translate3d(-50%, 0, 0); } }
+@keyframes repv-flow-rev { from { transform:translate3d(-50%, 0, 0); } to { transform:translate3d(0, 0, 0); } }
+@keyframes repv-aurora-glow { 0% { opacity:.55; } 45% { opacity:1; } 70% { opacity:.78; } 100% { opacity:.95; } }
+@keyframes repv-aurora-sway { 0% { transform:skewX(calc(var(--sk) * -1)) scaleY(.9); } 50% { transform:skewX(calc(var(--sk) * .4)) scaleY(1.06); } 100% { transform:skewX(var(--sk)) scaleY(.96); } }
 @keyframes repv-ripple { 0% { scale:.06; opacity:0; } 1.5% { opacity:1; } 22% { opacity:.8; } 38% { scale:1; opacity:0; } 100% { scale:1; opacity:0; } } /* a drizzle drop: quick ring, then calm water until the next drop */
 #repovibe-depth .repv-s:has(> img[data-fall]) { top:0 !important; }
 #repovibe-depth .repv-s:has(> img[data-rise]) { top:0 !important; }
