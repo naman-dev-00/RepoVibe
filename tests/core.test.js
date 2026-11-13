@@ -342,17 +342,18 @@ test('removed idle-butterfly preference: ignored on load, other settings preserv
 });
 
 /* ---- Eight additional immersive worlds (data-driven, shared/worlds.js). */
-const WORLD_IDS = { 'preset-3': 'sakura-garden', 'preset-7': 'ocean-kingdom', 'preset-12': 'arctic-frost-3d', 'preset-17': 'aurora-borealis', 'preset-20': 'synthwave-highway', 'preset-14': 'dark-library', 'preset-10': 'pixel-paradise-3d', 'preset-18': 'sunset-coast' };
+const WORLD_IDS = { 'preset-3': 'sakura-garden', 'preset-7': 'ocean-kingdom', 'preset-12': 'arctic-frost-3d', 'preset-17': 'aurora-borealis', 'preset-20': 'synthwave-highway', 'preset-14': 'dark-library', 'preset-10': 'pixel-paradise-3d', 'preset-18': 'sunset-coast',
+  'preset-5': 'digital-rain', 'preset-6': 'gothic-castle', 'preset-4': 'cozy-room' }; // round 5: Matrix, Dracula and Cozy Coding became layered worlds
 const loadWorlds = () => { const ctx = vm.createContext({ globalThis: {} }); ctx.globalThis = ctx; vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../shared/worlds.js'), 'utf8'), ctx); return ctx.RepoVibeWorlds; };
 
-test('the eight worlds keep their preset ids and are assigned their own layered artwork', () => {
+test('the worlds keep their preset ids and are assigned their own layered artwork', () => {
   const path = require('node:path');
   assert.deepEqual(JSON.parse(JSON.stringify(C.WORLD_PRESETS)).sort(), Object.keys(WORLD_IDS).sort());
   for (const [id, slug] of Object.entries(WORLD_IDS)) {
     const p = C.PRESETS.find(t => t.id === id);
     assert.equal(p.wallpaperRef, `builtin:${slug}`, `${id} uses ${slug}`); assert.equal(p.world, true); assert.equal(p.flagship, false, 'worlds are not the four flagships');
     const w = C.WALLPAPERS.find(x => x.slug === slug);
-    assert.ok(w && w.depth.length >= 4 && w.depth[0].layer === 'far', `${slug} layered`);
+    assert.ok(w && w.depth.length >= 3 && w.depth[0].layer === 'far', `${slug} layered`);
     for (const l of w.depth) assert.ok(fs.existsSync(path.join(__dirname, '..', l.path)), l.path);
     assert.ok(fs.existsSync(path.join(__dirname, '..', w.path)) && fs.existsSync(path.join(__dirname, '..', w.thumb)), `${slug} flat image and thumbnail (Home cards use the thumbnail, not a renderer)`);
   }
@@ -366,7 +367,10 @@ test('every world sprite and pop-out declared in shared/worlds.js exists on disk
   assert.deepEqual(Object.keys(W).sort(), Object.values(WORLD_IDS).sort());
   for (const [slug, def] of Object.entries(W)) {
     const cat = context.RepoVibeWallpaperCatalog.find(x => x.slug === slug);
-    assert.ok(cat, slug); assert.ok(def.sprites.some(s => s.plane === 'pop'), `${slug} has pop-out elements`); assert.ok(def.sprites.some(s => s.wind), `${slug} has wind-driven sway`);
+    assert.ok(cat, slug);
+    // Matrix is pure falling code: no pop-out objects or wind, its life is the stream motion (every stream falls the whole stage, top → bottom)
+    if (slug === 'digital-rain') { const st = def.sprites.filter(s => s.fx === 'stream'); assert.ok(st.length >= 16 && st.every(s => s.anchor === 'bottom' && s.y === 0 && s.dur > 0), 'code streams'); assert.ok(def.tiles.filter(t => t.sy === 1 && !t.sx).length >= 3, 'three code-rain planes moving straight down'); }
+    else { assert.ok(def.sprites.some(s => s.plane === 'pop'), `${slug} has pop-out elements`); assert.ok(def.sprites.some(s => s.wind), `${slug} has wind-driven sway`); }
     for (const s of def.sprites) {
       const file = s.src || s.n;
       assert.ok(fs.existsSync(path.join(__dirname, '..', 'wallpapers', 'depth', slug, `s-${file}.webp`)), `${slug}/s-${file}.webp`);

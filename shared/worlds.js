@@ -123,7 +123,13 @@
       at('ribbonB', -0.38, 0.25, 1600 / 640, 0.6, { k: 0.46, z: 1, fx: 'flow', dur: 95, flow: -1, gl: 9, sway: 17, skew: -2.5 }),
       at('ribbonC', 0.42, 0.33, 1600 / 640, 0.52, { k: 0.46, z: 1, fx: 'flow', dur: 120, flow: 1, gl: 11, sway: 21, skew: 2 }),
       base('pineL', -0.66, -0.1, 900 / 1300, 0.62, { k: 0.86, z: 3, wind: 1.1, fl: 6.2 }), base('pineR', 0.7, -0.1, 760 / 1200, 0.56, { k: 0.86, z: 3, wind: 1.2, fl: 5.8 }),
-      at('cabin', 0.5, -0.082, 420 / 300, 0.05, { k: 0.5, dx: 0, dy: 0, rot: 0, dur: 5, fx: 'flicker' }),
+      // the painted world's live details (scripts/wallpapers/aurora-paint.py): stage px → %: x / 25.6, y / 14.4
+      { n: 'cabinGlow', plane: 'scene', k: 0.86, x: 75.4, y: 61.5, w: 11, dx: 0, dy: 0, rot: 0, dur: 6, fx: 'pulse', gl: 3.4, z: 3 },
+      { n: 'smoke', plane: 'scene', k: 0.86, x: 78.6, y: 42.6, w: 4.6, dx: 16, dy: -20, rot: 4, dur: 6, fx: 'pulse', gl: 3.2, z: 3, op: 0.6 },
+      { n: 'shimmer', plane: 'scene', k: 0.64, x: 46, y: 66, w: 30, dx: 34, dy: 0, rot: 0, dur: 7, fx: 'pulse', gl: 2.1, z: 2 },
+      { n: 'shimmerB', src: 'shimmer', plane: 'scene', k: 0.64, x: 52, y: 78, w: 24, dx: -28, dy: 0, rot: 0, dur: 9, fx: 'pulse', gl: 2.9, z: 2, flip: 1 },
+      ...[[9, 9, 2.4, 1.6], [24, 21, 1.7, 2.3], [41, 6, 2.8, 1.9], [57, 15, 1.9, 2.7], [69, 5, 2.3, 1.4], [84, 12, 2.9, 2.1], [93, 24, 1.8, 3.0], [33, 30, 1.6, 2.5], [76, 28, 1.7, 1.7]]
+        .map(([x, y, w, gl], i) => ({ n: `star${i + 1}`, src: 'sparkle', plane: 'scene', k: 0.46, x, y, w, dx: 0, dy: 0, rot: 0, dur: 8, fx: 'pulse', gl, z: 1 })),
       at('meteor', 0.2, 0.3, 8, 0.05, { k: 0.46, cross: 22, dx: 0, dy: 0, rot: 0, delay: -9 }),
       { n: 'bough', plane: 'pop', at: 'band', x: 0.97, y: 0.5, h: 0.9, k: 2.6, dx: -8, dy: 3, rot: 1.5, dur: 10, noShadow: 1, wind: 1.4, ox: '100%', oy: '50%' },
       { n: 'boughB', src: 'bough', plane: 'pop', at: 'band', x: 0.03, y: 0.45, h: 0.8, k: 2.8, dx: 8, dy: -3, rot: -1.5, dur: 12, noShadow: 1, flip: 1, wind: 1.6, ox: '0%', oy: '50%' }

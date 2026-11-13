@@ -72,5 +72,33 @@
    1.39,
    2.34
   ]
+ },
+ "aurora": {
+  "scene": "aurora-borealis",
+  "sprites": 19,
+  "popOuts": 2,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-aurora-glow",
+   "repv-aurora-sway",
+   "repv-cross",
+   "repv-drift",
+   "repv-flow",
+   "repv-flow-rev",
+   "repv-flutter",
+   "repv-glow",
+   "repv-gust-r",
+   "repv-tile"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   21.98,
+   22.57,
+   20.8
+  ]
  }
 }

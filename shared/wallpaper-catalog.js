@@ -753,12 +753,12 @@
       "category": "Nature",
       "style": "3d",
       "tone": [
-        "#e6e9e1",
-        "#15243c"
+        "#f3fbff",
+        "#060b28"
       ],
       "toneSoft": [
-        "#9be9e1",
-        "#1c3246"
+        "#d0eaf2",
+        "#0a1532"
       ],
       "depth": [
         "far",
@@ -769,13 +769,16 @@
       ],
       "sprites": [
         "bough",
-        "cabin",
+        "cabinGlow",
         "meteor",
         "pineL",
         "pineR",
         "ribbonA",
         "ribbonB",
-        "ribbonC"
+        "ribbonC",
+        "shimmer",
+        "smoke",
+        "sparkle"
       ]
     }
   ].map(Object.freeze));
