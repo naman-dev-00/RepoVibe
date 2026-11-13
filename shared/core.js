@@ -60,7 +60,7 @@
   // The six quick picks shown in the popup until enough themes are approved (approved themes take these slots first).
   const FEATURED_FALLBACK = ['preset-1', 'preset-8', 'preset-19', 'preset-15', 'preset-9', 'preset-20'];
   // The eight additional immersive worlds (layered 2.5D scenes with their own autonomous motion), on existing preset ids.
-  const WORLD_PRESETS = ['preset-3', 'preset-7', 'preset-12', 'preset-14', 'preset-10', 'preset-17', 'preset-18', 'preset-20', 'preset-5'];
+  const WORLD_PRESETS = ['preset-3', 'preset-7', 'preset-12', 'preset-14', 'preset-10', 'preset-17', 'preset-18', 'preset-20', 'preset-5', 'preset-6'];
   const FLAGSHIP_MOTION = { 'preset-1': 'rain', 'preset-8': 'fireflies', 'preset-19': 'stars', 'preset-15': 'holo' };
   const MOTION_MODES = ['static', 'ambient', 'cinematic'];
   const SCENE_HEIGHTS = ['compact', 'standard', 'tall'];

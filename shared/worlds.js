@@ -153,6 +153,26 @@
     ]
   };
 
+  /* ---- Dracula: a gothic city under a huge moon. Moonlit clouds drift across the sky, low fog slides between the rows of houses, bats cross
+     the moon with beating wings, every street lamp breathes, the moon's halo pulses. Painted by scripts/wallpapers/dracula-paint.py. */
+  const LAMPS = [[0.035, 0.9], [0.105, 0.86], [0.895, 0.86], [0.965, 0.9], [0.3, 0.93], [0.5, 0.95], [0.7, 0.93]];
+  const bat = (n, y, w, k, dur, delay, rev, fp) => ({ n, src: 'bat', plane: 'scene', k, x: 50, y, w, [rev ? 'crossRev' : 'cross']: dur, dx: 0, dy: 0, rot: 0, delay, swim: { wob: 30, wp: 0.9, tilt: 7 }, flap: fp, ...(rev ? {} : { flip: 1 }) });
+  W['gothic-castle'] = {
+    tiles: [
+      { plane: 'pfar', image: 't-clouds', mask: 't-mask-sky', region: [0, 0, 1, 0.58], rel: 0.9, w: 2048, h: 1024, sx: -1, sy: 0, t: 150 },
+      { plane: 'pmid', image: 't-fog', mask: 't-mask-low', region: [0, 0.44, 1, 1], rel: 1.0, w: 2048, h: 1024, sx: 1, sy: 0, t: 90 }
+    ],
+    sprites: [
+      { n: 'moonHalo', plane: 'scene', k: 0.46, x: 33, y: 30, w: 44, dx: 0, dy: 0, rot: 0, dur: 9, fx: 'pulse', gl: 5.5, z: 1 },
+      bat('bat1', 24, 3.4, 0.64, 26, -4, 0, 0.22), bat('bat2', 31, 2.4, 0.46, 34, -17, 0, 0.19), bat('bat3', 19, 2.0, 0.46, 40, -28, 1, 0.2),
+      bat('bat4', 37, 4.4, 0.86, 21, -11, 1, 0.24), bat('bat5', 28, 1.7, 0.46, 46, -36, 0, 0.18),
+      ...LAMPS.map(([x, y], i) => ({ n: `lamp${i + 1}`, src: 'lampGlow', plane: 'scene', k: 1.28, x: +(x * 100).toFixed(2), y: +(y * 100).toFixed(2), w: 6.5, dx: 0, dy: 0, rot: 0, dur: 6, fx: i % 3 === 1 ? 'flicker' : 'pulse', gl: 2.6 + i * 0.45, z: 3 })),
+      { n: 'branch', plane: 'pop', at: 'band', x: 0.985, y: 0.42, h: 0.8, k: 2.6, dx: -6, dy: 3, rot: 1.5, dur: 10, noShadow: 1, wind: 1.5, ox: '100%', oy: '55%' },
+      { n: 'branchB', src: 'branch', plane: 'pop', at: 'band', x: 0.015, y: 0.5, h: 0.7, k: 2.8, dx: 6, dy: -3, rot: -1.5, dur: 12, noShadow: 1, flip: 1, wind: 1.7, ox: '0%', oy: '55%' },
+      { n: 'popBat', src: 'bat', plane: 'pop', at: 'band', x: 0.56, y: 0.26, h: 0.13, k: 2.9, dx: -60, dy: 24, rot: -8, dur: 7, noShadow: 1, flap: 0.2 }
+    ]
+  };
+
   /* ---- Synthwave: the grid scans toward the viewer, a car drives into the scene, palms sway in neon haze, the sun pulses. */
   const scan = (delay, i) => at('gridLine', 0.0, -0.06, 75, 0.03, { k: 0.64, z: 2, approach: 7, ax: '0vw', ay: '44vh', a0: 0.9, delay, noShadow: 1 });
   W['synthwave-highway'] = {

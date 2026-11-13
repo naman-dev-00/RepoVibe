@@ -19,5 +19,33 @@
    5.75,
    6.12
   ]
+ },
+ "dracula": {
+  "scene": "gothic-castle",
+  "sprites": 13,
+  "popOuts": 2,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-cross",
+   "repv-cross-rev",
+   "repv-drift",
+   "repv-flap",
+   "repv-flick",
+   "repv-flutter",
+   "repv-glow",
+   "repv-gust-r",
+   "repv-swim",
+   "repv-tile"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   1.86,
+   0.72,
+   1.92
+  ]
  }
 }

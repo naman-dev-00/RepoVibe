@@ -196,13 +196,14 @@
       "slug": "gothic-castle",
       "name": "Gothic castle",
       "category": "Fantasy",
-      "style": "illustrated",
-      "source": "procedural-2d",
-      "generator": "scripts/wallpapers/scenes.js",
-      "width": 1920,
-      "height": 1080,
+      "style": "3d",
+      "source": "painted-layers",
+      "generator": "scripts/wallpapers/dracula-paint.py",
+      "width": 2560,
+      "height": 1440,
       "license": "RepoVibe (original work)",
-      "attribution": "RepoVibe contributors"
+      "attribution": "RepoVibe contributors",
+      "description": "A gothic city under a huge moon: castle on a crag with an arched bridge, three rows of old town with spires, a cathedral and a clock tower, street lamps, drifting clouds and fog, bats. Layered 2.5D."
     },
     {
       "slug": "ocean-depths",

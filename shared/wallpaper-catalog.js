@@ -290,14 +290,27 @@
       "slug": "gothic-castle",
       "name": "Gothic castle",
       "category": "Fantasy",
-      "style": "illustrated",
+      "style": "3d",
       "tone": [
-        "#4c2f4f",
-        "#08060f"
+        "#ffdadb",
+        "#06030b"
       ],
       "toneSoft": [
-        "#4e3150",
-        "#090711"
+        "#ddcfd2",
+        "#0b0614"
+      ],
+      "depth": [
+        "far",
+        "mid",
+        "near",
+        "front",
+        "rays"
+      ],
+      "sprites": [
+        "bat",
+        "branch",
+        "lampGlow",
+        "moonHalo"
       ]
     },
     {

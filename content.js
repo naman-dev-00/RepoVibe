@@ -93,7 +93,7 @@
     const WORLD_EDGE = { 'enchanted-forest': ['#5fe0b9', '#9dffd8', 0.34], 'cosmic-galaxy': ['#a98bff', '#6f9bff', 0.38], 'neon-city-3d': ['#ff4fd8', '#3ff0ff', 0.5], 'scifi-ai': ['#7fe6ff', '#e8fbff', 0.4],
       'sakura-garden': ['#ff8fb8', '#ffd0e0', 0.34], 'ocean-kingdom': ['#4fd5e8', '#9af0ff', 0.36], 'arctic-frost-3d': ['#4a9fe6', '#bfe4ff', 0.3], 'aurora-borealis': ['#5fe8b0', '#9a8cff', 0.38],
       'synthwave-highway': ['#ff4fd8', '#3ff0ff', 0.5], 'dark-library': ['#d9a441', '#ffd27a', 0.3], 'pixel-paradise-3d': ['#3ad6d0', '#ffe27a', 0.34], 'sunset-coast': ['#ff9a4d', '#ffd08a', 0.34],
-      'digital-rain': ['#2cff7a', '#9dffbf', 0.42] };
+      'digital-rain': ['#2cff7a', '#9dffbf', 0.42], 'gothic-castle': ['#b98cff', '#ffc56a', 0.36] };
     const wslug = (/^builtin:([a-z0-9-]+)$/.exec(v.wallpaperRef || '') || [])[1];
     const [edgeC, glowC, glowS] = WORLD_EDGE[wslug] || [v.accent, v.accent, { neon: 0.45, glass: 0.3, soft: 0.24, minimal: 0.14, pixel: 0.2 }[v.vibe] ?? 0.24];
     const edgeLine = rgba(edgeC, light ? 0.68 : 0.8), edgeRing = rgba(edgeC, light ? 0.42 : 0.5); // major surfaces: border 1 px + ring 2 px ≈ 3 px themed edge (box-shadow ring: no layout change)
@@ -569,6 +569,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     if (!s.wind) img.style.animationDelay = s.delay !== undefined ? `${s.delay}s` : `${-((s.n.charCodeAt(0) * 7 + s.n.charCodeAt(s.n.length - 1) * 3 + s.n.length * 13) % 20)}s`; // desynchronised loops
     if (s.fx) img.dataset.fx = s.fx;
     if (s.fx === 'stream') img.style.setProperty('--rest', String(s.rest ?? 0.5));
+    if (s.flap) { wrap.dataset.flap = ''; wrap.style.setProperty('--fp', `${s.flap}s`); }   // wing beat (bats): the wrapper squashes vertically, independent of the image's own travel
     if (s.fx === 'flow') {   // a seamless ribbon (two periods side by side) streams through a clipping wrapper; the wrapper undulates
       wrap.dataset.flow = s.flow < 0 ? 'rev' : ''; wrap.style.setProperty('--sd', `${(s.sway || 13) / (cinematic ? 1.3 : 1)}s`); wrap.style.setProperty('--sk', `${s.skew ?? 2.5}deg`);
       wrap.style.animationDelay = `${-(s.n.length * 3.7 % 11)}s`;
@@ -870,6 +871,10 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
 /* code streams (Matrix): each column falls from above the stage to below it — the whole travel is one loop, so the code moves continuously
    top → bottom; at rest (Static, reduced motion) a stream stays where its loop phase puts it, fully inside the scene */
 #repovibe-depth .repv-s > img[data-fx="stream"] { transform:translate3d(0, calc((max(56.25vw, 100vh) + 100%) * var(--rest, .5)), 0); }
+@media (prefers-reduced-motion:no-preference) { :is(#repovibe-depth, #repovibe-popout) .repv-s[data-flap] > img { animation-name:repv-drift, repv-flap; animation-duration:var(--dur, 30s), var(--fp, .22s); animation-timing-function:ease-in-out; animation-iteration-count:infinite; animation-direction:alternate; }
+ #repovibe-depth .repv-s[data-flap] > img[data-swim][data-cross] { animation-name:repv-cross, repv-swim, repv-flap; animation-duration:var(--dur, 30s), var(--wp, 5s), var(--fp, .22s); animation-timing-function:linear, ease-in-out, ease-in-out; animation-direction:normal, alternate, alternate; }
+ #repovibe-depth .repv-s[data-flap] > img[data-swim][data-cross="rev"] { animation-name:repv-cross-rev, repv-swim, repv-flap; } }
+@keyframes repv-flap { from { scale:1 1; } to { scale:1 .32; } }
 @keyframes repv-stream { from { transform:translate3d(0, 0, 0); } to { transform:translate3d(0, calc(max(56.25vw, 100vh) + 100%), 0); } }
 @keyframes repv-drop { 0%, 87.5% { transform:translate3d(0, -560%, 0); opacity:0; } 88.5% { opacity:.95; } 99.6% { transform:translate3d(0, 0, 0); opacity:.95; } 100% { transform:translate3d(0, 0, 0); opacity:0; } } /* falls, lands as its ring starts (0 % of the shared cycle) */
 /* Aurora ribbons: one period visible through the wrapper (overflow clipped, soft edges); the image is two periods wide and slides by one period */
