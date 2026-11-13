@@ -399,13 +399,17 @@ test('nothing is approved without the owner: every built-in theme starts experim
   const shipped = fs.readFileSync(require('node:path').join(__dirname, '../shared/theme-review.js'), 'utf8');
   // the shipped lists hold exactly the owner's decisions (2026-11-11, round 3 on 2026-11-12)
   const ctx = vm.createContext({}); vm.runInContext(shipped, ctx);
-  assert.deepEqual(JSON.parse(JSON.stringify(ctx.RepoVibeThemeReview)), { 'preset-8': 'approved', 'preset-19': 'approved', 'preset-15': 'approved', 'preset-10': 'approved', 'preset-12': 'approved', 'preset-20': 'archived' });
-  assert.deepEqual(Object.keys(ctx.RepoVibeWallpaperReview).sort(), ['alien-world', 'galaxy-planet', 'neon-rain-street', 'pixel-island', 'synthwave-grid', 'synthwave-highway']);
+  assert.deepEqual(JSON.parse(JSON.stringify(ctx.RepoVibeThemeReview)), { 'preset-8': 'approved', 'preset-19': 'approved', 'preset-15': 'approved', 'preset-10': 'approved', 'preset-12': 'approved', 'preset-20': 'archived', 'preset-7': 'approved', 'preset-3': 'archived', 'preset-14': 'archived' });
+  assert.deepEqual(Object.keys(ctx.RepoVibeWallpaperReview).sort(), ['alien-world', 'dark-library', 'galaxy-planet', 'neon-rain-street', 'pixel-island', 'sakura-garden', 'synthwave-grid', 'synthwave-highway']);
   const S = coreWithReview(ctx.RepoVibeThemeReview), scol = S.themeCollection(S.normalizeConfig({}));
-  assert.deepEqual(JSON.parse(JSON.stringify(scol.approved.map(t => t.name))), ['Enchanted Forest', 'Pixel Paradise', 'Arctic Frost', 'Futuristic Sci-Fi', 'Cosmic Galaxy']);
-  assert.deepEqual(JSON.parse(JSON.stringify(scol.archived.map(t => t.name))), ['Synthwave']); assert.equal(scol.experimental.length, S.PRESETS.length - 6);
-  for (const id of ['preset-3', 'preset-7']) assert.equal(S.themeStatus(id), 'experimental', `${id} awaits rework, not approved or archived`);
-  assert.deepEqual(JSON.parse(JSON.stringify(S.featuredThemes().map(t => t.id))), ['preset-8', 'preset-10', 'preset-12', 'preset-15', 'preset-19', 'preset-1'], 'approved take the featured slots; archived Synthwave never featured');
+  assert.deepEqual(JSON.parse(JSON.stringify(scol.approved.map(t => t.name))), ['Ocean Depths', 'Enchanted Forest', 'Pixel Paradise', 'Arctic Frost', 'Futuristic Sci-Fi', 'Cosmic Galaxy']);
+  assert.deepEqual(JSON.parse(JSON.stringify(scol.archived.map(t => t.name))), ['Sakura Dreams', 'Dark Academia', 'Synthwave']); assert.equal(scol.experimental.length, S.PRESETS.length - 9);
+  for (const id of ['preset-1', 'preset-17']) assert.equal(S.themeStatus(id), 'experimental', `${id} awaits rework, not approved or archived`);
+  // archived Sakura / Dark Academia assignments still resolve (nothing destroyed)
+  const keep = S.normalizeConfig({ repoAssignments: { 'a/s': 'preset-3' }, ownerAssignments: { o: 'preset-14' } });
+  assert.equal(S.themeResolution(keep, 'https://github.com/a/s').id, 'preset-3'); assert.equal(S.themeResolution(keep, 'https://github.com/o/x').id, 'preset-14');
+  assert.deepEqual(JSON.parse(JSON.stringify(S.themeCollection(keep).inUseArchived.map(t => t.name))), ['Sakura Dreams', 'Dark Academia'], 'shown as "archived, still in use" only where assigned');
+  assert.deepEqual(JSON.parse(JSON.stringify(S.featuredThemes().map(t => t.id))), ['preset-7', 'preset-8', 'preset-10', 'preset-12', 'preset-15', 'preset-19'], 'the six approved themes take the six featured slots');
 });
 test('approved themes take the featured slots; archived themes leave discovery but saved assignments and custom themes keep working', () => {
   const K = coreWithReview({ 'preset-8': 'approved', 'preset-3': 'approved', 'preset-5': 'archived', 'preset-9': 'archived' });
