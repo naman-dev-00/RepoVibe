@@ -325,6 +325,7 @@ def main():
     sn = sn.crop((WX0, WY0, WX1, WY1)); flat.alpha_composite(sn, (WX0, WY0))
     for l in (mid, near, front, rays): flat.alpha_composite(l)
     p = os.path.join(ROOT, 'wallpapers/cozy-room.webp'); flat.convert('RGB').save(p, 'WEBP', quality=88, method=6); print('flat', os.path.getsize(p) // 1024, 'KB')
+    flat.convert('RGB').resize((480, 270), Image.LANCZOS).save(os.path.join(ROOT, 'wallpapers/thumbs/cozy-room.webp'), 'WEBP', quality=82, method=6)
 
 if __name__ == '__main__':
     main()

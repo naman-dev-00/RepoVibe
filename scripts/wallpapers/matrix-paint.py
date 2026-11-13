@@ -203,6 +203,7 @@ def main():
         flat.alpha_composite(plane)
     flat.alpha_composite(mid); flat.alpha_composite(rays)
     p = os.path.join(ROOT, 'wallpapers/digital-rain.webp'); flat.convert('RGB').save(p, 'WEBP', quality=84, method=6)
+    flat.convert('RGB').resize((480, 270), Image.LANCZOS).save(os.path.join(ROOT, 'wallpapers/thumbs/digital-rain.webp'), 'WEBP', quality=82, method=6)
     print('flat', os.path.getsize(p) // 1024, 'KB')
 
 if __name__ == '__main__':

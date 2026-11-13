@@ -272,6 +272,7 @@ def main():
         hh = int(span * H); ww = int(hh * im.width / im.height); t = im.resize((ww, hh), Image.LANCZOS); flat.alpha_composite(t, (int(W / 2 + bx * H - ww / 2), int(H / 2 + 0.1 * H - hh + hh * 0.02)))
     flat.alpha_composite(front)
     p = os.path.join(ROOT, 'wallpapers/aurora-borealis.webp'); flat.convert('RGB').save(p, 'WEBP', quality=88, method=6); print('flat', os.path.getsize(p) // 1024, 'KB')
+    flat.convert('RGB').resize((480, 270), Image.LANCZOS).save(os.path.join(ROOT, 'wallpapers/thumbs/aurora-borealis.webp'), 'WEBP', quality=82, method=6)
 
 if __name__ == '__main__':
     main()

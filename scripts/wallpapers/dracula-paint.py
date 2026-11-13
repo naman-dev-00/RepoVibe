@@ -390,6 +390,7 @@ def main():
     f2 = ft.resize((W, W // 2), Image.BILINEAR); flat.alpha_composite(f2, (0, int(H * 0.5)))
     flat.alpha_composite(near); flat.alpha_composite(front); flat.alpha_composite(rays)
     p = os.path.join(ROOT, 'wallpapers/gothic-castle.webp'); flat.convert('RGB').save(p, 'WEBP', quality=86, method=6); print('flat', os.path.getsize(p) // 1024, 'KB')
+    flat.convert('RGB').resize((480, 270), Image.LANCZOS).save(os.path.join(ROOT, 'wallpapers/thumbs/gothic-castle.webp'), 'WEBP', quality=82, method=6)
     print('LAMPS', json.dumps(LAMPS))
 
 if __name__ == '__main__':
