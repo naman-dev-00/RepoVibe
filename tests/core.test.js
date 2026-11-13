@@ -399,17 +399,21 @@ test('nothing is approved without the owner: every built-in theme starts experim
   const shipped = fs.readFileSync(require('node:path').join(__dirname, '../shared/theme-review.js'), 'utf8');
   // the shipped lists hold exactly the owner's decisions (2026-11-11, round 3 on 2026-11-12)
   const ctx = vm.createContext({}); vm.runInContext(shipped, ctx);
-  assert.deepEqual(JSON.parse(JSON.stringify(ctx.RepoVibeThemeReview)), { 'preset-8': 'approved', 'preset-19': 'approved', 'preset-15': 'approved', 'preset-10': 'approved', 'preset-12': 'approved', 'preset-20': 'archived', 'preset-7': 'approved', 'preset-3': 'archived', 'preset-14': 'archived' });
-  assert.deepEqual(Object.keys(ctx.RepoVibeWallpaperReview).sort(), ['alien-world', 'dark-library', 'galaxy-planet', 'neon-rain-street', 'pixel-island', 'sakura-garden', 'synthwave-grid', 'synthwave-highway']);
+  assert.deepEqual(JSON.parse(JSON.stringify(ctx.RepoVibeThemeReview)), { 'preset-8': 'approved', 'preset-19': 'approved', 'preset-15': 'approved', 'preset-10': 'approved', 'preset-12': 'approved', 'preset-20': 'archived', 'preset-7': 'approved', 'preset-3': 'archived', 'preset-14': 'archived',
+    'preset-16': 'approved', 'preset-9': 'approved', 'preset-11': 'approved', 'preset-1': 'approved', 'preset-2': 'archived', 'preset-13': 'archived', 'preset-18': 'archived' });
+  assert.deepEqual(Object.keys(ctx.RepoVibeWallpaperReview).sort(), ['alien-world', 'dark-library', 'galaxy-planet', 'lavender-fantasy', 'midnight-skyline', 'neon-rain-street', 'pixel-island', 'sakura-garden', 'sunset-coast', 'synthwave-grid', 'synthwave-highway']);
   const S = coreWithReview(ctx.RepoVibeThemeReview), scol = S.themeCollection(S.normalizeConfig({}));
-  assert.deepEqual(JSON.parse(JSON.stringify(scol.approved.map(t => t.name))), ['Ocean Depths', 'Enchanted Forest', 'Pixel Paradise', 'Arctic Frost', 'Futuristic Sci-Fi', 'Cosmic Galaxy']);
-  assert.deepEqual(JSON.parse(JSON.stringify(scol.archived.map(t => t.name))), ['Sakura Dreams', 'Dark Academia', 'Synthwave']); assert.equal(scol.experimental.length, S.PRESETS.length - 9);
-  for (const id of ['preset-1', 'preset-17']) assert.equal(S.themeStatus(id), 'experimental', `${id} awaits rework, not approved or archived`);
-  // archived Sakura / Dark Academia assignments still resolve (nothing destroyed)
-  const keep = S.normalizeConfig({ repoAssignments: { 'a/s': 'preset-3' }, ownerAssignments: { o: 'preset-14' } });
+  assert.deepEqual(JSON.parse(JSON.stringify(scol.approved.map(t => t.name))), ['Cyberpunk Neon', 'Ocean Depths', 'Enchanted Forest', 'Retro Terminal', 'Pixel Paradise', 'Solar Flare', 'Arctic Frost', 'Futuristic Sci-Fi', 'Obsidian', 'Cosmic Galaxy']);
+  assert.deepEqual(JSON.parse(JSON.stringify(scol.archived.map(t => t.name))), ['Midnight Developer', 'Sakura Dreams', 'Lavender Nights', 'Dark Academia', 'Sunset Boulevard', 'Synthwave']);
+  assert.deepEqual(JSON.parse(JSON.stringify(scol.experimental.map(t => t.name))), ['Cozy Coding', 'Matrix', 'Dracula', 'Aurora'], 'the four rework targets await approval');
+  // archived assignments still resolve (nothing destroyed)
+  const keep = S.normalizeConfig({ repoAssignments: { 'a/s': 'preset-3', 'a/m': 'preset-2' }, ownerAssignments: { o: 'preset-14', l: 'preset-13' }, defaultThemeId: 'preset-18' });
   assert.equal(S.themeResolution(keep, 'https://github.com/a/s').id, 'preset-3'); assert.equal(S.themeResolution(keep, 'https://github.com/o/x').id, 'preset-14');
-  assert.deepEqual(JSON.parse(JSON.stringify(S.themeCollection(keep).inUseArchived.map(t => t.name))), ['Sakura Dreams', 'Dark Academia'], 'shown as "archived, still in use" only where assigned');
-  assert.deepEqual(JSON.parse(JSON.stringify(S.featuredThemes().map(t => t.id))), ['preset-7', 'preset-8', 'preset-10', 'preset-12', 'preset-15', 'preset-19'], 'the six approved themes take the six featured slots');
+  assert.equal(S.themeResolution(keep, 'https://github.com/a/m').id, 'preset-2'); assert.equal(S.themeResolution(keep, 'https://github.com/l/x').id, 'preset-13');
+  assert.equal(S.themeResolution(keep, 'https://github.com/z/z').id, 'preset-18', 'an archived global theme keeps applying');
+  assert.equal(keep.defaultThemeId, 'preset-18');
+  assert.deepEqual(JSON.parse(JSON.stringify(S.themeCollection(keep).inUseArchived.map(t => t.name))), ['Midnight Developer', 'Sakura Dreams', 'Lavender Nights', 'Dark Academia', 'Sunset Boulevard'], 'shown as "archived, still in use" only where assigned');
+  assert.deepEqual(JSON.parse(JSON.stringify(S.featuredThemes().map(t => t.id))), ['preset-1', 'preset-7', 'preset-8', 'preset-9', 'preset-10', 'preset-11'], 'approved themes take the six featured slots');
 });
 test('approved themes take the featured slots; archived themes leave discovery but saved assignments and custom themes keep working', () => {
   const K = coreWithReview({ 'preset-8': 'approved', 'preset-3': 'approved', 'preset-5': 'archived', 'preset-9': 'archived' });
