@@ -93,7 +93,7 @@
     const WORLD_EDGE = { 'enchanted-forest': ['#5fe0b9', '#9dffd8', 0.34], 'cosmic-galaxy': ['#a98bff', '#6f9bff', 0.38], 'neon-city-3d': ['#ff4fd8', '#3ff0ff', 0.5], 'scifi-ai': ['#7fe6ff', '#e8fbff', 0.4],
       'sakura-garden': ['#ff8fb8', '#ffd0e0', 0.34], 'ocean-kingdom': ['#4fd5e8', '#9af0ff', 0.36], 'arctic-frost-3d': ['#4a9fe6', '#bfe4ff', 0.3], 'aurora-borealis': ['#5fe8b0', '#9a8cff', 0.38],
       'synthwave-highway': ['#ff4fd8', '#3ff0ff', 0.5], 'dark-library': ['#d9a441', '#ffd27a', 0.3], 'pixel-paradise-3d': ['#3ad6d0', '#ffe27a', 0.34], 'sunset-coast': ['#ff9a4d', '#ffd08a', 0.34],
-      'digital-rain': ['#2cff7a', '#9dffbf', 0.42], 'gothic-castle': ['#b98cff', '#ffc56a', 0.36], 'cozy-room': ['#ffb86a', '#ffd9a0', 0.32],
+      'digital-rain': ['#2cff7a', '#9dffbf', 0.42], 'gothic-castle': ['#b98cff', '#ffc56a', 0.36], 'cozy-room': ['#ff9d4a', '#ffd08a', 0.34],
       'messy-thoughts': ['#f2f2f5', '#ffffff', 0.26], 'eternal-moon': ['#cfd5de', '#ffffff', 0.28] };
     const wslug = (/^builtin:([a-z0-9-]+)$/.exec(v.wallpaperRef || '') || [])[1];
     const [edgeC, glowC, glowS] = WORLD_EDGE[wslug] || [v.accent, v.accent, { neon: 0.45, glass: 0.3, soft: 0.24, minimal: 0.14, pixel: 0.2 }[v.vibe] ?? 0.24];

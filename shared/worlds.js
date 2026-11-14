@@ -186,26 +186,25 @@
     ]
   };
 
-  /* ---- Cozy Coding: an anime-style night workspace. Snow falls past the window (the wall layer has a real window hole, so the city behind it
-     shifts with depth), steam curls from the mug, the desk lamp, monitors and fairy lights breathe, the cat's tail and the monstera sway.
-     Painted by scripts/wallpapers/cozy-paint.py. Stage px → %: x / 25.6, y / 14.4. */
+  /* ---- Cozy Coding (second design): an anime-style autumn study in late-afternoon light. The room is the front layer and its window panes are
+     really transparent, so everything outside sits behind the wall: leaves fall past the glass, three leaf clusters sway on the shared gust,
+     and the tree shifts against the frame with depth. Inside, the candle flickers and its glow breathes, light shafts through the window pulse
+     slowly, the mug steams. The room itself never moves. Painted by scripts/wallpapers/cozy-paint.py. Stage px → %: x / 25.6, y / 14.4. */
   W['cozy-room'] = {
     tiles: [
-      { plane: 'pfar', image: 't-snow', rel: 0.2, w: 768, h: 768, sx: 0, sy: 1, t: 24 },                                                  // far flakes: behind the wall, seen through the window only
-      { plane: 'pmid', image: 't-snow', region: [0.563, 0.112, 0.902, 0.548], rel: 0.34, w: 768, h: 768, sx: 0, sy: 1, t: 15, gust: true }  // near flakes, clipped to the window opening
+      { plane: 'pmid', image: 't-leaves', rel: 0.26, w: 600, h: 1200, sx: -1, sy: 1, t: 26, gust: true },   // falling leaves: outside, behind the wall (keeps moving in Lite)
+      { plane: 'pnear', shape: 'dot', seed: 9, w: 900, h: 700, n: 26, colors: ['#ffe0a8', '#ffc880'], r: [0.8, 1.7], sx: -1, sy: -1, t: 140 }   // dust in the light
     ],
     sprites: [
-      { n: 'screenGlow', plane: 'scene', k: 0.86, x: 36.3, y: 43, w: 46, dx: 0, dy: 0, rot: 0, dur: 8, fx: 'pulse', gl: 5.5, z: 1 },
-      { n: 'lampGlow', plane: 'scene', k: 0.86, x: 14.1, y: 42.4, w: 24, dx: 0, dy: 0, rot: 0, dur: 7, fx: 'pulse', gl: 3.8, z: 4 },
-      { n: 'fairy', plane: 'scene', k: 0.64, x: 26.17, y: 6.25, w: 52.34, dx: 0, dy: 0, rot: 0, dur: 6, fx: 'pulse', gl: 1.7, z: 2 },
-      { n: 'steam', plane: 'scene', k: 0.86, x: 17.3, y: 45.4, w: 3.6, dx: 10, dy: -22, rot: 3, dur: 4.5, fx: 'pulse', gl: 2.3, z: 4, op: 0.55 },
-      { n: 'steamB', src: 'steam', plane: 'scene', k: 0.86, x: 17.9, y: 44.4, w: 2.8, dx: -9, dy: -26, rot: -4, dur: 6, fx: 'pulse', gl: 3.1, z: 4, flip: 1, op: 0.4 },
-      { n: 'tail', plane: 'scene', k: 0.86, x: 88.9, y: 55.97, w: 7.81, z: 4, wind: 7, ox: '10%', oy: '75%', fl: 2.6 },
-      { n: 'cursor', plane: 'scene', k: 0.86, x: 44.6, y: 47.6, w: 0.42, dx: 0, dy: 0, rot: 0, dur: 5, fx: 'flicker', z: 4 },
-      { n: 'leaf', plane: 'scene', k: 1.8, x: 12.1, y: 75, w: 20.3, z: 5, wind: 2.4, ox: '4%', oy: '83%', fl: 4.4 },
-      { n: 'leafB', src: 'leaf', plane: 'scene', k: 1.8, x: -1.5, y: 68, w: 17, z: 5, wind: 3.0, ox: '4%', oy: '83%', fl: 5.2, flip: 1 },
-      { n: 'leafP', src: 'leaf', plane: 'pop', at: 'band', x: 0.02, y: 0.62, h: 0.75, k: 2.7, dx: 6, dy: -3, rot: -2, dur: 10, noShadow: 1, wind: 1.8, ox: '4%', oy: '83%' },
-      { n: 'leafQ', src: 'leaf', plane: 'pop', at: 'band', x: 0.985, y: 0.6, h: 0.6, k: 2.8, dx: -6, dy: -3, rot: 2, dur: 12, noShadow: 1, flip: 1, wind: 1.6, ox: '96%', oy: '83%' }
+      { n: 'clumpA', plane: 'scene', k: 0.64, x: 40, y: 22, w: 17, z: 2, wind: 2.6, ox: '50%', oy: '98%', fl: 4.8 },
+      { n: 'clumpB', plane: 'scene', k: 0.64, x: 61, y: 40, w: 15, z: 2, wind: 3.1, ox: '50%', oy: '98%', fl: 5.6, flip: 1 },
+      { n: 'clumpC', plane: 'scene', k: 0.64, x: 84, y: 14, w: 16, z: 2, wind: 2.2, ox: '50%', oy: '98%', fl: 4.2 },
+      { n: 'beam', plane: 'scene', k: 1.28, x: 30, y: 46, w: 52, dx: 0, dy: 0, rot: 0, dur: 9, fx: 'pulse', gl: 7, z: 3 },
+      { n: 'candleGlow', plane: 'scene', k: 1.28, x: 76.56, y: 82.6, w: 21, dx: 0, dy: 0, rot: 0, dur: 6, fx: 'pulse', gl: 2.3, z: 4 },
+      { n: 'flame', plane: 'scene', k: 1.28, x: 76.56, y: 81.2, w: 1.4, dx: 1.5, dy: -1, rot: 4, dur: 0.9, fx: 'flicker', z: 5 },
+      { n: 'steam', plane: 'scene', k: 1.28, x: 66, y: 72.4, w: 3.2, dx: 9, dy: -20, rot: 3, dur: 5, fx: 'pulse', gl: 2.6, z: 4, op: 0.5 },
+      { n: 'leafPop', plane: 'pop', at: 'band', x: 0.975, y: 0.3, h: 0.3, k: 2.7, dx: -26, dy: 18, rot: 24, dur: 8, noShadow: 1, wind: 3, ox: '50%', oy: '0%' },
+      { n: 'leafPopB', src: 'leafPop', plane: 'pop', at: 'band', x: 0.03, y: 0.7, h: 0.22, k: 2.9, dx: 22, dy: -14, rot: -30, dur: 10, noShadow: 1, flip: 1, wind: 3.4, ox: '50%', oy: '0%' }
     ]
   };
 

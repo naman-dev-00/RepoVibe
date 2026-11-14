@@ -251,28 +251,27 @@
       "category": "Anime-inspired",
       "style": "3d",
       "tone": [
-        "#fff4f8",
-        "#161b25"
+        "#fff0dc",
+        "#120904"
       ],
       "toneSoft": [
-        "#e9bdb1",
-        "#222327"
+        "#f8be8f",
+        "#171009"
       ],
       "depth": [
         "far",
         "mid",
-        "near",
-        "front",
-        "rays"
+        "front"
       ],
       "sprites": [
-        "cursor",
-        "fairy",
-        "lampGlow",
-        "leaf",
-        "screenGlow",
-        "steam",
-        "tail"
+        "beam",
+        "candleGlow",
+        "clumpA",
+        "clumpB",
+        "clumpC",
+        "flame",
+        "leafPop",
+        "steam"
       ]
     },
     {

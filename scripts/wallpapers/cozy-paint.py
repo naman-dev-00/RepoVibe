@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""Cozy Coding (preset-4): an anime-style night workspace, painted from scratch (original work; no external assets).
-Cel shading: flat colour areas, a darker outline, one highlight and one shadow tone per object, warm lamp light against a cool window.
+"""Cozy Coding (preset-4), second design: an anime-style autumn study in late-afternoon light. Painted from scratch (original work, no
+external assets); the art direction follows the owner's reference (a dark-wood window full of backlit maple foliage, weathered plaster,
+a framed map, a glossy desk that mirrors the window, a candle lantern, papers, a kettle) without copying it. The reference's seated
+character is left out on purpose: an empty chair with a scarf and a steaming mug carry the presence instead.
 
-Layers (wallpapers/depth/cozy-room/), 2560×1440, drawn at 2× and downsampled:
-  far.webp    what the window looks out on: night sky, big moon, shooting-star streak, layered city with lit windows, distant hills
-  mid.webp    the room wall with a real window hole (frame, sill, curtains), book shelves, posters, wall clock, fairy lights, hanging plant
-  near.webp   the desk: monitor with code, second vertical monitor, keyboard, mug, desk lamp, books, headphones, cactus, sleeping cat on the sill
-  front.webp  foreground framing: a monstera at the left, a chair back, a floor lamp at the right
-  rays.webp   lamp light pools and the monitor's glow
-  t-snow      seamless falling snow seen through the window
-  s-*         steam, lamp glow, screen glow, fairy lights, cat tail, leaf, cursor
-Also the flat wallpaper wallpapers/cozy-room.webp.     python3 -I scripts/wallpapers/cozy-paint.py"""
+Layers (wallpapers/depth/cozy-room/), 2560×1440:
+  far.webp    outside: glowing sky, soft distant foliage, the maple's trunk and limbs, ~9000 individually drawn leaves
+  mid.webp    a nearer bough hanging across the top of the window (transparent elsewhere)
+  front.webp  the room, with real transparent panes: plaster wall, window frame and sill, map and frames, cabinet with a vase, the desk and
+              its mirrored window light, laptop, notebook, papers, mug, lantern, kettle, chair and scarf
+  t-leaves    seamless falling leaves (outside, behind the wall)          s-clumpA..C  leaf clusters that sway on the shared gust (outside)
+  s-flame, s-candleGlow, s-beam, s-steam, s-leafPop                         candle, light through the window, mug steam, a drifting leaf
+Also the flat wallpaper and its thumbnail.     python3 -I scripts/wallpapers/cozy-paint.py"""
 import os, math
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
@@ -18,314 +19,295 @@ from PIL import Image, ImageDraw, ImageFilter
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')
 OUT = os.path.join(ROOT, 'wallpapers/depth/cozy-room')
 W, H, S = 2560, 1440, 2
-INK = (38, 20, 34, 255)
+# window geometry (stage px): two casements of 3 × 4 panes; the frame runs off the right edge
+FX0, FY0, FY1 = 820, 36, 900                       # frame's outer left, top, bottom
+CASE = [(866, 1640), (1700, 2474)]                 # casement glass extents in x
+GY0, GY1 = 82, 856                                 # glass extent in y
+COLS, ROWS, MULL = 3, 4, 16
+DESK = 1000                                        # desk's back edge
+LEAF_COLS = ['#8f2a0c', '#b83a10', '#d2501a', '#e8641a', '#ff7f1e', '#ff9a2a', '#ffb43a', '#ffd060']
 
 def hexc(h, a=255): h = h.lstrip('#'); return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), a)
-def mix(a, b, t): return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3)) + (255,)
+def hexf(h): return np.array(hexc(h)[:3], np.float32)
 def P(pts): return [(x * S, y * S) for x, y in pts]
 def B(x0, y0, x1, y1): return [x0 * S, y0 * S, x1 * S, y1 * S]
-def new(): return Image.new('RGBA', (W * S, H * S), (0, 0, 0, 0))
-def down(im): return im.resize((W, H), Image.LANCZOS)
-def save(im, name, q=90):
+def new(w=W, h=H): return Image.new('RGBA', (w * S, h * S), (0, 0, 0, 0))
+def down(im, w=W, h=H): return im.resize((w, h), Image.LANCZOS)
+def save(im, name, q=92):
     p = os.path.join(OUT, name); im.save(p, 'WEBP', quality=q, method=6); print(name, im.size, f'{os.path.getsize(p) / 1024:.0f}KB')
-def rrect(d, x0, y0, x1, y1, r, fill, outline=INK, width=3):
-    d.rounded_rectangle(B(x0, y0, x1, y1), radius=r * S, fill=fill, outline=outline, width=int(width * S) if outline else 0)
-def glow_img(points, blur):
-    g = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(g)
-    for x, y, r, col, a in points: d.ellipse([x - r, y - r, x + r, y + r], fill=hexc(col, a))
-    return g.filter(ImageFilter.GaussianBlur(blur))
+def fft_noise(w, h, beta, seed, stretch=1.0):
+    r = np.random.default_rng(seed); fy = np.fft.fftfreq(h)[:, None] * stretch; fx = np.fft.fftfreq(w)[None, :]
+    f = np.sqrt(fx ** 2 + fy ** 2); f[0, 0] = 1
+    spec = (r.normal(size=(h, w)) + 1j * r.normal(size=(h, w))) / f ** beta; spec[0, 0] = 0
+    n = np.fft.ifft2(spec).real; return ((n - n.min()) / (n.max() - n.min())).astype(np.float32)
+def panes():
+    out = []
+    for (x0, x1) in CASE:
+        pw = (x1 - x0 - MULL * (COLS - 1)) / COLS; ph = (GY1 - GY0 - MULL * (ROWS - 1)) / ROWS
+        for c in range(COLS):
+            for r in range(ROWS): out.append((x0 + c * (pw + MULL), GY0 + r * (ph + MULL), x0 + c * (pw + MULL) + pw, GY0 + r * (ph + MULL) + ph))
+    return out
 
-# window opening in the wall (stage px): mirrored in shared/worlds.js (snow region, cat, etc.)
-WX0, WY0, WX1, WY1 = 1420, 150, 2330, 800
+# ---------------------------------------------------------------- leaves
+def leaf_pts(cx, cy, size, rot):
+    """a small maple leaf: five pointed lobes and a stem"""
+    pts = []
+    for i in range(11):
+        a = rot + math.radians(-210 + i * 24); r = size * (1.0 if i % 2 == 0 else 0.46) * (0.82 if i in (0, 10) else 1)
+        pts.append((cx + math.cos(a) * r, cy + math.sin(a) * r))
+    a = rot + math.radians(90); pts += [(cx + math.cos(a) * size * 0.25, cy + math.sin(a) * size * 0.25), (cx + math.cos(a) * size * 0.8, cy + math.sin(a) * size * 0.8), (cx + math.cos(a) * size * 0.25 + 1, cy + math.sin(a) * size * 0.25)]
+    return pts
+def draw_leaves(d, spots, r, smin, smax, bright, sc=S, alpha=255):
+    """spots: (x, y, spread, count). Each leaf takes its own tone from the palette."""
+    items = []
+    for (x, y, spread, n) in spots:
+        for _ in range(n):
+            t = r.random(); items.append((t, x + r.normal() * spread, y + r.normal() * spread * 0.8, r.uniform(smin, smax), r.random() * 6.283))
+    order = r.permutation(len(items)); items = [items[i] for i in order]   # mixed order: light and dark leaves interleave, so a dense canopy keeps its texture
+    for t, x, y, sz, rot in items:
+        ci = min(len(LEAF_COLS) - 1, int((t ** (1.0 / bright)) * len(LEAF_COLS)))
+        d.polygon([(px * sc, py * sc) for px, py in leaf_pts(x, y, sz, rot)], fill=hexc(LEAF_COLS[ci], alpha))
+def limb(d, x, y, ang, ln, wd, r, nodes, depth=0, col=(52, 28, 18, 255)):
+    if ln < 16 or depth > 9: return
+    x2, y2 = x + math.cos(ang) * ln, y + math.sin(ang) * ln
+    d.line(P([(x, y), (x2, y2)]), fill=col, width=max(S, int(wd * S)))
+    if depth >= 2: nodes.append((x2, y2, depth))
+    for _ in range(2 if r.random() < 0.78 else 3): limb(d, x2, y2, ang + r.uniform(-0.6, 0.6), ln * r.uniform(0.66, 0.84), wd * 0.68, r, nodes, depth + 1, col)
 
-# ---------------------------------------------------------------- far: the night outside
 def far_layer():
-    y = np.linspace(0, 1, H, dtype=np.float32)[:, None]
-    top, midc, hor = np.array([10, 14, 46]), np.array([36, 44, 120]), np.array([150, 104, 170])
-    t = np.clip(y / 0.6, 0, 1)
-    sky = top * (1 - t) ** 1.5 + midc * (1 - (1 - t) ** 1.5) * (1 - t ** 2.5) + hor * t ** 2.5
-    img = Image.fromarray(np.clip(np.broadcast_to(sky[:, None, :] if sky.ndim == 2 else sky, (H, W, 3)), 0, 255).astype(np.uint8), 'RGB').convert('RGBA')
-    d = ImageDraw.Draw(img); r = np.random.default_rng(3)
-    for _ in range(420):
-        sx, sy, b = r.uniform(1300, 2460), r.random() ** 1.4 * 620, r.random(); rad = 0.8 + b * 1.7
-        d.ellipse([sx - rad, sy - rad, sx + rad, sy + rad], fill=(255, 250, 235, int(110 + 145 * b)))
-        if b > 0.9: d.line([(sx - 7, sy), (sx + 7, sy)], fill=(255, 255, 255, 170)); d.line([(sx, sy - 7), (sx, sy + 7)], fill=(255, 255, 255, 170))
-    mx, my, mr = 2090, 300, 92                                                         # moon with a soft anime halo
-    img.alpha_composite(glow_img([(mx, my, mr * 2.4, '#b8c8ff', 90), (mx, my, mr * 1.4, '#fff6dc', 120)], 46))
-    d = ImageDraw.Draw(img); d.ellipse([mx - mr, my - mr, mx + mr, my + mr], fill=hexc('#fff3d2'))
-    d.ellipse([mx - mr * 0.5, my - mr * 0.3, mx - mr * 0.1, my + mr * 0.1], fill=hexc('#f0dcb4')); d.ellipse([mx + mr * 0.15, my + mr * 0.2, mx + mr * 0.5, my + mr * 0.55], fill=hexc('#f0dcb4')); d.ellipse([mx + mr * 0.2, my - mr * 0.55, mx + mr * 0.42, my - mr * 0.33], fill=hexc('#f0dcb4'))
-    d.line([(1560, 210), (1700, 262)], fill=(255, 255, 255, 190), width=3); d.line([(1500, 188), (1560, 210)], fill=(255, 255, 255, 80), width=2)   # shooting star
-    # anime clouds: stacked rounded puffs with a lit top
-    for (cx, cy, sc) in [(1560, 420, 1.0), (2260, 500, 0.8), (1820, 560, 0.6)]:
-        for (ox, oy, rr) in [(-90, 10, 44), (-40, -14, 58), (20, -4, 66), (84, 12, 46), (0, 22, 80)]:
-            d.ellipse([cx + (ox - rr) * sc, cy + (oy - rr * 0.55) * sc, cx + (ox + rr) * sc, cy + (oy + rr * 0.55) * sc], fill=(70, 78, 150, 235))
-        for (ox, oy, rr) in [(-40, -20, 46), (20, -12, 54)]:
-            d.ellipse([cx + (ox - rr) * sc, cy + (oy - rr * 0.5) * sc, cx + (ox + rr) * sc, cy + (oy + rr * 0.2) * sc], fill=(120, 126, 196, 235))
-    # hills and three rows of city
-    d.polygon([(1250, 700), (1500, 610), (1760, 660), (2050, 590), (2330, 650), (2560, 620), (2560, 900), (1250, 900)], fill=hexc('#2c2a66'))
-    lights = []
-    for (seed, base, hmin, hmax, wmin, wmax, col, plit) in [(1, 760, 60, 170, 34, 70, '#232458', 0.3), (2, 800, 70, 240, 44, 96, '#191a44', 0.42), (3, 840, 50, 150, 60, 130, '#101233', 0.5)]:
-        rr = np.random.default_rng(seed); x = 1240
-        while x < 2560:
-            bw, bh = rr.uniform(wmin, wmax), rr.uniform(hmin, hmax)
-            d.rectangle([x, base - bh, x + bw, 900], fill=hexc(col))
-            if rr.random() < 0.3: d.rectangle([x + bw * 0.3, base - bh - 16, x + bw * 0.7, base - bh], fill=hexc(col)); d.line([(x + bw * 0.5, base - bh - 16), (x + bw * 0.5, base - bh - 46)], fill=hexc(col), width=3); lights.append((x + bw * 0.5, base - bh - 46, 7, '#ff6a6a', 230))
-            for wy in np.arange(base - bh + 10, base - 6, 15):
-                for wx in np.arange(x + 6, x + bw - 8, 12):
-                    if rr.random() < plit:
-                        c = ['#ffd27a', '#ffe9b0', '#8fd0ff', '#ffb06a'][rr.integers(4)]; d.rectangle([wx, wy, wx + 6, wy + 8], fill=hexc(c)); lights.append((wx + 3, wy + 4, 8, c, 70))
-            x += bw + rr.uniform(-4, 10)
-    img.alpha_composite(glow_img(lights, 7))
-    return img.convert('RGB')
-
-# ---------------------------------------------------------------- mid: the wall
-def books(d, x0, y, x1, rng, hmax=92):
-    x = x0 + 6
-    pal = ['#e86a6a', '#f2a65a', '#f2d06a', '#7ac48a', '#6aa8e8', '#9a7ae0', '#e88ab8', '#f4ead8', '#5ac0c0']
-    while x < x1 - 22:
-        bw, bh = rng.uniform(15, 30), rng.uniform(hmax * 0.6, hmax); c = hexc(pal[rng.integers(len(pal))])
-        if rng.random() < 0.12 and x < x1 - 80:   # a leaning book
-            d.polygon(P([(x, y), (x + 24, y - bh), (x + 24 + bw, y - bh + 6), (x + bw, y)]), fill=c, outline=INK, width=S * 2); x += bw + 30; continue
-        d.rectangle(B(x, y - bh, x + bw, y), fill=c, outline=INK, width=S * 2)
-        d.rectangle(B(x + 3, y - bh + 3, x + 7, y - 3), fill=mix(c, (255, 255, 255), 0.35))                 # cel highlight
-        d.rectangle(B(x + 3, y - bh * 0.72, x + bw - 3, y - bh * 0.66), fill=mix(c, (0, 0, 0), 0.3))        # band
-        x += bw + (rng.uniform(1, 3) if rng.random() < 0.9 else rng.uniform(16, 40))
+    y = np.linspace(0, 1, H, dtype=np.float32)[:, None, None]; x = np.linspace(0, 1, W, dtype=np.float32)[None, :, None]
+    sky = hexf('#fff3d0') * (1 - y) + hexf('#ffc27a') * y
+    sky = sky + (np.exp(-(((x - 0.72) / 0.3) ** 2 + ((y - 0.22) / 0.3) ** 2)) * 50)                    # the low sun behind the tree
+    n1 = fft_noise(W, H, 2.4, 3)[..., None]; n2 = fft_noise(W, H, 2.0, 4)[..., None]
+    far_fol = np.clip((n1 - 0.36) * 4.2, 0, 1)                                                        # distant, out-of-focus foliage masses fill most of the view
+    sky = sky * (1 - far_fol * 0.92) + (hexf('#ffb040') * (1 - n2) + hexf('#e0541a') * n2) * far_fol * 0.92
+    img = Image.fromarray(np.clip(sky, 0, 255).astype(np.uint8), 'RGB').convert('RGBA')
+    big = new(); d = ImageDraw.Draw(big); r = np.random.default_rng(11); nodes = []
+    # the maple: trunk at the right, leaning in; heavy limbs reaching left across the window
+    d.polygon(P([(2230, 960), (2270, 620), (2300, 300), (2330, 60), (2440, 40), (2452, 320), (2440, 640), (2470, 960)]), fill=(58, 31, 20, 255))
+    for (bx, by, ang, ln, wd) in [(2300, 420, -2.7, 330, 40), (2310, 260, -2.2, 300, 34), (2290, 600, 3.3, 360, 38), (2360, 120, -1.2, 200, 30), (2300, 760, 3.0, 300, 28), (2420, 300, -0.5, 200, 26)]:
+        limb(d, bx, by, ang, ln, wd, r, nodes)
+    # a second, farther tree at the left of the view
+    limb(d, 1010, 980, -1.45, 300, 30, r, nodes, col=(96, 52, 30, 255)); limb(d, 1380, 1000, -1.7, 240, 22, r, nodes, col=(110, 60, 34, 255))
+    lay = down(big)
+    bark = fft_noise(W, H, 1.3, 5, 0.25); arr = np.asarray(lay, np.float32).copy(); arr[..., :3] *= (0.7 + 0.6 * bark)[..., None]      # bark: vertical grain
+    lay = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), 'RGBA'); img.alpha_composite(lay)
+    # foliage: clusters at the twig ends, plus fill
+    big = new(); d = ImageDraw.Draw(big)
+    # a middle-distance canopy first (smaller, slightly darker leaves), then the near leaves at the twig ends
+    back = [(r.uniform(780, 2600), r.uniform(-20, 940), 64, 22) for _ in range(34)]
+    draw_leaves(d, back, r, 7, 14, 0.8)
+    spots = [(nx, ny, 22 + 5 * (9 - dp), 5) for nx, ny, dp in nodes if 760 < nx < 2600 and -60 < ny < 1000]
+    spots += [(r.uniform(820, 2560), r.uniform(0, 900), 60, 22) for _ in range(34)]
+    draw_leaves(d, spots, r, 10, 23, 1.2)
+    lay = down(big); img.alpha_composite(lay)
+    # back-light: the sky blooms through the gaps
+    glow = img.filter(ImageFilter.GaussianBlur(26)); a = np.asarray(img, np.float32); g = np.asarray(glow, np.float32)
+    out = 255 - (255 - a[..., :3]) * (255 - g[..., :3] * 0.34) / 255
+    return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8), 'RGB')
 
 def mid_layer():
-    big = new(); d = ImageDraw.Draw(big); rng = np.random.default_rng(14)
-    # wall: plum → warm, with a wainscot; drawn as horizontal strips for a soft cel gradient
-    for i in range(48):
-        t = i / 47; c = mix(hexc('#3a2444'), hexc('#5a3248'), t)
-        d.rectangle(B(0, H * t * 0.74, W, H * (t + 0.03) * 0.74), fill=c)
-    d.rectangle(B(0, H * 0.72, W, H), fill=hexc('#4a2a3a')); d.line(P([(0, H * 0.72), (W, H * 0.72)]), fill=INK, width=S * 4)
-    for px in range(0, W, 128): d.line(P([(px, H * 0.72), (px, H)]), fill=mix(hexc('#4a2a3a'), (0, 0, 0), 0.3), width=S * 2)
-    # window hole (punched below), frame, sill, curtains
-    fr = hexc('#f0d9b8'); frs = hexc('#c9a47e')
-    rrect(d, WX0 - 28, WY0 - 28, WX1 + 28, WY1 + 28, 10, fr, INK, 4)
-    hole = (WX0, WY0, WX1, WY1)
-    # shelves (left wall), two rows
-    wood, woodhi = hexc('#8a5236'), hexc('#b8754a')
-    for (sx0, sx1, sy) in [(150, 760, 330), (90, 620, 520), (700, 1290, 250)]:
-        books(d, sx0, sy, sx1, rng)
-        rrect(d, sx0 - 14, sy, sx1 + 14, sy + 20, 4, wood, INK, 3); d.line(P([(sx0 - 8, sy + 5), (sx1 + 8, sy + 5)]), fill=woodhi, width=S * 3)
-        for bx in (sx0 + 30, sx1 - 30): d.polygon(P([(bx - 5, sy + 20), (bx + 5, sy + 20), (bx, sy + 48)]), fill=wood, outline=INK, width=S * 2)
-    # trinkets on the shelves: a small plant, a globe lamp, a figure
-    for (px, py) in [(690, 330), (1220, 250)]:
-        rrect(d, px - 22, py - 34, px + 22, py, 5, hexc('#e8a070'), INK, 3)
-        for a in (-0.7, -0.25, 0.25, 0.7): d.ellipse(B(px + math.sin(a) * 34 - 13, py - 80 - abs(a) * -18, px + math.sin(a) * 34 + 13, py - 28), fill=hexc('#5aa870'), outline=INK, width=S * 2)
-    d.ellipse(B(560, 452, 624, 516), fill=hexc('#ffe6a8'), outline=INK, width=S * 3)                        # globe lamp on shelf 2
-    # posters / frames
-    for (x0, y0, x1, y1, c1, c2) in [(860, 330, 1040, 560, '#2a3a7a', '#ff9a8a'), (1080, 380, 1280, 520, '#234a5a', '#ffd27a')]:
-        rrect(d, x0, y0, x1, y1, 4, hexc('#f4ead8'), INK, 3); d.rectangle(B(x0 + 12, y0 + 12, x1 - 12, y1 - 12), fill=hexc(c1))
-        d.ellipse(B(x0 + (x1 - x0) * 0.5, y0 + 26, x0 + (x1 - x0) * 0.5 + 46, y0 + 72), fill=hexc(c2))       # sun/moon
-        d.polygon(P([(x0 + 12, y1 - 12), (x0 + (x1 - x0) * 0.35, y1 - (y1 - y0) * 0.45), (x0 + (x1 - x0) * 0.6, y1 - 30), (x0 + (x1 - x0) * 0.8, y1 - (y1 - y0) * 0.36), (x1 - 12, y1 - 12)]), fill=mix(hexc(c1), (0, 0, 0), 0.4))
-    # wall clock
-    cx, cy, cr = 96, 190, 52
-    d.ellipse(B(cx - cr, cy - cr, cx + cr, cy + cr), fill=hexc('#f4ead8'), outline=INK, width=S * 4)
-    for a in range(12): an = a * math.pi / 6; d.line(P([(cx + math.cos(an) * cr * 0.76, cy + math.sin(an) * cr * 0.76), (cx + math.cos(an) * cr * 0.9, cy + math.sin(an) * cr * 0.9)]), fill=INK, width=S * 2)
-    d.line(P([(cx, cy), (cx + 6, cy - 38)]), fill=INK, width=S * 3); d.line(P([(cx, cy), (cx - 24, cy + 8)]), fill=INK, width=S * 4); d.ellipse(B(cx - 4, cy - 4, cx + 4, cy + 4), fill=hexc('#e86a6a'))
-    # hanging plant, top right corner
-    hx = 2440
-    d.line(P([(hx, 0), (hx, 150)]), fill=INK, width=S * 2); rrect(d, hx - 40, 150, hx + 40, 206, 14, hexc('#e8c8a0'), INK, 3)
-    for i, (a, ln) in enumerate([(-1.0, 150), (-0.5, 230), (0.0, 190), (0.45, 260), (0.95, 160)]):
-        pts = [(hx + a * 30 + math.sin(t * 3 + i) * 10 + a * 24 * t, 200 + ln * t) for t in np.linspace(0, 1, 12)]
-        d.line(P(pts), fill=hexc('#3f8a5a'), width=S * 3)
-        for (px, py) in pts[2::2]: d.ellipse(B(px - 12, py - 7, px + 12, py + 7), fill=hexc('#5ab878'), outline=INK, width=S)
-    lay = big
-    # punch the window, then draw the mullions over the hole
-    px = lay.load()
-    hole_img = Image.new('RGBA', ((WX1 - WX0) * S, (WY1 - WY0) * S), (0, 0, 0, 0)); lay.paste(hole_img, (WX0 * S, WY0 * S))
-    d = ImageDraw.Draw(lay)
-    d.rectangle(B(WX0, WY0, WX1, WY1), outline=INK, width=S * 4)
-    mxm = (WX0 + WX1) / 2
-    d.rectangle(B(mxm - 11, WY0, mxm + 11, WY1), fill=fr, outline=INK, width=S * 3); d.rectangle(B(WX0, 420, WX1, 440), fill=fr, outline=INK, width=S * 3)
-    d.line(P([(mxm - 5, WY0 + 6), (mxm - 5, WY1 - 6)]), fill=(255, 255, 255, 150), width=S * 2)
-    rrect(d, WX0 - 60, WY1 + 20, WX1 + 60, WY1 + 58, 6, fr, INK, 4); d.rectangle(B(WX0 - 54, WY1 + 44, WX1 + 54, WY1 + 54), fill=frs)   # sill
-    # curtains: scalloped folds, cel-shaded
-    for side in (0, 1):
-        x0 = WX0 - 150 if side == 0 else WX1 - 60; x1 = x0 + 210; c = hexc('#c8506a'); cs = hexc('#9a3a56'); ch = hexc('#e8788a')
-        pts = [(x0, WY0 - 60), (x1, WY0 - 60)] + [(x1 - (i % 2) * 16 - (0 if side else 40) * (i / 10), WY0 - 60 + (WY1 - WY0 + 150) * i / 10) for i in range(1, 11)] + [(x0 + (40 if side else 0), WY1 + 96)]
-        d.polygon(P(pts), fill=c, outline=INK, width=S * 3)
-        for i in range(1, 6):
-            fx = x0 + 210 * i / 6; d.line(P([(fx, WY0 - 40), (fx + (6 if side else -6), WY1 + 70)]), fill=cs, width=S * 5); d.line(P([(fx + 12, WY0 - 40), (fx + 16, WY1 + 40)]), fill=ch, width=S * 3)
-    rrect(d, WX0 - 190, WY0 - 82, WX1 + 190, WY0 - 56, 12, hexc('#8a5236'), INK, 4)                         # curtain rod
-    # fairy-light wire along the top (the bulbs themselves are a glowing sprite + painted cores)
-    wire = [(x, 70 + 34 * math.sin(x / 150) ** 2) for x in range(60, 1300, 20)]
-    d.line(P(wire), fill=INK, width=S * 2)
-    for i, (x, yv) in enumerate(wire[2::3]):
-        c = ['#ffd27a', '#ff9ab8', '#8fd0ff', '#b6ff9a'][i % 4]; d.ellipse(B(x - 8, yv + 2, x + 8, yv + 20), fill=hexc(c), outline=INK, width=S)
-    return down(lay)
+    big = new(); d = ImageDraw.Draw(big); r = np.random.default_rng(21); nodes = []
+    limb(d, 760, 20, 0.22, 330, 20, r, nodes, col=(40, 22, 14, 255)); limb(d, 1500, -30, 0.9, 260, 16, r, nodes, col=(40, 22, 14, 255))
+    spots = [(nx, ny, 36, 9) for nx, ny, dp in nodes if ny < 560]
+    draw_leaves(d, spots, r, 15, 30, 0.95)
+    return down(big)
 
-# ---------------------------------------------------------------- near: the desk
-CODE = ['#ff8fb8', '#8fd0ff', '#b6ff9a', '#ffd27a', '#c8a8ff', '#e8eef8']
-def code_lines(d, x0, y0, x1, y1, rng, lh=17):
-    yv = y0; indent = 0
+# ---------------------------------------------------------------- the room
+def code_lines(d, x0, y0, x1, y1, r, lh=13):
+    pal = ['#ffb86a', '#ff8f6a', '#ffe0a0', '#c8a8ff', '#9ad8b8', '#f4ead8']; yv = y0; ind = 0
     while yv < y1 - lh:
-        if rng.random() < 0.13: yv += lh; continue
-        indent = int(np.clip(indent + rng.integers(-1, 2), 0, 4)); x = x0 + indent * 22
-        for _ in range(rng.integers(1, 5)):
-            wl = rng.uniform(18, 110)
-            if x + wl > x1: break
-            d.rounded_rectangle(B(x, yv, x + wl, yv + 7), radius=3 * S, fill=hexc(CODE[rng.integers(len(CODE))])); x += wl + 9
+        if r.random() < 0.14: yv += lh; continue
+        ind = int(np.clip(ind + r.integers(-1, 2), 0, 4)); xv = x0 + ind * 16
+        for _ in range(r.integers(1, 5)):
+            wl = r.uniform(14, 80)
+            if xv + wl > x1: break
+            d.rounded_rectangle(B(xv, yv, xv + wl, yv + 5), radius=2 * S, fill=hexc(pal[r.integers(len(pal))], 235)); xv += wl + 7
         yv += lh
 
-def near_layer():
-    big = new(); d = ImageDraw.Draw(big); rng = np.random.default_rng(23)
-    dy = 880                                                                                              # desk top
-    wood, woodhi, woodsh = hexc('#a8683e'), hexc('#cf8a55'), hexc('#7a4628')
-    # monitor stand + main monitor
-    d.polygon(P([(820, dy), (870, dy - 60), (990, dy - 60), (1040, dy)]), fill=hexc('#3a3448'), outline=INK, width=S * 3); d.rectangle(B(900, dy - 130, 960, dy - 50), fill=hexc('#4a445a'), outline=INK, width=S * 3)
-    rrect(d, 520, 400, 1340, dy - 110, 16, hexc('#2a2536'), INK, 5); rrect(d, 540, 420, 1320, dy - 150, 6, hexc('#141a33'), INK, 3)
-    d.rectangle(B(543, 423, 1317, 452), fill=hexc('#222a4c'))
-    for i, c in enumerate(('#ff6a6a', '#ffd06a', '#6ad08a')): d.ellipse(B(556 + i * 22, 431, 570 + i * 22, 445), fill=hexc(c))
-    d.rectangle(B(543, 452, 700, dy - 153), fill=hexc('#1b2240'))                                           # file tree
-    for i in range(13): d.rounded_rectangle(B(560 + (i % 3) * 14, 470 + i * 21, 560 + (i % 3) * 14 + rng.uniform(50, 110), 478 + i * 21), radius=3 * S, fill=hexc('#6a78b8'))
-    code_lines(d, 724, 470, 1300, dy - 160, rng)
-    d.polygon(P([(1100, 423), (1317, 423), (1317, 560)]), fill=(255, 255, 255, 16))                        # glass sheen
-    # vertical second monitor
-    rrect(d, 1370, 470, 1640, dy - 60, 12, hexc('#2a2536'), INK, 5); rrect(d, 1386, 486, 1624, dy - 76, 5, hexc('#101827'), INK, 3)
-    code_lines(d, 1400, 502, 1614, dy - 90, rng, 15); d.rectangle(B(1480, dy - 60, 1530, dy), fill=hexc('#4a445a'), outline=INK, width=S * 3)
-    # desk
-    d.rectangle(B(-10, dy, W + 10, dy + 54), fill=wood, outline=INK, width=S * 4); d.rectangle(B(0, dy + 4, W, dy + 14), fill=woodhi)
-    d.rectangle(B(-10, dy + 54, W + 10, H), fill=woodsh, outline=INK, width=S * 4)
-    for (x0, x1) in [(120, 700), (760, 1340), (1860, 2440)]:                                               # drawers
-        rrect(d, x0, dy + 84, x1, dy + 250, 8, hexc('#8a5230'), INK, 3); rrect(d, (x0 + x1) / 2 - 50, dy + 150, (x0 + x1) / 2 + 50, dy + 172, 9, hexc('#e8c080'), INK, 3)
-    # keyboard + mouse
-    d.polygon(P([(640, dy - 6), (680, dy - 40), (1200, dy - 40), (1240, dy - 6)]), fill=hexc('#e8e2ee'), outline=INK, width=S * 3)
-    for r_ in range(3):
-        for k in range(24 - r_): d.rounded_rectangle(B(690 + r_ * 8 + k * (21 + r_ * 0.6), dy - 36 + r_ * 10, 706 + r_ * 8 + k * (21 + r_ * 0.6), dy - 29 + r_ * 10), radius=2 * S, fill=hexc(['#c8b8e8', '#ffb8cc', '#b8dcff'][(k + r_) % 3] if (k * 7 + r_) % 5 == 0 else '#8a84a0'))
-    d.ellipse(B(1270, dy - 34, 1330, dy - 2), fill=hexc('#e8e2ee'), outline=INK, width=S * 3)
-    # mug with a heart, left of the keyboard
-    rrect(d, 400, dy - 96, 486, dy - 2, 10, hexc('#f4ead8'), INK, 4); d.arc(B(470, dy - 78, 522, dy - 24), 270, 90, fill=INK, width=S * 9); d.arc(B(474, dy - 74, 518, dy - 28), 270, 90, fill=hexc('#f4ead8'), width=S * 4)
-    d.ellipse(B(404, dy - 104, 482, dy - 86), fill=hexc('#6a3a2a'), outline=INK, width=S * 3)
-    d.polygon(P([(443, dy - 30), (424, dy - 52), (434, dy - 64), (443, dy - 56), (452, dy - 64), (462, dy - 52)]), fill=hexc('#e86a7a'))
-    # desk lamp (left): base, two arms, shade
-    lx = 250
-    d.ellipse(B(lx - 60, dy - 22, lx + 60, dy + 2), fill=hexc('#e8b04a'), outline=INK, width=S * 3)
-    d.line(P([(lx, dy - 14), (lx - 50, dy - 220)]), fill=INK, width=S * 12); d.line(P([(lx, dy - 14), (lx - 50, dy - 220)]), fill=hexc('#e8b04a'), width=S * 6)
-    d.line(P([(lx - 50, dy - 220), (lx + 70, dy - 330)]), fill=INK, width=S * 12); d.line(P([(lx - 50, dy - 220), (lx + 70, dy - 330)]), fill=hexc('#e8b04a'), width=S * 6)
-    d.polygon(P([(lx + 40, dy - 372), (lx + 150, dy - 330), (lx + 176, dy - 250), (lx + 44, dy - 286)]), fill=hexc('#f2c45a'), outline=INK, width=S * 4)
-    d.polygon(P([(lx + 54, dy - 284), (lx + 170, dy - 252), (lx + 160, dy - 240), (lx + 60, dy - 268)]), fill=hexc('#fff3c0'), outline=INK, width=S * 2)
-    # stack of books + headphones (right of the monitors)
-    for i, (c, wv) in enumerate([('#6aa8e8', 230), ('#e88ab8', 200), ('#f2d06a', 214)]):
-        y1 = dy - 2 - i * 34; rrect(d, 1700 + i * 8, y1 - 32, 1700 + i * 8 + wv, y1, 4, hexc(c), INK, 3); d.rectangle(B(1700 + i * 8 + wv - 26, y1 - 27, 1700 + i * 8 + wv - 6, y1 - 5), fill=hexc('#f4ead8'))
-    d.arc(B(1750, dy - 190, 1890, dy - 60), 180, 360, fill=INK, width=S * 14); d.arc(B(1754, dy - 186, 1886, dy - 64), 180, 360, fill=hexc('#5a5470'), width=S * 7)
-    for hx in (1736, 1868): rrect(d, hx, dy - 150, hx + 36, dy - 96, 12, hexc('#ff9ab8'), INK, 3)
-    # cactus pot
-    rrect(d, 60, dy - 62, 140, dy - 2, 8, hexc('#e8a070'), INK, 3); rrect(d, 78, dy - 150, 122, dy - 58, 20, hexc('#5ab878'), INK, 3)
-    rrect(d, 48, dy - 118, 80, dy - 84, 12, hexc('#5ab878'), INK, 3); d.ellipse(B(92, dy - 162, 110, dy - 146), fill=hexc('#ff8fb8'), outline=INK, width=S * 2)
-    # sleeping cat on the window sill (orange tabby, curled)
-    cx, cy = 2110, 858 - 20
-    d.ellipse(B(cx - 110, cy - 62, cx + 96, cy + 22), fill=hexc('#f0a05a'), outline=INK, width=S * 4)       # body
-    d.ellipse(B(cx - 150, cy - 48, cx - 62, cy + 22), fill=hexc('#f4b06a'), outline=INK, width=S * 4)       # head
-    for ex in (-136, -92): d.polygon(P([(cx + ex, cy - 36), (cx + ex + 8, cy - 70), (cx + ex + 30, cy - 42)]), fill=hexc('#f4b06a'), outline=INK, width=S * 3)
-    d.arc(B(cx - 132, cy - 20, cx - 112, cy - 6), 0, 180, fill=INK, width=S * 3); d.arc(B(cx - 100, cy - 20, cx - 80, cy - 6), 0, 180, fill=INK, width=S * 3)   # closed eyes
-    d.ellipse(B(cx - 111, cy - 4, cx - 101, cy + 4), fill=hexc('#ff8fa8'))
-    for sx in (-30, 6, 42): d.arc(B(cx + sx - 24, cy - 60, cx + sx + 24, cy - 16), 200, 340, fill=hexc('#c8743a'), width=S * 5)   # stripes
-    return down(big)
+def text_lines(d, quad, r, n, col=(86, 62, 44, 200)):
+    """handwriting-like rows on a page given as (top-left, top-right, bottom-right, bottom-left)"""
+    (ax, ay), (bx, by), (cx, cy), (dx_, dy_) = quad
+    for i in range(n):
+        t = (i + 1.2) / (n + 1.6); lx, ly = ax + (dx_ - ax) * t, ay + (dy_ - ay) * t; rx, ry = bx + (cx - bx) * t, by + (cy - by) * t
+        u0, u1 = 0.08, 0.92 - 0.3 * (r.random() < 0.25) * r.random()
+        d.line(P([(lx + (rx - lx) * u0, ly + (ry - ly) * u0), (lx + (rx - lx) * u1, ly + (ry - ly) * u1)]), fill=col, width=S)
 
-# ---------------------------------------------------------------- front
-def leaf(d, x, y, ang, ln, col, hi):
-    """a monstera-like leaf: ellipse along `ang` with a lighter midrib and two notches"""
-    pts = []
-    for t in np.linspace(0, 2 * math.pi, 40):
-        r = 1 - 0.16 * max(0, math.cos(3 * t)) ** 6
-        lx, ly = math.cos(t) * ln / 2 * r + ln / 2, math.sin(t) * ln * 0.3 * r
-        pts.append((x + lx * math.cos(ang) - ly * math.sin(ang), y + lx * math.sin(ang) + ly * math.cos(ang)))
-    d.polygon(P(pts), fill=col, outline=INK, width=S * 4)
-    d.line(P([(x, y), (x + math.cos(ang) * ln * 0.92, y + math.sin(ang) * ln * 0.92)]), fill=hi, width=S * 4)
-    for t in (0.3, 0.5, 0.7):
-        bx, by = x + math.cos(ang) * ln * t, y + math.sin(ang) * ln * t
-        for sgn in (-1, 1): d.line(P([(bx, by), (bx + math.cos(ang + sgn * 0.9) * ln * 0.2, by + math.sin(ang + sgn * 0.9) * ln * 0.2)]), fill=hi, width=S * 2)
+def front_layer(far_img):
+    big = new(); d = ImageDraw.Draw(big); r = np.random.default_rng(31)
+    wood, wood_hi, wood_dk = hexc('#3a2114'), hexc('#6a3c20'), hexc('#1e100a')
+    # --- wall
+    d.rectangle(B(0, 0, W, H), fill=hexc('#7c7464'))
+    # --- map (large, left), small frames, pinned note
+    d.rectangle(B(70, 120, 560, 660), fill=wood_dk); d.rectangle(B(92, 142, 538, 638), fill=hexc('#c9a35c'))
+    for _ in range(30):                                                                                   # roads and rivers
+        px, py = r.uniform(100, 530), r.uniform(150, 630); pts = [(px, py)]; a = r.random() * 6.28
+        for _s in range(int(r.integers(4, 12))): a += r.uniform(-0.7, 0.7); px += math.cos(a) * 34; py += math.sin(a) * 34; pts.append((min(532, max(98, px)), min(632, max(148, py))))
+        d.line(P(pts), fill=(120, 84, 40, 150), width=S)
+    for (cx, cy, rr, c) in [(250, 330, 44, '#d8582a'), (300, 300, 22, '#e8782a'), (220, 370, 18, '#c84a22'), (330, 520, 56, '#7f9a94'), (300, 560, 30, '#8aa6a0'), (430, 240, 30, '#b8924a')]:
+        d.ellipse(B(cx - rr, cy - rr * 0.8, cx + rr, cy + rr * 0.8), fill=hexc(c, 210))
+    for a in range(10): an = a * 0.628; d.line(P([(250, 330), (250 + math.cos(an) * 70, 330 + math.sin(an) * 56)]), fill=hexc('#c0461e', 200), width=S * 2)
+    for (x0, y0) in [(630, 300), (630, 470)]:
+        d.rectangle(B(x0, y0, x0 + 116, y0 + 128), fill=wood_dk); d.rectangle(B(x0 + 12, y0 + 12, x0 + 104, y0 + 116), fill=hexc('#cdb48a'))
+        for i in range(6): d.line(P([(x0 + 26, y0 + 30 + i * 13), (x0 + 90 - (i % 3) * 14, y0 + 30 + i * 13)]), fill=(84, 60, 40, 220), width=S)
+    d.polygon(P([(640, 640), (738, 636), (742, 760), (644, 764)]), fill=hexc('#d8c8a0')); text_lines(d, [(640, 640), (738, 636), (742, 760), (644, 764)], r, 8); d.ellipse(B(686, 640, 696, 650), fill=hexc('#b8402a'))
+    # --- window frame (panes are punched out afterwards), sill, apron
+    d.rectangle(B(FX0, FY0, W + 20, FY1), fill=wood)
+    for (x0, x1) in CASE: d.rectangle(B(x0 - 10, GY0 - 10, x1 + 10, GY1 + 10), outline=wood_dk, width=S * 5)
+    d.rectangle(B(FX0 - 26, FY1, W + 20, FY1 + 44), fill=wood_hi); d.rectangle(B(FX0 - 26, FY1 + 30, W + 20, FY1 + 44), fill=wood_dk)
+    d.rectangle(B(FX0, FY1 + 44, W + 20, DESK + 4), fill=hexc('#3c382f'))                                  # wall under the sill, in shadow
+    # latch on the central post
+    d.rounded_rectangle(B(1660, 440, 1680, 520), radius=5 * S, fill=hexc('#15100c')); d.ellipse(B(1654, 470, 1686, 496), fill=hexc('#2a2018'))
+    # --- cabinet with vase, sprig and books (left, behind the chair)
+    d.rectangle(B(-10, 800, 420, DESK + 20), fill=hexc('#3b2316')); d.rectangle(B(-10, 786, 440, 806), fill=hexc('#5a3620')); d.rectangle(B(20, 840, 380, 990), outline=wood_dk, width=S * 4)
+    d.polygon(P([(96, 786), (84, 742), (100, 706), (140, 706), (156, 742), (144, 786)]), fill=hexc('#221a16'))
+    for i, (a, ln) in enumerate([(-1.9, 150), (-1.5, 190), (-1.15, 160), (-2.3, 120), (-0.8, 120)]):
+        px, py = 120, 706
+        for sgm in range(6):
+            nx, ny = px + math.cos(a) * ln / 6, py + math.sin(a) * ln / 6; d.line(P([(px, py), (nx, ny)]), fill=hexc('#243a26'), width=S * 3)
+            d.ellipse(B(nx - 13, ny - 7, nx + 13, ny + 7), fill=hexc(['#2f5a36', '#3f7a44', '#27482c'][(i + sgm) % 3])); px, py = nx, ny; a += 0.07 * (i - 2)
+    for i, (c, wd) in enumerate([('#5a2e22', 150), ('#2e3a34', 132), ('#6a4a2a', 140)]): d.rectangle(B(220, 786 - (i + 1) * 26, 220 + wd, 786 - i * 26), fill=hexc(c), outline=wood_dk, width=S * 2)
+    # --- desk
+    d.rectangle(B(-10, DESK, W + 10, H + 10), fill=hexc('#4a2212')); d.rectangle(B(-10, DESK, W + 10, DESK + 10), fill=hexc('#7a4426'))
+    lay = down(big)
+    arr = np.asarray(lay, np.float32).copy(); yy = np.linspace(0, 1, H, dtype=np.float32)[:, None]; xx = np.linspace(0, 1, W, dtype=np.float32)[None, :]
+    # plaster: mottling, stains, darker toward the corner; wood grain on the desk
+    wall = (np.arange(H)[:, None] < DESK) & (np.arange(W)[None, :] < FX0 - 26) | ((np.arange(H)[:, None] < FY0) & np.ones((1, W), bool))
+    pl = fft_noise(W, H, 1.7, 41); st = np.clip((fft_noise(W, H, 2.6, 42) - 0.56) * 5, 0, 1); fine = fft_noise(W, H, 0.9, 43)
+    wm = wall[..., None]
+    arr[..., :3] = np.where(wm, arr[..., :3] * (0.72 + 0.4 * pl[..., None] + 0.12 * (fine[..., None] - 0.5)) * (1 - 0.38 * st[..., None]) * (0.62 + 0.5 * xx[..., None] / 0.32).clip(0.5, 1.12), arr[..., :3])
+    grain = fft_noise(W, H, 1.6, 44, 14.0); dk = (np.arange(H)[:, None] >= DESK) & np.ones((1, W), bool)
+    depth = np.clip((yy - DESK / H) / (1 - DESK / H), 0, 1)
+    arr[..., :3] = np.where(dk[..., None], arr[..., :3] * (0.74 + 0.5 * grain[..., None]) * (1.05 - 0.5 * depth[..., None]), arr[..., :3])
+    # the window mirrored in the polished desk: each pane lands as a bright patch, broken by leaf shadow
+    refl = Image.new('L', (W * S, H * S), 0); rd = ImageDraw.Draw(refl); cxm = 1670
+    for (x0, y0, x1, y1) in panes():
+        def m(px, py):
+            t = (GY1 - py) / (GY1 - GY0); yv = DESK + 14 + t * 400; sc = 1 + t * 0.34; return ((cxm + (px - cxm) * sc - t * 120) * S, yv * S)
+        rd.polygon([m(x0, y1), m(x1, y1), m(x1, y0), m(x0, y0)], fill=255)
+    rm = np.asarray(refl.resize((W, H), Image.LANCZOS).filter(ImageFilter.GaussianBlur(2.2)), np.float32) / 255
+    shadow = np.clip((fft_noise(W, H, 1.9, 45) - 0.42) * 3.2, 0, 1)                                       # dappled leaf shadow
+    rm = rm * (0.3 + 0.7 * shadow) * (1 - 0.55 * depth)
+    arr[..., :3] += rm[..., None] * (hexf('#ffb04a') * (1 - shadow[..., None]) + hexf('#fff0c4') * shadow[..., None]) * 0.95
+    lay = Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), 'RGBA')
+    # --- things on the desk (drawn over the reflection), each with a soft contact shadow toward the viewer
+    big = new(); d = ImageDraw.Draw(big); sh = new(); sd = ImageDraw.Draw(sh)
+    def shadow_at(cx, cy, rw, rh, a=130): sd.ellipse(B(cx - rw, cy - rh, cx + rw, cy + rh), fill=(14, 6, 4, a))
+    # laptop (left of centre)
+    shadow_at(800, 1150, 300, 26)
+    d.polygon(P([(560, 1130), (600, 1076), (1010, 1076), (1058, 1130)]), fill=hexc('#2a2622')); d.polygon(P([(604, 1082), (1004, 1082), (1034, 1120), (580, 1120)]), fill=hexc('#3a3530'))
+    for kr in range(4):
+        for kc in range(22): d.rectangle(B(612 + kr * -6 + kc * (17.6 + kr * 0.6), 1086 + kr * 8.4, 625 + kr * -6 + kc * (17.6 + kr * 0.6), 1091 + kr * 8.4), fill=hexc('#1a1714'))
+    d.polygon(P([(594, 1076), (606, 810), (1002, 810), (1014, 1076)]), fill=hexc('#221e1b')); d.polygon(P([(612, 1058), (621, 826), (987, 826), (996, 1058)]), fill=hexc('#171a26'))
+    code_lines(d, 636, 846, 976, 1048, r); d.polygon(P([(880, 826), (987, 826), (992, 960)]), fill=(255, 190, 110, 26))
+    # open notebook
+    shadow_at(1340, 1262, 250, 22)
+    pl_ = [(1130, 1178), (1338, 1166), (1352, 1262), (1118, 1280)]; pr_ = [(1338, 1166), (1548, 1172), (1586, 1270), (1352, 1262)]
+    d.polygon(P(pl_), fill=hexc('#f0dcae')); d.polygon(P(pr_), fill=hexc('#fbe9bc')); d.line(P([(1338, 1166), (1352, 1262)]), fill=(120, 84, 50, 255), width=S * 3)
+    text_lines(d, pl_, r, 9); text_lines(d, pr_, r, 9)
+    d.line(P([(1420, 1290), (1560, 1250)]), fill=hexc('#2a1a12'), width=S * 5); d.line(P([(1548, 1254), (1562, 1250)]), fill=hexc('#e8b04a'), width=S * 5)   # pen
+    # loose papers, bottom left
+    shadow_at(700, 1400, 380, 30, 110)
+    for q in ([(330, 1300), (760, 1270), (830, 1400), (360, 1436)], [(640, 1330), (1060, 1300), (1110, 1410), (700, 1440)]):
+        d.polygon(P(q), fill=hexc('#ead4a2')); text_lines(d, q, r, 10)
+    # mug
+    shadow_at(1690, 1224, 70, 14)
+    d.rounded_rectangle(B(1650, 1140, 1730, 1226), radius=10 * S, fill=hexc('#e8d6b0')); d.arc(B(1716, 1158, 1766, 1212), 270, 90, fill=hexc('#e8d6b0'), width=S * 9)
+    d.ellipse(B(1652, 1132, 1728, 1150), fill=hexc('#4a2a1a')); d.rectangle(B(1654, 1150, 1664, 1216), fill=hexc('#fff3d6'))
+    # candle lantern
+    lx, lb = 1960, 1300
+    shadow_at(lx, lb + 4, 120, 20, 150)
+    d.polygon(P([(lx - 86, lb), (lx - 70, lb - 26), (lx + 70, lb - 26), (lx + 86, lb)]), fill=hexc('#17120f'))
+    d.rectangle(B(lx - 62, lb - 220, lx + 62, lb - 26), fill=(255, 168, 70, 84))                             # glass
+    d.rectangle(B(lx - 16, lb - 96, lx + 16, lb - 28), fill=hexc('#fff0cc')); d.ellipse(B(lx - 16, lb - 102, lx + 16, lb - 90), fill=hexc('#ffe2a0'))
+    for px in (lx - 66, lx - 2, lx + 58): d.rectangle(B(px, lb - 224, px + 8, lb - 24), fill=hexc('#17120f'))
+    d.rectangle(B(lx - 70, lb - 132, lx + 70, lb - 124), fill=hexc('#17120f'))
+    d.polygon(P([(lx - 80, lb - 220), (lx - 44, lb - 262), (lx + 44, lb - 262), (lx + 80, lb - 220)]), fill=hexc('#17120f')); d.rectangle(B(lx - 26, lb - 276, lx + 26, lb - 260), fill=hexc('#17120f'))
+    d.arc(B(lx - 34, lb - 330, lx + 34, lb - 262), 180, 360, fill=hexc('#17120f'), width=S * 6)
+    # kettle (right)
+    kx, kb = 2400, 1210
+    shadow_at(kx, kb + 2, 120, 18)
+    d.polygon(P([(kx - 82, kb), (kx - 66, kb - 150), (kx + 66, kb - 150), (kx + 82, kb)]), fill=hexc('#2a2420')); d.ellipse(B(kx - 68, kb - 166, kx + 68, kb - 134), fill=hexc('#3a322c'))
+    d.polygon(P([(kx - 74, kb - 96), (kx - 150, kb - 150), (kx - 138, kb - 164), (kx - 70, kb - 124)]), fill=hexc('#2a2420')); d.arc(B(kx - 10, kb - 190, kx + 130, kb - 40), 280, 80, fill=hexc('#2a2420'), width=S * 9)
+    d.rectangle(B(kx - 16, kb - 182, kx + 16, kb - 164), fill=hexc('#1a1512')); d.line(P([(kx + 62, kb - 146), (kx + 78, kb - 8)]), fill=hexc('#ffb060'), width=S * 3)   # rim light
+    # chair back and scarf (bottom left)
+    for sx in (90, 180, 270, 360): d.rectangle(B(sx, 1080, sx + 34, 1440), fill=hexc('#4a2816'))
+    d.rounded_rectangle(B(40, 1030, 470, 1096), radius=26 * S, fill=hexc('#5c321c')); d.line(P([(60, 1040), (450, 1040)]), fill=hexc('#ffa860'), width=S * 3)
+    # a wool scarf draped over the chair's corner: two soft folds, a plaid band pattern, a fringe
+    for (pts, c) in (([(250, 1024), (420, 1018), (474, 1050), (486, 1240), (470, 1410), (398, 1410), (410, 1240), (392, 1100), (270, 1070)], '#6e5a48'), ([(392, 1100), (410, 1240), (398, 1410), (360, 1410), (366, 1250), (350, 1120)], '#54463a')):
+        d.polygon(P(pts), fill=hexc(c))
+    for i in range(6): yv = 1090 + i * 54; d.line(P([(396, yv), (482, yv + 8)]), fill=(196, 150, 96, 150), width=S * 5); d.line(P([(396, yv + 12), (482, yv + 20)]), fill=(48, 34, 26, 130), width=S * 2)
+    for i in range(3): xv = 420 + i * 24; d.line(P([(xv, 1050), (xv + 6, 1408)]), fill=(48, 34, 26, 110), width=S * 2)
+    for i in range(12): d.line(P([(362 + i * 9, 1408), (360 + i * 9, 1436)]), fill=hexc('#6e5a48'), width=S * 2)
+    d.line(P([(252, 1026), (420, 1020), (474, 1052)]), fill=hexc('#ffb878', 200), width=S * 2)
+    lay.alpha_composite(down(sh).filter(ImageFilter.GaussianBlur(9))); lay.alpha_composite(down(big))
+    # --- punch the panes; rim light on the frame edges that face the glass
+    arr = np.asarray(lay, np.float32).copy(); hole = Image.new('L', (W * S, H * S), 0); hd = ImageDraw.Draw(hole)
+    for (x0, y0, x1, y1) in panes(): hd.rectangle(B(x0, y0, x1, y1), fill=255)
+    hm = np.asarray(hole.resize((W, H), Image.LANCZOS), np.float32) / 255
+    edge = np.clip(np.asarray(Image.fromarray((hm * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(3)), np.float32) / 255 * 2.2 - hm * 2.2, 0, 1) * (1 - hm)
+    arr[..., :3] += edge[..., None] * hexf('#ffa040') * 0.95
+    # light spilling into the room: a broad warm bloom around the window, strongest on the wall beside it and on the sill
+    spill = np.asarray(Image.fromarray((hm * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(90)), np.float32) / 255
+    arr[..., :3] += (spill ** 1.4)[..., None] * hexf('#ff9a3c') * 0.5
+    beam = np.clip(1 - np.abs((xx * W - 820 + (yy * H - 200) * 0.9) / 260), 0, 1) * np.clip((yy * H - 120) / 500, 0, 1) * np.clip((DESK - yy * H) / 300, 0, 1) * (xx * W < 820)
+    arr[..., :3] += beam[..., None] * hexf('#ffb060') * 0.26                                              # late sun raking across the plaster
+    vig = 1 - 0.5 * np.clip(((xx - 0.6) / 0.8) ** 2 + ((yy - 0.42) / 0.75) ** 2, 0, 1)
+    arr[..., :3] *= vig[..., None]
+    arr[..., 3] = 255 * (1 - hm)
+    return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), 'RGBA')
 
-def front_layer():
-    big = new(); d = ImageDraw.Draw(big)
-    # monstera, bottom-left: pot + stems (the swaying leaves are sprites; a few rest leaves are painted)
-    rrect(d, -40, H - 250, 190, H + 20, 20, hexc('#e8825a'), INK, 5); d.rectangle(B(-40, H - 250, 190, H - 216), fill=hexc('#f2a070'), outline=INK, width=S * 4)
-    for (a, ln) in [(-1.25, 330), (-0.95, 300), (-1.7, 280)]:
-        d.line(P([(70, H - 240), (70 + math.cos(a) * ln * 0.5, H - 240 + math.sin(a) * ln * 0.5)]), fill=hexc('#3f8a5a'), width=S * 7)
-    leaf(d, 40, H - 380, -1.9, 250, hexc('#3f9a62'), hexc('#8ad89a')); leaf(d, 120, H - 330, -0.5, 230, hexc('#4aa870'), hexc('#8ad89a'))
-    # floor lamp, right edge
-    x = W - 96
-    d.rectangle(B(x - 5, 520, x + 5, H), fill=hexc('#3a3448'), outline=INK, width=S * 2)
-    d.polygon(P([(x - 90, 520), (x - 56, 350), (x + 56, 350), (x + 90, 520)]), fill=hexc('#ffe2a0'), outline=INK, width=S * 5)
-    d.polygon(P([(x - 56, 350), (x - 30, 350), (x - 52, 520), (x - 90, 520)]), fill=hexc('#fff3cf'))
-    # chair back, bottom centre-right (rounded gaming-chair silhouette with a cushion highlight)
-    rrect(d, 1040, H - 210, 1500, H + 60, 70, hexc('#5a4a8a'), INK, 6); rrect(d, 1090, H - 170, 1450, H + 60, 50, hexc('#7a68b0'), None)
-    d.arc(B(1100, H - 180, 1440, H + 100), 200, 340, fill=hexc('#9a8ad0'), width=S * 6)
-    return down(big)
-
-def rays_layer():
-    pts = [(250 + 110, 880 - 250, 330, '#ffd88a', 105), (360, 880, 250, '#ffc56a', 70),                    # desk lamp pool
-           (930, 600, 470, '#8fb0ff', 46), (1505, 640, 220, '#8fb0ff', 30),                                 # monitors
-           (W - 96, 430, 300, '#ffe2a0', 95), (592, 484, 110, '#ffe6a8', 90)]                               # floor lamp, globe lamp
-    return glow_img(pts, 70)
-
-def snow_tile():
-    w = h = 768; r = np.random.default_rng(31); im = Image.new('RGBA', (w * 2, h * 2), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
-    for _ in range(150):
-        x, yv, rad = r.random() * w * 2, r.random() * h * 2, r.uniform(2, 7); a = int(r.uniform(150, 255))
-        for ox in (-w * 2, 0, w * 2):
-            for oy in (-h * 2, 0, h * 2): d.ellipse([x + ox - rad, yv + oy - rad, x + ox + rad, yv + oy + rad], fill=(255, 255, 255, a))
-    return im.resize((w, h), Image.LANCZOS)
-
-def steam_sprite():
-    w, h = 160, 300; yy, xx = np.mgrid[0:h, 0:w].astype(np.float32); t = 1 - yy / h
-    cxs = w / 2 + np.sin(t * 7.0) * 22 * t
-    a = np.exp(-((xx - cxs) / (9 + 16 * t)) ** 2) * np.clip(np.sin(t * math.pi), 0, 1) ** 1.2 * 0.75
-    cx2 = w / 2 + np.sin(t * 6.0 + 2.0) * 26 * t
-    a = np.clip(a + np.exp(-((xx - cx2) / (7 + 12 * t)) ** 2) * np.clip(np.sin(t * math.pi), 0, 1) ** 1.2 * 0.5, 0, 1)
-    rgb = np.broadcast_to(np.array([255, 244, 232], np.float32), (h, w, 3))
-    return Image.fromarray(np.concatenate([rgb, (a * 255)[..., None]], -1).astype(np.uint8), 'RGBA')
-
-def radial(size, col, sharp=0.42, peak=0.8):
-    yy, xx = np.mgrid[0:size, 0:size].astype(np.float32); r = np.sqrt((xx - size / 2) ** 2 + (yy - size / 2) ** 2) / (size / 2)
-    a = np.exp(-(r / sharp) ** 2) * peak * np.clip((1 - r) * 4, 0, 1)
-    rgb = np.broadcast_to(np.array(hexc(col)[:3], np.float32), (size, size, 3))
-    return Image.fromarray(np.concatenate([rgb, (a * 255)[..., None]], -1).astype(np.uint8), 'RGBA')
-
-def fairy_sprite():
-    """glow halos for the fairy-light bulbs, in the bulbs' own stage positions (crop 0..1340 × 0..180)"""
-    g = Image.new('RGBA', (1340, 180), (0, 0, 0, 0)); d = ImageDraw.Draw(g)
-    wire = [(x, 70 + 34 * math.sin(x / 150) ** 2) for x in range(60, 1300, 20)]
-    for i, (x, yv) in enumerate(wire[2::3]):
-        c = ['#ffd27a', '#ff9ab8', '#8fd0ff', '#b6ff9a'][i % 4]; d.ellipse([x - 22, yv - 10, x + 22, yv + 34], fill=hexc(c, 200))
-    return g.filter(ImageFilter.GaussianBlur(11))
-
-def tail_sprite():
-    w, h = 200, 120; im = Image.new('RGBA', (w * 2, h * 2), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
-    pts = [(20 + 160 * t, 90 - 60 * t ** 1.6 - math.sin(t * 3.1) * 10) for t in np.linspace(0, 1, 24)]
-    d.line([(x * 2, y * 2) for x, y in pts], fill=INK, width=44, joint='curve'); d.line([(x * 2, y * 2) for x, y in pts], fill=hexc('#f0a05a'), width=30, joint='curve')
-    for (x, y) in pts[5::5]: d.ellipse([x * 2 - 10, y * 2 - 16, x * 2 + 10, y * 2 + 16], fill=hexc('#c8743a'))
-    ex, ey = pts[-1]; d.ellipse([ex * 2 - 15, ey * 2 - 15, ex * 2 + 15, ey * 2 + 15], fill=hexc('#fff0dc'))   # pale tail tip
-    return im.resize((w, h), Image.LANCZOS)
-
-def leaf_sprite():
-    w, h = 520, 360; im = Image.new('RGBA', (w * S, h * S), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
-    leaf(d, 20, h - 60, -0.55, 440, hexc('#46a86c'), hexc('#9ae0a8'))
-    return im.resize((w, h), Image.LANCZOS)
-
-def cursor_sprite():
-    im = Image.new('RGBA', (16, 28), hexc('#e8eef8')); return im
+# ---------------------------------------------------------------- moving parts
+def clump(seed, w=520, h=440):
+    big = new(w, h); d = ImageDraw.Draw(big); r = np.random.default_rng(seed); nodes = []
+    limb(d, w * 0.5, h * 0.98, -1.57 + r.uniform(-0.2, 0.2), h * 0.26, 7, r, nodes, col=(46, 24, 15, 255))
+    draw_leaves(d, [(nx, ny, 26, 12) for nx, ny, dp in nodes], r, 11, 22, 1.4)
+    return down(big, w, h)
+def leaves_tile():
+    w, h = 600, 1200; big = Image.new('RGBA', (w * S, h * S), (0, 0, 0, 0)); d = ImageDraw.Draw(big); r = np.random.default_rng(61)
+    for _ in range(13):
+        x, y, sz, rot = r.uniform(40, w - 40), r.uniform(40, h - 40), r.uniform(11, 22), r.random() * 6.283     # kept clear of the edges: the tile repeats seamlessly
+        d.polygon([(px * S, py * S) for px, py in leaf_pts(x, y, sz, rot)], fill=hexc(LEAF_COLS[int(r.integers(2, len(LEAF_COLS)))], 240))
+    return big.resize((w, h), Image.LANCZOS)
+def radial(size, col, sharp=0.42, peak=0.8, sy=1.0):
+    yy, xx = np.mgrid[0:int(size * sy), 0:size].astype(np.float32); rr = np.sqrt(((xx - size / 2) / (size / 2)) ** 2 + ((yy - size * sy / 2) / (size * sy / 2)) ** 2)
+    a = np.exp(-(rr / sharp) ** 2) * peak * np.clip((1 - rr) * 4, 0, 1)
+    return Image.fromarray(np.concatenate([np.broadcast_to(hexf(col), a.shape + (3,)), (a * 255)[..., None]], -1).astype(np.uint8), 'RGBA')
+def flame():
+    w, h = 60, 120; yy, xx = np.mgrid[0:h, 0:w].astype(np.float32); t = yy / h
+    half = (w * 0.34) * np.sin(np.clip(t, 0, 1) * math.pi) ** 0.8 * (0.35 + 0.65 * t)
+    a = np.clip((half - np.abs(xx - w / 2)) / 3, 0, 1) * np.clip(t * 8, 0, 1)
+    col = hexf('#fff6d8') * t[..., None] ** 0.6 + hexf('#ff9a2a') * (1 - t[..., None] ** 0.6)
+    return Image.fromarray(np.concatenate([col, (a * 255)[..., None]], -1).astype(np.uint8), 'RGBA')
+def beam():
+    w, h = 1200, 800; yy, xx = np.mgrid[0:h, 0:w].astype(np.float32); u = (xx / w) + (yy / h) * 0.9
+    shafts = (0.5 + 0.5 * np.sin(u * 26)) ** 3 * np.clip(np.sin(np.clip(u - 0.25, 0, 1) * math.pi), 0, 1)
+    a = shafts * 0.2 * np.clip(np.minimum(np.minimum(xx, w - xx) / 120, np.minimum(yy, h - yy) / 120), 0, 1)
+    return Image.fromarray(np.concatenate([np.broadcast_to(hexf('#ffc27a'), (h, w, 3)), (a * 255)[..., None]], -1).astype(np.uint8), 'RGBA').filter(ImageFilter.GaussianBlur(5))
+def steam():
+    w, h = 160, 300; yy, xx = np.mgrid[0:h, 0:w].astype(np.float32); t = 1 - yy / h; a = np.zeros((h, w), np.float32)
+    for ph, wd, k in ((0.0, 9, 0.6), (2.0, 7, 0.42)):
+        cx = w / 2 + np.sin(t * 6.5 + ph) * 24 * t; a += np.exp(-((xx - cx) / (wd + 15 * t)) ** 2) * np.clip(np.sin(t * math.pi), 0, 1) ** 1.2 * k
+    return Image.fromarray(np.concatenate([np.broadcast_to(hexf('#fff0dc'), (h, w, 3)), (np.clip(a, 0, 0.8) * 255)[..., None]], -1).astype(np.uint8), 'RGBA')
+def leaf_pop():
+    s = 300; big = Image.new('RGBA', (s * S, s * S), (0, 0, 0, 0)); d = ImageDraw.Draw(big)
+    d.polygon([(px * S, py * S) for px, py in leaf_pts(150, 140, 120, 0.3)], fill=hexc('#e8641a')); d.polygon([(px * S, py * S) for px, py in leaf_pts(150, 140, 76, 0.3)], fill=hexc('#ff9a2a'))
+    for i in range(5): a = 0.3 + math.radians(-210 + i * 48); d.line([(150 * S, 150 * S), ((150 + math.cos(a) * 104) * S, (140 + math.sin(a) * 104) * S)], fill=hexc('#b83a10'), width=S * 2)
+    return big.resize((s, s), Image.LANCZOS)
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    far = far_layer(); save(far, 'far.webp')
-    mid = mid_layer(); save(mid, 'mid.webp')
-    near = near_layer(); save(near, 'near.webp')
-    front = front_layer(); save(front, 'front.webp')
-    rays = rays_layer(); save(rays, 'rays.webp', 80)
-    snow = snow_tile(); save(snow, 't-snow.webp')
-    save(steam_sprite(), 's-steam.webp'); save(radial(420, '#ffd88a'), 's-lampGlow.webp'); save(radial(900, '#8fb0ff', 0.5, 0.42), 's-screenGlow.webp')
-    save(fairy_sprite(), 's-fairy.webp'); save(tail_sprite(), 's-tail.webp'); save(leaf_sprite(), 's-leaf.webp'); save(cursor_sprite(), 's-cursor.webp')
-    flat = far.convert('RGBA')
-    sn = Image.new('RGBA', (W, H));
-    for xx in range(WX0, WX1, 768):
-        for yv in range(WY0, WY1, 768): sn.alpha_composite(snow, (xx, yv))
-    sn = sn.crop((WX0, WY0, WX1, WY1)); flat.alpha_composite(sn, (WX0, WY0))
-    for l in (mid, near, front, rays): flat.alpha_composite(l)
-    p = os.path.join(ROOT, 'wallpapers/cozy-room.webp'); flat.convert('RGB').save(p, 'WEBP', quality=88, method=6); print('flat', os.path.getsize(p) // 1024, 'KB')
-    flat.convert('RGB').resize((480, 270), Image.LANCZOS).save(os.path.join(ROOT, 'wallpapers/thumbs/cozy-room.webp'), 'WEBP', quality=82, method=6)
+    for f in os.listdir(OUT): os.remove(os.path.join(OUT, f))          # the first design's files are replaced wholesale
+    far = far_layer(); save(far, 'far.webp', 93)
+    mid = mid_layer(); save(mid, 'mid.webp', 93)
+    front = front_layer(far); save(front, 'front.webp', 93)
+    tile = leaves_tile(); save(tile, 't-leaves.webp')
+    for i, nm in enumerate('ABC'): save(clump(70 + i), f's-clump{nm}.webp')
+    save(flame(), 's-flame.webp'); save(radial(520, '#ffb04a', 0.45, 0.7), 's-candleGlow.webp'); save(beam(), 's-beam.webp'); save(steam(), 's-steam.webp'); save(leaf_pop(), 's-leafPop.webp')
+    flat = far.convert('RGBA'); flat.alpha_composite(mid)
+    flat.alpha_composite(front); flat.alpha_composite(radial(520, '#ffb04a', 0.45, 0.7), (1960 - 260, 1190 - 260)); fl = flame().resize((36, 72)); flat.alpha_composite(fl, (1960 - 18, 1300 - 102 - 66))
+    p = os.path.join(ROOT, 'wallpapers/cozy-room.webp'); flat.convert('RGB').save(p, 'WEBP', quality=92, method=6); print('flat', os.path.getsize(p) // 1024, 'KB')
+    flat.convert('RGB').resize((480, 270), Image.LANCZOS).save(os.path.join(ROOT, 'wallpapers/thumbs/cozy-room.webp'), 'WEBP', quality=84, method=6)
 
 if __name__ == '__main__':
     main()
