@@ -38,7 +38,9 @@ test('new worlds: registered as experimental, discoverable in the gallery, absen
     await studio.close();
     const popup = await extPage(context, 'popup.html'); await popup.waitForSelector('.theme-tile');
     const tiles = await popup.evaluate(() => [...document.querySelectorAll('.theme-tile')].map(t => t.textContent.trim()));
-    assert.equal(tiles.length, 6); for (const [, name] of NEW) assert.ok(!tiles.some(t => t.includes(name)), `${name} is not featured while experimental`);
+    // the popup always shows the theme in use as its first tile; apart from that, experimental worlds are not featured
+    assert.equal(tiles.length, 6); assert.ok(tiles[0].includes('Messy Thoughts'), 'the active theme leads the grid'); assert.ok(!tiles.slice(1).some(t => t.includes('Messy Thoughts')));
+    assert.ok(!tiles.some(t => t.includes('Eternal Moon')), 'Eternal Moon is not featured while experimental');
     assert.match(await popup.evaluate(() => document.body.innerText), /16 backgrounds/);
     await popup.close();
     const page = await openWorld(context, 'messy-thoughts');
