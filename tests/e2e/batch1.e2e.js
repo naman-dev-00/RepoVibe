@@ -28,7 +28,7 @@ test('new worlds: registered as experimental, discoverable in the gallery, absen
       assert.match(await card.locator('.art-image').getAttribute('src'), new RegExp(`${slug}\\.webp`));
       assert.equal(await card.locator('.live-badge').count(), 1, `${name} is marked as a live world`);
     }
-    await studio.fill('#gallerySearch', 'moon');
+    await studio.fill('#gallerySearch', 'eternal');
     assert.deepEqual(await studio.evaluate(() => [...document.querySelectorAll('.gallery-card strong')].map(s => s.firstChild.textContent)), ['Eternal Moon']);
     await studio.fill('#gallerySearch', '');
     await studio.locator('.gallery-card', { hasText: 'Messy Thoughts' }).locator('button', { hasText: 'Apply' }).click();

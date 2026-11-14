@@ -80,7 +80,7 @@ def main():
     elif cw < 3840: notes.append(f'size: fine for 2560×1440; a 3840×2160 screen will upscale it {3840 / cw:.2f}× (supply ≥ 3840 wide to avoid that)')
     if mp.lower().endswith(('.jpg', '.jpeg')): notes.append('master is a JPEG: its compression artefacts are baked in; prefer PNG or lossless WebP')
     surv, energy = detail_survival(master.crop(box))
-    notes.append(f'real detail: {surv:.2f} of edge energy survives a 2× down/up resample (edge energy {energy:.1f}); enlarged images score > 0.93')
+    notes.append(f'real detail: {surv:.2f} of edge energy survives a 2× down/up resample (edge energy {energy:.1f}); enlarged images score > 0.9')
     if 0.72 < surv <= 0.9: notes.append("real detail: softer than native art usually is — possibly enlarged by up to ~1.5×, or simply a soft painting; judge by eye at 100 %")
     if surv > 0.9: (notes if 'detail' in allow else problems).append('real detail: this looks enlarged from a smaller image — its pixel size overstates its detail')
     layers = {l: find(src, l) for l in LAYERS}; layers = {l: p for l, p in layers.items() if p}

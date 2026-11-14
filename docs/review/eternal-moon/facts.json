@@ -11,9 +11,9 @@
  "motion": {
   "secondsBetweenFrames": 3,
   "changedPct": [
-   26.74,
-   23.56,
-   11.6
+   20.61,
+   24.2,
+   10.31
   ],
   "threshold": "a pixel counts when its R+G+B differs by more than 18 of 765 (JPEG noise is below that)"
  },
