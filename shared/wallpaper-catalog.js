@@ -804,23 +804,21 @@
       "style": "3d",
       "tone": [
         "#f1f6ff",
-        "#020202"
+        "#010101"
       ],
       "toneSoft": [
-        "#9ea1a9",
+        "#9b9ea6",
         "#020202"
       ],
       "depth": [
         "far",
         "mid",
         "near",
-        "front",
-        "rays"
+        "front"
       ],
       "depth2k": true,
       "sprites": [
         "glitter",
-        "halo",
         "sparkle"
       ]
     }

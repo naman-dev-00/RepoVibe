@@ -410,12 +410,12 @@ test('nothing is approved without the owner: every built-in theme starts experim
   // the shipped lists hold exactly the owner's decisions (2026-11-11, round 3 on 2026-11-12)
   const ctx = vm.createContext({}); vm.runInContext(shipped, ctx);
   assert.deepEqual(JSON.parse(JSON.stringify(ctx.RepoVibeThemeReview)), { 'preset-8': 'approved', 'preset-19': 'approved', 'preset-15': 'approved', 'preset-10': 'approved', 'preset-12': 'approved', 'preset-20': 'archived', 'preset-7': 'approved', 'preset-3': 'archived', 'preset-14': 'archived',
-    'preset-16': 'approved', 'preset-9': 'approved', 'preset-11': 'approved', 'preset-1': 'approved', 'preset-2': 'archived', 'preset-13': 'archived', 'preset-18': 'archived', 'preset-5': 'approved', 'preset-6': 'approved' });
+    'preset-16': 'approved', 'preset-9': 'approved', 'preset-11': 'approved', 'preset-1': 'approved', 'preset-2': 'archived', 'preset-13': 'archived', 'preset-18': 'archived', 'preset-5': 'approved', 'preset-6': 'approved', 'preset-17': 'approved', 'preset-21': 'approved' });
   assert.deepEqual(Object.keys(ctx.RepoVibeWallpaperReview).sort(), ['alien-world', 'dark-library', 'galaxy-planet', 'lavender-fantasy', 'midnight-skyline', 'neon-rain-street', 'pixel-island', 'sakura-garden', 'sunset-coast', 'synthwave-grid', 'synthwave-highway']);
   const S = coreWithReview(ctx.RepoVibeThemeReview), scol = S.themeCollection(S.normalizeConfig({}));
-  assert.deepEqual(JSON.parse(JSON.stringify(scol.approved.map(t => t.name))), ['Cyberpunk Neon', 'Matrix', 'Dracula', 'Ocean Depths', 'Enchanted Forest', 'Retro Terminal', 'Pixel Paradise', 'Solar Flare', 'Arctic Frost', 'Futuristic Sci-Fi', 'Obsidian', 'Cosmic Galaxy']);
+  assert.deepEqual(JSON.parse(JSON.stringify(scol.approved.map(t => t.name))), ['Cyberpunk Neon', 'Matrix', 'Dracula', 'Ocean Depths', 'Enchanted Forest', 'Retro Terminal', 'Pixel Paradise', 'Solar Flare', 'Arctic Frost', 'Futuristic Sci-Fi', 'Obsidian', 'Aurora', 'Cosmic Galaxy', 'Messy Thoughts']);
   assert.deepEqual(JSON.parse(JSON.stringify(scol.archived.map(t => t.name))), ['Midnight Developer', 'Sakura Dreams', 'Lavender Nights', 'Dark Academia', 'Sunset Boulevard', 'Synthwave']);
-  assert.deepEqual(JSON.parse(JSON.stringify(scol.experimental.map(t => t.name))), ['Cozy Coding', 'Aurora', 'Messy Thoughts', 'Eternal Moon'], 'the two redesign targets and the new worlds await approval');
+  assert.deepEqual(JSON.parse(JSON.stringify(scol.experimental.map(t => t.name))), ['Cozy Coding', 'Eternal Moon'], 'the two themes that need more work await approval');
   // archived assignments still resolve (nothing destroyed)
   const keep = S.normalizeConfig({ repoAssignments: { 'a/s': 'preset-3', 'a/m': 'preset-2' }, ownerAssignments: { o: 'preset-14', l: 'preset-13' }, defaultThemeId: 'preset-18' });
   assert.equal(S.themeResolution(keep, 'https://github.com/a/s').id, 'preset-3'); assert.equal(S.themeResolution(keep, 'https://github.com/o/x').id, 'preset-14');
@@ -474,8 +474,9 @@ test('new built-in worlds never change what an existing repository resolves to: 
     for (let k = 0; k < 20 && !want; k++) { const cand = `preset-${(start + k) % 20 + 1}`; if (C.themeStatus(cand) !== 'archived') want = cand; }
     assert.equal(id, want, `${key}: automatic pick unchanged by the new presets`);
   }
-  for (const id of ['preset-21', 'preset-22']) { assert.equal(C.themeStatus(id), 'experimental', `${id} is experimental until the owner approves it`); assert.ok(C.PRESETS.find(t => t.id === id).world); }
-  assert.ok(!C.featuredThemes().some(t => ['preset-21', 'preset-22'].includes(t.id)), 'experimental worlds are not in the popup quick grid');
+  // (review status of the new worlds is asserted against the shipped shared/theme-review.js in the curation test above)
+  for (const id of ['preset-21', 'preset-22']) assert.ok(C.PRESETS.find(t => t.id === id).world);
+  assert.ok(!C.featuredThemes().some(t => t.id === 'preset-22'), 'an experimental world is not in the popup quick grid');
   // explicit assignments of the new worlds persist and resolve
   const keep = C.normalizeConfig({ repoAssignments: { 'a/b': 'preset-21' }, ownerAssignments: { o: 'preset-22' } });
   assert.equal(C.themeResolution(keep, 'https://github.com/a/b').id, 'preset-21'); assert.equal(C.themeResolution(keep, 'https://github.com/o/x').id, 'preset-22');

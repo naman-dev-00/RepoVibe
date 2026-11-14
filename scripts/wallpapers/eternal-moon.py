@@ -61,7 +61,11 @@ def far_layer():
     y = np.linspace(0, 1, H, dtype=np.float32)[:, None]; x = np.linspace(0, 1, W, dtype=np.float32)[None, :]
     mx, my, mr = MOON; dist = np.sqrt((x * W - mx) ** 2 + (y * H - my) ** 2)
     g = 5 + 16 * np.clip(y / 0.8, 0, 1) ** 1.6 + np.zeros((H, W), np.float32)
-    g += 74 * np.exp(-(dist / (mr * 1.55)) ** 2) + 30 * np.exp(-(dist / (mr * 3.2)) ** 2)              # halo
+    # moonlight in the air: brightest at the limb and falling away smoothly (no ring, no second disc); everything that glows is in this
+    # layer, behind the trees, so the forest stays a clean silhouette
+    out = np.clip(dist - mr, 0, None) / mr
+    g += 58 * np.exp(-out / 0.2) + 22 * np.exp(-out / 0.85) + 9 * np.exp(-(dist / (mr * 3.4)) ** 2)
+    g += 20 * np.exp(-((y - 0.72) / 0.13) ** 2)                                                        # pale air low over the forest: separates the tree line from the sky
     n = np.tile(fft_noise(1920, 1080, 2.2, 21), (2, 2)); g *= 0.9 + 0.2 * n                             # faint sky structure
     stars = Image.new('L', (W, H), 0); d = ImageDraw.Draw(stars); r = np.random.default_rng(17)
     for _ in range(4200):
@@ -71,7 +75,7 @@ def far_layer():
         d.ellipse([sx - rad, sy - rad, sx + rad, sy + rad], fill=v)
         if b > 0.975: ln = 10 + b * 14; d.line([(sx - ln, sy), (sx + ln, sy)], fill=170, width=1); d.line([(sx, sy - ln), (sx, sy + ln)], fill=170, width=1)
     sa = np.asarray(stars, np.float32); sb = np.asarray(stars.filter(ImageFilter.GaussianBlur(4)), np.float32)
-    fade = np.clip((dist - mr * 1.1) / (mr * 0.9), 0.25, 1)                                             # the halo washes out the faintest stars near the moon
+    fade = np.clip((dist - mr * 1.06) / (mr * 0.7), 0.3, 1)                                             # the halo washes out the faintest stars near the moon
     g = g + (sa + sb * 0.9) * fade
     disc, a, n_ = moon_disc(); x0, y0 = int(mx - n_ / 2), int(my - n_ / 2)
     g[y0:y0 + n_, x0:x0 + n_] = g[y0:y0 + n_, x0:x0 + n_] * (1 - a) + disc * a
@@ -127,7 +131,7 @@ def mid_layer():
     y = np.linspace(0, 1, H, dtype=np.float32)[:, None]
     m1 = tree_mask(31, 0.735 * H, 150, 0.14 * H, 0.26 * H, True)
     fogv = np.clip((y - 0.6) / 0.14, 0, 1) ** 1.3                                    # trunks dissolve into fog
-    g1 = 34 + 44 * fogv + np.zeros((H, W), np.float32)
+    g1 = 30 + 34 * fogv + np.zeros((H, W), np.float32)
     m2 = tree_mask(32, 0.755 * H, 95, 0.2 * H, 0.36 * H, True, avoid=(0.46, 0.66, 0.5))   # thinner under the moon, so the disc reads
     g2 = 16 + 30 * np.clip((y - 0.64) / 0.12, 0, 1) ** 1.4 + np.zeros((H, W), np.float32)
     g = g1 * (1 - m2) + g2 * m2; a = np.maximum(m1, m2) * 255
@@ -163,7 +167,7 @@ def near_layer(far_img, mid_img):
     out = np.asarray(trees, np.float32).copy()
     out[SHORE:, :, :3] = grey_rgb(water); out[SHORE:, :, 3] = 255
     # a thin bright fog line where water meets the bank
-    line = np.exp(-((np.arange(H, dtype=np.float32)[:, None] - SHORE) / 7) ** 2) * 60
+    line = np.exp(-((np.arange(H, dtype=np.float32)[:, None] - SHORE) / 5) ** 2) * 34
     out[..., :3] = np.clip(out[..., :3] + line[..., None] * (out[..., 3:4] > 0), 0, 255)
     return Image.fromarray(out.astype(np.uint8), 'RGBA')
 
@@ -192,8 +196,14 @@ def rays_layer():
     return rgba(np.full((H, W), 236, np.float32), a)
 
 # ---------------------------------------------------------------- moving planes
-def fog_tile(seed, w, h, thr, gain, peak, beta=2.3, grey=206):
-    n = fft_noise(w, h, beta, seed); y = np.linspace(0, 1, h, dtype=np.float32)[:, None]
+def wisp_noise(w, h, beta, seed, stretch):
+    """periodic noise elongated horizontally: mist lies in thin layers, it does not billow"""
+    r = np.random.default_rng(seed); fy = np.fft.fftfreq(h)[:, None] * stretch; fx = np.fft.fftfreq(w)[None, :]
+    f = np.sqrt(fx ** 2 + fy ** 2); f[0, 0] = 1
+    spec = (r.normal(size=(h, w)) + 1j * r.normal(size=(h, w))) / f ** beta; spec[0, 0] = 0
+    n = np.fft.ifft2(spec).real; return ((n - n.min()) / (n.max() - n.min())).astype(np.float32)
+def fog_tile(seed, w, h, thr, gain, peak, beta=2.3, grey=206, stretch=5.0):
+    n = wisp_noise(w, h, beta, seed, stretch); y = np.linspace(0, 1, h, dtype=np.float32)[:, None]
     den = np.clip((n - thr) * gain, 0, 1) * np.clip(np.sin(y * math.pi), 0, 1) ** 0.7
     return rgba(np.full((h, w), grey, np.float32), den * peak)
 def band_mask(y0, y1, y2, y3):
@@ -222,14 +232,12 @@ def main():
     front = front_layer(); save(front, 'front.webp', 93)
     for nm, im in (('far', far), ('mid', mid), ('near', near), ('front', front)):   # 2560-wide variants for screens that cannot show more (same art, Lanczos)
         save(im.resize((2560, 1440), Image.LANCZOS), f'{nm}.2k.webp', 92)
-    rays = rays_layer(); save(rays, 'rays.webp', 80)
-    save(rays.resize((2560, 1440), Image.LANCZOS), 'rays.2k.webp', 80)
-    cloud = fog_tile(71, 2048, 1024, 0.5, 3.4, 78, 2.0, 222); save(cloud, 't-cloud.webp', 80)
-    fa = fog_tile(72, 2048, 512, 0.36, 2.8, 170); fb = fog_tile(73, 2048, 512, 0.36, 3.2, 215, 2.1, 200); fc = fog_tile(74, 2048, 512, 0.4, 3.0, 140, 2.2, 214)
+    cloud = fog_tile(71, 2048, 1024, 0.52, 3.0, 46, 2.1, 214, 3.0); save(cloud, 't-cloud.webp', 80)
+    fa = fog_tile(72, 2048, 512, 0.4, 2.4, 120, 2.2, 196); fb = fog_tile(73, 2048, 512, 0.42, 2.6, 128, 2.1, 176); fc = fog_tile(74, 2048, 512, 0.46, 2.6, 84, 2.2, 190)
     save(fa, 't-fogA.webp', 80); save(fb, 't-fogB.webp', 80); save(fc, 't-fogC.webp', 80)
-    save(band_mask(0.02, 0.2, 0.52, 0.66), 't-mask-sky.webp'); save(band_mask(0.5, 0.62, 0.72, 0.8), 't-mask-far.webp')
-    save(band_mask(0.58, 0.68, 0.76, 0.82), 't-mask-mid.webp'); save(band_mask(0.7, 0.78, 0.9, 1.0), 't-mask-water.webp')
-    save(sparkle(), 's-sparkle.webp'); save(halo(), 's-halo.webp'); save(glitter(), 's-glitter.webp')
+    save(band_mask(0.02, 0.2, 0.5, 0.64), 't-mask-sky.webp'); save(band_mask(0.56, 0.66, 0.74, 0.79), 't-mask-far.webp')
+    save(band_mask(0.64, 0.71, 0.77, 0.8), 't-mask-mid.webp'); save(band_mask(0.76, 0.79, 0.84, 0.92), 't-mask-water.webp')
+    save(sparkle(), 's-sparkle.webp'); save(glitter(), 's-glitter.webp')
     flat = far.convert('RGBA')
     def band(tile, mask, rel):
         tw = int(W * rel); th = int(tw * tile.height / tile.width); t = tile.resize((tw, th), Image.BILINEAR); pl = Image.new('RGBA', (W, H), (0, 0, 0, 0))
@@ -239,7 +247,7 @@ def main():
         return Image.fromarray(arr.astype(np.uint8), 'RGBA')
     masks = {k: Image.open(os.path.join(OUT, f't-mask-{k}.webp')) for k in ('sky', 'far', 'mid', 'water')}
     flat.alpha_composite(band(cloud, masks['sky'], 0.9)); flat.alpha_composite(band(fa, masks['far'], 1.0)); flat.alpha_composite(mid)
-    flat.alpha_composite(band(fb, masks['mid'], 1.0)); flat.alpha_composite(near); flat.alpha_composite(rays); flat.alpha_composite(front)
+    flat.alpha_composite(band(fb, masks['mid'], 1.0)); flat.alpha_composite(near); flat.alpha_composite(band(fc, masks['water'], 1.3)); flat.alpha_composite(front)
     p = os.path.join(ROOT, 'wallpapers/eternal-moon.webp'); flat.convert('RGB').save(p, 'WEBP', quality=92, method=6); print('flat', os.path.getsize(p) // 1024, 'KB')
     flat.convert('RGB').resize((480, 270), Image.LANCZOS).save(os.path.join(ROOT, 'wallpapers/thumbs/eternal-moon.webp'), 'WEBP', quality=84, method=6)
 

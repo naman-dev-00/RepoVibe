@@ -8,7 +8,7 @@
      static.jpg                            Static mode (nothing moves): the complete, sharp scene
      facts.json                            numbers: natural asset sizes vs displayed size (upscale factor), animations running, text contrast
    Real github.com page replay when the local snapshot exists, otherwise the offline fixture (facts.json says which).
-   node scripts/world-review.js [name ...]      names: messy-thoughts eternal-moon aurora */
+   node scripts/world-review.js [name ...]      names: messy-thoughts eternal-moon aurora cozy-coding */
 const fs = require('node:fs'), path = require('node:path');
 const { launch, extPage, setConfig, visualContrast } = require('../tests/e2e/helpers');
 const R = require('../tests/e2e/real-snapshot');
@@ -16,6 +16,7 @@ const ROOT = path.join(__dirname, '..');
 const WORLDS = {
   'messy-thoughts': { id: 'preset-21', gap: 2500, crops: [[1440, 300, 'the tangle: individual strokes'], [1240, 1000, 'figure linework: collar and drawstrings']] },
   'eternal-moon': { id: 'preset-22', gap: 3000, crops: [[1700, 350, 'moon surface: maria and craters'], [900, 760, 'spruce silhouettes: boughs and needle hems'], [1500, 1500, 'fog, shoreline and the lake mirror']] },
+  'cozy-coding': { id: 'preset-4', gap: 2500, crops: [[1500, 200, 'the window: maple foliage against the light'], [200, 300, 'wall: map, frames, plaster'], [1500, 1350, 'desk: reflections, lantern, papers']] },
   aurora: { id: 'preset-17', gap: 2000, crops: [[200, 150, 'the great massif: snow streaks and rim light'], [1500, 420, 'sky: stars and aurora'], [1500, 1250, 'ice lake: cracks and glow']] }
 };
 const SNAP = R.available().includes('actions-checkout-code') ? 'actions-checkout-code' : null;

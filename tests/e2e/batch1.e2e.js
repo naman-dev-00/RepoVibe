@@ -13,15 +13,17 @@ const openWorld = async (context, slug, w = 1600, h = 900) => {
   await page.waitForSelector(`#repovibe-depth[data-scene="${slug}"][data-world] .repv-l[data-l="far"]`, { state: 'attached' }); await page.waitForTimeout(700); return page;
 };
 
-test('new worlds: registered as experimental, discoverable in the gallery, absent from the popup quick grid; Apply persists and survives a reload', async () => {
+test('new worlds: registered with the owner\'s review status, discoverable in the gallery, absent from the popup quick grid; Apply persists and survives a reload', async () => {
   const { context, errors, close } = await launch({ colorScheme: 'dark' });
   try {
     context.setDefaultTimeout(30000);
     await setConfig(context, { enabled: true, defaultThemeId: 'preset-8', motionMode: 'ambient', repoAssignments: { 'acme/other': 'preset-11' } });
     const studio = await extPage(context, 'studio.html?view=gallery#gallery'); await studio.setViewportSize({ width: 1400, height: 1000 }); await studio.waitForSelector('.gallery-card');
     const groups = await studio.evaluate(() => Object.fromEntries([...document.querySelectorAll('.gallery-group')].map(g => [g.dataset.group, [...g.querySelectorAll('.gallery-card strong')].map(s => s.firstChild.textContent)])));
-    for (const [, name] of NEW) { assert.ok(groups.experimental.includes(name), `${name} is in the Experimental section`); assert.ok(!groups.approved.includes(name), `${name} is not approved`); }
-    assert.equal(groups.approved.length, 12, 'the twelve approved themes are unchanged');
+    // owner's review 2026-11-14: Messy Thoughts approved, Eternal Moon still experimental
+    assert.ok(groups.approved.includes('Messy Thoughts') && !groups.experimental.includes('Messy Thoughts'));
+    assert.ok(groups.experimental.includes('Eternal Moon') && !groups.approved.includes('Eternal Moon'), 'Eternal Moon is not approved');
+    assert.equal(groups.approved.length, 14);
     for (const [, name, slug] of NEW) {
       const card = studio.locator('.gallery-card', { hasText: name });
       assert.ok(await card.locator('.art-image').evaluate(i => i.decode().then(() => i.naturalWidth > 0)), `${name} preview loads`);
@@ -111,7 +113,8 @@ test('Eternal Moon: 4K layers load, the moon and trees never move, cloud and thr
         tiles: layers.filter(l => l.hasAttribute('data-tw')).map(l => ({ l: l.dataset.l, sx: l.firstElementChild.style.getPropertyValue('--sx'), sy: l.firstElementChild.style.getPropertyValue('--sy2'), masked: !!l.style.maskImage, clipped: !!l.style.clipPath, run: l.firstElementChild.getAnimations().some(a => a.animationName === 'repv-tile' && a.playState === 'running') })),
         sprites: [...document.querySelectorAll('#repovibe-depth .repv-s')].map(s => s.dataset.sprite), broken: [...document.querySelectorAll('#repovibe-depth img')].filter(i => i.complete && !i.naturalWidth).length };
     });
-    for (const l of ['far', 'mid', 'near', 'front', 'rays']) assert.ok(info.order.includes(l), `layer ${l}`);
+    for (const l of ['far', 'mid', 'near', 'front']) assert.ok(info.order.includes(l), `layer ${l}`);
+    assert.ok(!info.order.includes('rays'), 'no glow layer in front of the forest: all moonlight is painted behind the trees');
     // asset tier: a 1600-wide window on a screen that cannot show more than 2560 px gets the 2560-wide layers; growing past that swaps in the 4K masters
     const tier = await page.evaluate(() => Math.max(innerWidth, innerHeight * 16 / 9, screen.width || 0) * devicePixelRatio > 2560 ? [3840, 2160] : [2560, 1440]);
     for (const [l, w, h] of info.sizes) assert.deepEqual([w, h], tier, `${l} uses the ${tier[0]}-wide asset on this screen`);
@@ -124,7 +127,7 @@ test('Eternal Moon: 4K layers load, the moon and trees never move, cloud and thr
     assert.deepEqual(info.tiles.map(t => t.l).sort(), ['mist', 'pfar', 'pmid', 'pnear']);
     for (const t of info.tiles) { assert.equal(t.sy, '0', `${t.l} drifts sideways only`); assert.ok(['1', '-1'].includes(t.sx)); assert.ok(t.masked && t.clipped, `${t.l} confined to its band`); assert.ok(t.run, `${t.l} runs`); }
     assert.ok(new Set(info.tiles.map(t => t.sx)).size === 2, 'fog planes move in opposite directions');
-    assert.ok(info.sprites.includes('halo') && info.sprites.filter(n => /^star\d/.test(n)).length === 9 && !info.sprites.some(n => /moon/i.test(n)), `sprites: ${info.sprites}`);
+    assert.ok(!info.sprites.includes('halo') && info.sprites.filter(n => /^star\d/.test(n)).length === 9 && !info.sprites.some(n => /moon/i.test(n)), `sprites: ${info.sprites}`);
     assert.equal(info.broken, 0, 'every image loads');
     const tx = () => page.evaluate(() => new DOMMatrix(getComputedStyle(document.querySelector('#repovibe-depth > [data-l="pmid"] > i')).transform).m41);
     const x0 = await tx(); await page.waitForTimeout(700); const x1 = await tx(); assert.notEqual(x0, x1, `fog between the tree ranks moved (${x0} → ${x1})`);

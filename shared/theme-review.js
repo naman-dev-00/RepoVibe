@@ -27,8 +27,11 @@ globalThis.RepoVibeThemeReview = {
   'preset-18': 'archived', // Sunset Boulevard — removed from the collection; existing assignments keep working
   // 2026-11-13, owner's review (round 6): the rebuilt worlds
   'preset-5': 'approved',  // Matrix
-  'preset-6': 'approved'   // Dracula
-  // Still experimental (full redesign from the owner's reference images, then re-review): Aurora, Cozy Coding.
+  'preset-6': 'approved',  // Dracula
+  // 2026-11-14, owner's review (round 7)
+  'preset-17': 'approved', // Aurora (frozen fjord redesign)
+  'preset-21': 'approved'  // Messy Thoughts
+  // Still experimental (needs more work, then re-review): Eternal Moon, Cozy Coding.
 };
 /* Background (wallpaper) curation, same rules: 'archived' hides a background from the Studio's picker; any theme that already uses it keeps it. */
 globalThis.RepoVibeWallpaperReview = {

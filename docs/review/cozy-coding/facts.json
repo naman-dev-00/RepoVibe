@@ -1,0 +1,76 @@
+{
+ "source": "real github.com page replay (actions-checkout-code, logged out)",
+ "preset": "preset-4",
+ "running": [
+  "prc-UnderlineNav-detect-overflow-6HuSH",
+  "repv-breathe",
+  "repv-drift",
+  "repv-flick",
+  "repv-flutter",
+  "repv-glow",
+  "repv-gust-r",
+  "repv-tile",
+  "repv-tile-gust"
+ ],
+ "motion": {
+  "secondsBetweenFrames": 2.5,
+  "changedPct": [
+   2.56,
+   8.09,
+   2.07
+  ],
+  "threshold": "a pixel counts when its R+G+B differs by more than 18 of 765 (JPEG noise is below that)"
+ },
+ "detail": [
+  {
+   "file": "detail-1.jpg",
+   "label": "the window: maple foliage against the light",
+   "region": "1500,200 1000×640 of 3840×2160, no resampling"
+  },
+  {
+   "file": "detail-2.jpg",
+   "label": "wall: map, frames, plaster",
+   "region": "200,300 1000×640 of 3840×2160, no resampling"
+  },
+  {
+   "file": "detail-3.jpg",
+   "label": "desk: reflections, lantern, papers",
+   "region": "1500,1350 1000×640 of 3840×2160, no resampling"
+  }
+ ],
+ "assets": [
+  {
+   "layer": "far",
+   "natural": "2560×1440",
+   "upscaleAt3840": 1.5
+  },
+  {
+   "layer": "mid",
+   "natural": "2560×1440",
+   "upscaleAt3840": 1.5
+  },
+  {
+   "layer": "near",
+   "natural": "2560×1440",
+   "upscaleAt3840": 1.5
+  },
+  {
+   "layer": "rays",
+   "natural": "2560×1440",
+   "upscaleAt3840": 1.5
+  },
+  {
+   "layer": "front",
+   "natural": "2560×1440",
+   "upscaleAt3840": 1.5
+  }
+ ],
+ "vectorStrokes": 0,
+ "staticAnimations": 0,
+ "contrast": {
+  "min": 4.75,
+  "aaFailures": 0,
+  "summary": ""
+ },
+ "extensionErrors": 0
+}

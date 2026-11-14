@@ -224,8 +224,9 @@
     ]
   };
 
-  /* ---- Eternal Moon: a monochrome moonlit forest. The moon never moves. Thin cloud drifts across the sky around it, three fog planes slide at
-     different speeds between the tree ranks and over the lake, a few stars twinkle, the halo and the moonlight in the fog breathe slowly.
+  /* ---- Eternal Moon: a monochrome moonlit forest. The moon never moves. Thin cloud wisps cross the sky around it, three layered mist planes slide at
+     different speeds behind the far trees, between the tree ranks and on the lake, a few stars twinkle. All moonlight is painted behind the trees:
+     nothing glows in front of the forest (the earlier halo ring and bloom did, and read as a second disc — removed).
      Painted at 3840 × 2160 by scripts/wallpapers/eternal-moon.py (original). */
   W['eternal-moon'] = {
     tiles: [
@@ -235,10 +236,10 @@
       { plane: 'pnear', image: 't-fogC', mask: 't-mask-water', region: [0, 0.68, 1, 1], rel: 1.3, w: 2048, h: 512, sx: 1, sy: 0, t: 46 }     // low fog over the lake
     ],
     sprites: [
-      { n: 'halo', plane: 'scene', k: 0.46, x: 56, y: 38.5, w: 62, dx: 0, dy: 0, rot: 0, dur: 9, fx: 'pulse', gl: 8.5, z: 1 },
       { n: 'glitter', plane: 'scene', k: 0.86, x: 56, y: 87, w: 22, dx: 14, dy: 0, rot: 0, dur: 6, fx: 'pulse', gl: 2.4, z: 2 },
       { n: 'glitterB', src: 'glitter', plane: 'scene', k: 0.86, x: 56, y: 90, w: 30, dx: -18, dy: 0, rot: 0, dur: 8, fx: 'pulse', gl: 3.3, z: 2, flip: 1, op: 0.7 },
-      ...[[7, 8, 1.5, 2.2], [19, 16, 1.1, 3.1], [31, 5, 1.7, 1.8], [38, 22, 1.0, 2.7], [78, 7, 1.6, 2.0], [88, 17, 1.2, 3.4], [95, 6, 1.4, 2.5], [12, 27, 1.0, 1.6], [83, 28, 1.1, 2.9]]
+      // twinkles sit in open sky only (clear of the moon and of every tree top), because sprites draw in front of the tree layers
+      ...[[16, 7, 1.4, 2.2], [24, 14, 1.0, 3.1], [31, 5, 1.6, 1.8], [36, 17, 0.9, 2.7], [78, 6, 1.5, 2.0], [84, 13, 1.1, 3.4], [44, 4, 1.2, 2.5], [20, 3, 0.9, 1.6], [70, 3, 1.0, 2.9]]
         .map(([x, y, w, gl], i) => ({ n: `star${i + 1}`, src: 'sparkle', plane: 'scene', k: 0.46, x, y, w, dx: 0, dy: 0, rot: 0, dur: 8, fx: 'pulse', gl, z: 1 }))
     ]
   };
