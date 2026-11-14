@@ -76,7 +76,10 @@ const STYLES = ['3d', 'illustrated', 'photo'];
       info.tone = [hex(hi.map((v, i) => Math.max(v, comp[0][i]))), hex(lo.map((v, i) => Math.min(v, comp[1][i])))];
     }
     const sprites = fs.existsSync(depthDir) ? fs.readdirSync(depthDir).filter(f => /^s-[A-Za-z0-9]+\.webp$/.test(f)).map(f => f.slice(2, -5)).sort() : [];
-    out.push({ slug: w.slug, name: w.name, category: w.category, style: w.style, tone: info.tone, toneSoft: info.toneSoft, ...(depth.length ? { depth } : {}), ...(sprites.length ? { sprites } : {}) });
+    // optional 2560-wide variants of the depth layers (<layer>.2k.webp) for worlds whose masters are larger: all layers or none
+    const has2k = depth.length > 0 && depth.every(l => fs.existsSync(path.join(depthDir, `${l}.2k.webp`)));
+    if (!has2k && depth.some(l => fs.existsSync(path.join(depthDir, `${l}.2k.webp`)))) problems.push(`${w.slug}: .2k.webp variants must exist for every depth layer or for none`);
+    out.push({ slug: w.slug, name: w.name, category: w.category, style: w.style, tone: info.tone, toneSoft: info.toneSoft, ...(depth.length ? { depth } : {}), ...(has2k ? { depth2k: true } : {}), ...(sprites.length ? { sprites } : {}) });
   }
   await browser.close();
   if (problems.length) { console.error(`Wallpaper catalog FAILED:\n - ${problems.join('\n - ')}`); process.exit(1); }

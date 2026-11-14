@@ -41,7 +41,8 @@
   const WORST_CASE_TONE = ['#ffffff', '#000000']; // unknown (uploaded) images
   const WALLPAPERS = CATALOG.map(w => ({ slug: w.slug, name: w.name, category: w.category, style: w.style,
     ref: `builtin:${w.slug}`, path: `wallpapers/${w.slug}.webp`, thumb: `wallpapers/thumbs/${w.slug}.webp`, tone: w.tone, toneSoft: w.toneSoft || w.tone,
-    depth: (w.depth || []).map(l => ({ layer: l, path: `wallpapers/depth/${w.slug}/${l}.webp` })) }));
+    // `small`: a 2560-wide variant of the same layer, served when the screen cannot show more than that (see content.js depthData)
+    depth: (w.depth || []).map(l => ({ layer: l, path: `wallpapers/depth/${w.slug}/${l}.webp`, ...(w.depth2k ? { small: `wallpapers/depth/${w.slug}/${l}.2k.webp` } : {}) })) }));
   const WALLPAPER_TONES = Object.fromEntries(WALLPAPERS.map(w => [w.slug, w.tone]));
   const WALLPAPER_TONES_SOFT = Object.fromEntries(WALLPAPERS.map(w => [w.slug, w.toneSoft]));
   // Preset N → wallpaper. 3D cinematic renders where available; the rest use the illustrated (2D) scenes.

@@ -678,6 +678,10 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
   let popTimer = 0;
   function queuePlacePop() { clearTimeout(popTimer); popTimer = setTimeout(() => requestAnimationFrame(placePop), 150); }
   let depthState = { key: '', listening: false, probing: false, decided: false, autoLite: false, fps: null, decisions: 0 };
+  const sceneTier = () => Math.max(innerWidth, innerHeight * 16 / 9, screen.width || 0) * (devicePixelRatio || 1) > 2560 ? 'full' : '2k';
+  // a window that grows past 2560 device pixels (moved to a 4K monitor, zoomed) gets the full-size layers; it never drops back while open
+  let tierTimer = 0;
+  window.addEventListener('resize', () => { clearTimeout(tierTimer); tierTimer = setTimeout(() => { if (depthState.key && depthState.key.endsWith('|2k') && sceneTier() === 'full') render(); }, 300); }, { passive: true });
   /* No pointer parallax (removed by request): the scene never reacts to the mouse. Depth comes from the layered art,
      the moving objects at different depths and their own autonomous motion. */
   // Hidden tab: pause every depth animation outright (Chrome throttles too, this makes it explicit) and stop the rAF.
@@ -699,7 +703,11 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     const m = /^builtin:([a-z0-9-]+)$/.exec(v.wallpaperRef || '');
     const w = m && C.WALLPAPERS.find(x => x.slug === m[1]);
     if (!w || !w.depth || !w.depth.length) return null;
-    return { slug: w.slug, layers: Object.fromEntries(w.depth.map(d => [d.layer, chrome.runtime.getURL(d.path)])), mode: config.motionMode === 'static' || reducedQuery?.matches ? 'static' : config.motionMode, veil: sceneLayers(v).map(l => l.replace(' fixed', '')).join(', ') };
+    // Asset tier: worlds with 4K masters also ship 2560-wide layers. The full size is used only when this screen can actually show
+    // more than 2560 device pixels across the scene (the scene covers the window: max(width, height × 16/9)); the art is never upscaled
+    // when a sharper variant exists, and a small screen never decodes 4K layers.
+    const tier = sceneTier();
+    return { slug: w.slug, tier, layers: Object.fromEntries(w.depth.map(d => [d.layer, chrome.runtime.getURL(tier === '2k' && d.small ? d.small : d.path)])), mode: config.motionMode === 'static' || reducedQuery?.matches ? 'static' : config.motionMode, veil: sceneLayers(v).map(l => l.replace(' fixed', '')).join(', ') };
   }
   function removeDepth() {
     document.getElementById(DEPTH_ID)?.remove(); document.getElementById(POP_ID)?.remove();
@@ -712,7 +720,7 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
     const root = document.documentElement;
     if (!d) { if (depthState.key || document.getElementById(DEPTH_ID)) removeDepth(); return; }
     const T = tuning();
-    const key = `${d.slug}|${d.mode}|${d.veil}|${T.foreground > 0}`;
+    const key = `${d.slug}|${d.mode}|${d.veil}|${T.foreground > 0}|${d.tier}`;
     let el = document.getElementById(DEPTH_ID);
     if (!el || depthState.key !== key) {
       el?.remove();

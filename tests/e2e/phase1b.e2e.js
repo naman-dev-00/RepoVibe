@@ -338,7 +338,7 @@ test('gallery shows real artwork previews with Apply and Customize; Apply saves 
     await studio.setViewportSize({ width: 1400, height: 1000 });
     await studio.waitForFunction(() => [...document.querySelectorAll('.gallery-card .art-image')].filter(i => i.complete && i.naturalWidth > 0).length >= 8);
     const cards = await studio.evaluate(() => [...document.querySelectorAll('.gallery-card')].map(c => ({ img: !!c.querySelector('.art-image'), apply: !!c.querySelector('.card-actions .primary-button'), customize: !!c.querySelector('.card-actions .outline-button') })));
-    assert.equal(cards.length, 14, '20 built-ins minus the six archived themes'); assert.ok(cards.every(c => c.img && c.apply && c.customize));
+    assert.equal(cards.length, 16, '22 built-ins minus the six archived themes'); assert.ok(cards.every(c => c.img && c.apply && c.customize));
     await studio.evaluate(() => Promise.all([...document.querySelectorAll('.gallery-card .art-image')].map(i => i.decode().catch(() => {}))));
     const broken = await studio.evaluate(() => [...document.querySelectorAll('.gallery-card .art-image')].filter(i => !i.naturalWidth).length);
     assert.equal(broken, 0, 'every gallery artwork loads');

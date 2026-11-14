@@ -92,7 +92,7 @@ def spruce(d, x, base, h, r, lean=0.0):
             for j in range(k + 1):
                 u = j / k; pts.append((xc + sgn * l2 * u, yb + l2 * droop * (u ** 1.5) - l2 * 0.1 * math.sin(u * math.pi)))   # sags, then lifts at the tip
             # the bough is one solid shape: its spine on top, a ragged hem of hanging needle clumps underneath
-            thick = l2 * 0.2; teeth = max(6, int(l2 / max(3.0, h * 0.011))); upper, lower = [], []
+            thick = l2 * 0.2; teeth = max(8, int(l2 / max(2.5, h * 0.0055))); upper, lower = [], []
             for q in range(teeth + 1):
                 u = q / teeth; f = u * k; j0 = min(k - 1, int(f)); w2 = f - j0
                 px = pts[j0][0] * (1 - w2) + pts[j0 + 1][0] * w2; py = pts[j0][1] * (1 - w2) + pts[j0 + 1][1] * w2
@@ -148,8 +148,13 @@ def near_layer(far_img, mid_img):
     arr = np.asarray(Image.fromarray(arr.astype(np.uint8)).filter(ImageFilter.GaussianBlur(1.6)), np.float32)
     water = arr * (0.5 - 0.26 * wy) + 3
     x = np.linspace(0, 1, W, dtype=np.float32)[None, :]; mxn = MOON[0] / W
-    band = np.clip(np.sin(wy * 190 + np.tile(fft_noise(960, 540, 1.0, 45), (1, 4))[:hgt, :W] * 9) * 2.2, 0, 1)   # straight dashes, broken up by noise        # glitter path: broken horizontal dashes under the moon
-    water += np.exp(-((x - mxn) / (0.03 + 0.1 * wy)) ** 2) * band * (150 - 70 * wy) * (0.5 + 0.5 * np.tile(fft_noise(960, 540, 1.2, 44), (1, 4))[:hgt, :W])
+    # glitter path: soft-edged dashes of moonlight, densest and brightest under the moon, widening toward the viewer
+    gl = Image.new('L', (W, hgt), 0); gd = ImageDraw.Draw(gl); rg = np.random.default_rng(45)
+    for _ in range(1500):
+        v = rg.random() ** 0.75; gy = v * hgt; half = (0.02 + 0.085 * v) * W; gx = mxn * W + rg.normal() * half * 0.55
+        ln = (10 + 70 * v) * (0.4 + rg.random()); th = 1.2 + 3.2 * v * rg.random()
+        gd.ellipse([gx - ln, gy - th, gx + ln, gy + th], fill=int((230 - 120 * v) * (0.45 + 0.55 * rg.random())))
+    water += np.asarray(gl.filter(ImageFilter.GaussianBlur(1.4)), np.float32) * 0.9
     r = np.random.default_rng(51); wi = Image.fromarray(np.clip(water, 0, 255).astype(np.uint8)); d = ImageDraw.Draw(wi)
     for _ in range(420):                                                               # fine ripple strokes, sparse and faint
         rx, ry = r.random() * W, r.random() ** 1.5 * hgt; ln = 20 + ry * 0.4
@@ -215,7 +220,10 @@ def main():
     mid, _, _ = mid_layer(); save(mid, 'mid.webp', 93)
     near = near_layer(far, mid); save(near, 'near.webp', 93)
     front = front_layer(); save(front, 'front.webp', 93)
+    for nm, im in (('far', far), ('mid', mid), ('near', near), ('front', front)):   # 2560-wide variants for screens that cannot show more (same art, Lanczos)
+        save(im.resize((2560, 1440), Image.LANCZOS), f'{nm}.2k.webp', 92)
     rays = rays_layer(); save(rays, 'rays.webp', 80)
+    save(rays.resize((2560, 1440), Image.LANCZOS), 'rays.2k.webp', 80)
     cloud = fog_tile(71, 2048, 1024, 0.5, 3.4, 78, 2.0, 222); save(cloud, 't-cloud.webp', 80)
     fa = fog_tile(72, 2048, 512, 0.36, 2.8, 170); fb = fog_tile(73, 2048, 512, 0.36, 3.2, 215, 2.1, 200); fc = fog_tile(74, 2048, 512, 0.4, 3.0, 140, 2.2, 214)
     save(fa, 't-fogA.webp', 80); save(fb, 't-fogB.webp', 80); save(fc, 't-fogC.webp', 80)

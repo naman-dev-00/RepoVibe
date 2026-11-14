@@ -807,7 +807,7 @@
         "#020202"
       ],
       "toneSoft": [
-        "#9b9fa7",
+        "#9ea1a9",
         "#020202"
       ],
       "depth": [
@@ -817,6 +817,7 @@
         "front",
         "rays"
       ],
+      "depth2k": true,
       "sprites": [
         "glitter",
         "halo",

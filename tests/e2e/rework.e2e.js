@@ -314,9 +314,9 @@ test('round 5 curation: Midnight Developer, Lavender Nights, Sunset Boulevard le
     const studio = await extPage(context, 'studio.html?view=gallery#gallery'); await studio.waitForSelector('.gallery-card');
     const names = await studio.evaluate(() => [...document.querySelectorAll('.gallery-card strong')].map(s => s.firstChild.textContent));
     for (const gone of ['Midnight Developer', 'Lavender Nights', 'Sunset Boulevard', 'Sakura Dreams', 'Dark Academia', 'Synthwave']) assert.ok(!names.includes(gone), `${gone} hidden`);
-    assert.equal(names.length, 14);
+    assert.equal(names.length, 16);
     const groups = await studio.evaluate(() => Object.fromEntries([...document.querySelectorAll('.gallery-group')].map(g => [g.dataset.group, [...g.querySelectorAll('.gallery-card strong')].map(s => s.firstChild.textContent)])));
-    assert.deepEqual([...groups.experimental].sort(), ['Aurora', 'Cozy Coding'], 'the two redesign targets are not approved');
+    assert.deepEqual([...groups.experimental].sort(), ['Aurora', 'Cozy Coding', 'Eternal Moon', 'Messy Thoughts'], 'the redesign targets and the new worlds are not approved');
     assert.equal(groups.approved.length, 12); assert.ok(groups.approved.includes('Matrix') && groups.approved.includes('Dracula'), 'Matrix and Dracula approved (round 6)');
     const picker = await studio.evaluate(() => RepoVibeCore.pickerWallpapers('').map(w => w.slug));
     for (const slug of ['midnight-skyline', 'lavender-fantasy', 'sunset-coast']) assert.ok(!picker.includes(slug), `${slug} not offered`);
