@@ -477,6 +477,32 @@
       "height": 1440,
       "license": "RepoVibe (original work)",
       "attribution": "RepoVibe contributors"
+    },
+    {
+      "slug": "messy-thoughts",
+      "name": "Messy Thoughts",
+      "category": "Abstract",
+      "style": "3d",
+      "source": "vector-lines",
+      "generator": "scripts/wallpapers/messy-thoughts.js",
+      "description": "Minimalist white line art on black: a still figure whose head is a tangle of scribbles that keep drawing themselves and fading. Vector strokes, sharp at any resolution.",
+      "width": 3840,
+      "height": 2160,
+      "license": "RepoVibe (original work)",
+      "attribution": "RepoVibe contributors"
+    },
+    {
+      "slug": "eternal-moon",
+      "name": "Eternal Moon",
+      "category": "Nature",
+      "style": "3d",
+      "source": "painted-layers",
+      "generator": "scripts/wallpapers/eternal-moon.py",
+      "description": "A monochrome moonlit forest: an enormous textured moon, spruce silhouettes with fine boughs, a mirror lake, a dense star field and three planes of drifting fog. Layered 2.5D, 3840 × 2160.",
+      "width": 3840,
+      "height": 2160,
+      "license": "RepoVibe (original work)",
+      "attribution": "RepoVibe contributors"
     }
   ]
 }

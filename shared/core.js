@@ -31,7 +31,10 @@
     ['Aurora', 'Northern lights over a fjord', '#0c1724', '#122b34', '#1b3b45', '#e8fff8', '#9dcbc6', '#7eedd7', '#355d5c', '#113b4b', '#2d2557', '#142633', 'glass'],
     ['Sunset Boulevard', 'Golden hour', '#301b32', '#4c294a', '#60375b', '#fff1f1', '#d5b0c7', '#ff9d82', '#7d4d73', '#9a4d61', '#442b6e', '#3c2540', 'soft'],
     ['Cosmic Galaxy', 'Ringed giant, nebula, deep space', '#0b0b25', '#17183d', '#24244e', '#f0edff', '#c0c1e8', '#b9bcff', '#464784', '#251d53', '#102c4b', '#141433', 'glass'],
-    ['Synthwave', 'Neon valley drive', '#210c37', '#33194a', '#462359', '#fff1ff', '#c9a1df', '#ff65c3', '#76438d', '#551b6c', '#102e5d', '#2b1342', 'neon']
+    ['Synthwave', 'Neon valley drive', '#210c37', '#33194a', '#462359', '#fff1ff', '#c9a1df', '#ff65c3', '#76438d', '#551b6c', '#102e5d', '#2b1342', 'neon'],
+    // Batch of new worlds (2026-11-14). Experimental until the owner approves each one; never picked automatically (AUTO_POOL).
+    ['Messy Thoughts', 'White lines, a tangled mind', '#050506', '#111114', '#1b1b20', '#f5f5f7', '#a9a9b2', '#e9e9f0', '#3a3a42', '#0b0b0e', '#050506', '#0e0e11', 'minimal'],
+    ['Eternal Moon', 'Moonlit forest, drifting fog', '#0a0b0d', '#15171a', '#1f2226', '#eef0f3', '#a3a8b0', '#cfd5de', '#3c4047', '#121417', '#0a0b0d', '#121417', 'minimal']
   ];
   // Wallpaper catalogue generated from wallpapers/manifest.json (shared/wallpaper-catalog.js, loaded first).
   const CATALOG = root.RepoVibeWallpaperCatalog || [];
@@ -44,7 +47,8 @@
   // Preset N → wallpaper. 3D cinematic renders where available; the rest use the illustrated (2D) scenes.
   const PRESET_WALLPAPERS = ['neon-city-3d', 'midnight-skyline', 'sakura-garden', 'cozy-room', 'digital-rain', 'gothic-castle',
     'ocean-kingdom', 'enchanted-forest', 'pixel-dusk', 'pixel-paradise-3d', 'desert-dunes', 'arctic-frost-3d', 'lavender-fantasy',
-    'dark-library', 'scifi-ai', 'obsidian-shards', 'aurora-borealis', 'sunset-coast', 'cosmic-galaxy', 'synthwave-highway'];
+    'dark-library', 'scifi-ai', 'obsidian-shards', 'aurora-borealis', 'sunset-coast', 'cosmic-galaxy', 'synthwave-highway',
+    'messy-thoughts', 'eternal-moon'];
   // Flagship themes and their live-wallpaper ambience (lightweight CSS motion layered over the art).
   const MOTIONS = ['none', 'rain', 'fireflies', 'stars', 'holo'];
   /* Curation status of the built-in themes (project data, not a user setting):
@@ -60,7 +64,7 @@
   // The six quick picks shown in the popup until enough themes are approved (approved themes take these slots first).
   const FEATURED_FALLBACK = ['preset-1', 'preset-8', 'preset-19', 'preset-15', 'preset-9', 'preset-20'];
   // The eight additional immersive worlds (layered 2.5D scenes with their own autonomous motion), on existing preset ids.
-  const WORLD_PRESETS = ['preset-3', 'preset-7', 'preset-12', 'preset-14', 'preset-10', 'preset-17', 'preset-18', 'preset-20', 'preset-5', 'preset-6', 'preset-4'];
+  const WORLD_PRESETS = ['preset-3', 'preset-7', 'preset-12', 'preset-14', 'preset-10', 'preset-17', 'preset-18', 'preset-20', 'preset-5', 'preset-6', 'preset-4', 'preset-21', 'preset-22'];
   const FLAGSHIP_MOTION = { 'preset-1': 'rain', 'preset-8': 'fireflies', 'preset-19': 'stars', 'preset-15': 'holo' };
   const MOTION_MODES = ['static', 'ambient', 'cinematic'];
   const SCENE_HEIGHTS = ['compact', 'standard', 'tall'];
@@ -304,6 +308,7 @@
       start = FNV-1a(owner/repo) mod N; walk the preset list from there and take the first preset not already
       used by another repository of the same owner (manual or automatic), so sibling repos differ while
       there are presets left. Pure: same (key, config) → same result. Not unique once an owner has > N repos. */
+  const AUTO_POOL = 20;
   function pickAutoTheme(key, config) {
     const k = String(key).toLowerCase();
     const owner = k.split('/')[0];
@@ -311,9 +316,11 @@
     for (const type of ['repoAssignments', 'autoAssignments']) {
       for (const [other, id] of Object.entries(config[type] || {})) if (other !== k && other.split('/')[0] === owner) used.add(id);
     }
-    const start = fnv1a(k) % PRESETS.length;
+    // The automatic pool is fixed at the original 20 presets: adding built-in themes must never change what an existing repository
+    // resolves to (an automatic pick that is not persisted is recomputed from this hash on every page).
+    const start = fnv1a(k) % AUTO_POOL;
     // archived themes are never picked for a NEW automatic assignment (existing ones are kept as they are)
-    for (let i = 0; i < PRESETS.length; i++) { const id = PRESETS[(start + i) % PRESETS.length].id; if (!used.has(id) && themeStatus(id) !== 'archived') return id; }
+    for (let i = 0; i < AUTO_POOL; i++) { const id = PRESETS[(start + i) % AUTO_POOL].id; if (!used.has(id) && themeStatus(id) !== 'archived') return id; }
     return PRESETS[start].id;
   }
   /** Precedence (first match wins): disabled → repository (manual) → owner → automatic (if enabled; persisted

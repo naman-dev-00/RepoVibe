@@ -8,9 +8,10 @@ vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../shared/
 vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../shared/core.js'), 'utf8'), context);
 const C = context.RepoVibeCore;
 
-test('bundles twenty distinct complete presets', () => {
-  assert.equal(C.PRESETS.length, 20);
-  assert.equal(new Set(C.PRESETS.map(t => t.id)).size, 20);
+test('bundles twenty-two distinct complete presets (the original twenty plus the 2026-11-14 batch)', () => {
+  assert.equal(C.PRESETS.length, 22);
+  assert.equal(new Set(C.PRESETS.map(t => t.id)).size, 22);
+  assert.deepEqual(JSON.parse(JSON.stringify(C.PRESETS.slice(20).map(t => [t.id, t.name]))), [['preset-21', 'Messy Thoughts'], ['preset-22', 'Eternal Moon']]);
   for (const t of C.PRESETS) assert.match(t.accent, /^#[a-fA-F0-9]{6}$/);
 });
 test('recognizes GitHub repositories without misidentifying site pages', () => {
@@ -117,7 +118,7 @@ test('themeUsage lists every assignment of a custom theme', () => {
 });
 
 test('every preset ships its own distinct bundled wallpaper and valid wallpaper settings', () => {
-  assert.equal(new Set(C.PRESETS.map(t => t.wallpaperRef)).size, 20);
+  assert.equal(new Set(C.PRESETS.map(t => t.wallpaperRef)).size, 22);
   for (const t of C.PRESETS) {
     assert.equal(t.backgroundMode, 'image');
     assert.equal(C.safeWallpaperRef(t.wallpaperRef), t.wallpaperRef);
@@ -343,7 +344,8 @@ test('removed idle-butterfly preference: ignored on load, other settings preserv
 
 /* ---- Eight additional immersive worlds (data-driven, shared/worlds.js). */
 const WORLD_IDS = { 'preset-3': 'sakura-garden', 'preset-7': 'ocean-kingdom', 'preset-12': 'arctic-frost-3d', 'preset-17': 'aurora-borealis', 'preset-20': 'synthwave-highway', 'preset-14': 'dark-library', 'preset-10': 'pixel-paradise-3d', 'preset-18': 'sunset-coast',
-  'preset-5': 'digital-rain', 'preset-6': 'gothic-castle', 'preset-4': 'cozy-room' }; // round 5: Matrix, Dracula and Cozy Coding became layered worlds
+  'preset-5': 'digital-rain', 'preset-6': 'gothic-castle', 'preset-4': 'cozy-room',
+  'preset-21': 'messy-thoughts', 'preset-22': 'eternal-moon' }; // round 5: Matrix, Dracula and Cozy Coding became layered worlds
 const loadWorlds = () => { const ctx = vm.createContext({ globalThis: {} }); ctx.globalThis = ctx; vm.runInContext(fs.readFileSync(require('node:path').join(__dirname, '../shared/worlds.js'), 'utf8'), ctx); return ctx.RepoVibeWorlds; };
 
 test('the worlds keep their preset ids and are assigned their own layered artwork', () => {
@@ -353,7 +355,7 @@ test('the worlds keep their preset ids and are assigned their own layered artwor
     const p = C.PRESETS.find(t => t.id === id);
     assert.equal(p.wallpaperRef, `builtin:${slug}`, `${id} uses ${slug}`); assert.equal(p.world, true); assert.equal(p.flagship, false, 'worlds are not the four flagships');
     const w = C.WALLPAPERS.find(x => x.slug === slug);
-    assert.ok(w && w.depth.length >= 3 && w.depth[0].layer === 'far', `${slug} layered`);
+    assert.ok(w && w.depth.length >= (slug === 'messy-thoughts' ? 1 : 3) && w.depth[0].layer === 'far', `${slug} layered`); // Messy Thoughts is vector strokes over one ground layer
     for (const l of w.depth) assert.ok(fs.existsSync(path.join(__dirname, '..', l.path)), l.path);
     assert.ok(fs.existsSync(path.join(__dirname, '..', w.path)) && fs.existsSync(path.join(__dirname, '..', w.thumb)), `${slug} flat image and thumbnail (Home cards use the thumbnail, not a renderer)`);
   }
@@ -370,8 +372,12 @@ test('every world sprite and pop-out declared in shared/worlds.js exists on disk
     assert.ok(cat, slug);
     // Matrix is pure falling code: no pop-out objects or wind, its life is the stream motion (every stream falls the whole stage, top → bottom)
     if (slug === 'digital-rain') { const st = def.sprites.filter(s => s.fx === 'stream'); assert.ok(st.length >= 16 && st.every(s => s.anchor === 'bottom' && s.y === 0 && s.dur > 0), 'code streams'); assert.ok(def.tiles.filter(t => t.sy === 1 && !t.sx).length >= 3, 'three code-rain planes moving straight down'); }
+    // the 2026-11-14 batch is deliberately restrained: Messy Thoughts animates only its scribble strokes (the figure is still), Eternal Moon only fog, cloud, stars and moonlight (the moon is still)
+    else if (slug === 'messy-thoughts') { const t = def.sprites.find(s => s.n === 'tangle'), f = def.sprites.find(s => s.n === 'figure'); assert.ok(t.draw.length >= 12 && t.draw.every(st => /^M[-\d. C]+$/.test(st.d) && st.dur > 0), 'live strokes are plain path data'); assert.ok(f.still.length >= 10 && !f.draw && !f.breathe, 'the figure is still'); }
+    else if (slug === 'eternal-moon') { assert.equal(def.tiles.length, 4, 'cloud + three fog planes'); assert.ok(def.tiles.every(t => t.sy === 0 && Math.abs(t.sx) === 1 && t.mask), 'fog slides sideways inside its own band'); assert.ok(!def.sprites.some(s => /moon/i.test(s.n) && (s.dx || s.dy || s.rot)), 'the moon is not a moving sprite'); }
     else { assert.ok(def.sprites.some(s => s.plane === 'pop'), `${slug} has pop-out elements`); assert.ok(def.sprites.some(s => s.wind), `${slug} has wind-driven sway`); }
     for (const s of def.sprites) {
+      if (s.draw || s.still) { assert.ok(Array.isArray(s.vb) && s.vb.length === 2 && s.w > 0, `${slug}/${s.n} vector sprite`); continue; }   // inline SVG strokes: no image file
       const file = s.src || s.n;
       assert.ok(fs.existsSync(path.join(__dirname, '..', 'wallpapers', 'depth', slug, `s-${file}.webp`)), `${slug}/s-${file}.webp`);
       assert.ok((cat.sprites || []).includes(file), `${slug}: ${file} listed in the catalogue`);
@@ -409,7 +415,7 @@ test('nothing is approved without the owner: every built-in theme starts experim
   const S = coreWithReview(ctx.RepoVibeThemeReview), scol = S.themeCollection(S.normalizeConfig({}));
   assert.deepEqual(JSON.parse(JSON.stringify(scol.approved.map(t => t.name))), ['Cyberpunk Neon', 'Matrix', 'Dracula', 'Ocean Depths', 'Enchanted Forest', 'Retro Terminal', 'Pixel Paradise', 'Solar Flare', 'Arctic Frost', 'Futuristic Sci-Fi', 'Obsidian', 'Cosmic Galaxy']);
   assert.deepEqual(JSON.parse(JSON.stringify(scol.archived.map(t => t.name))), ['Midnight Developer', 'Sakura Dreams', 'Lavender Nights', 'Dark Academia', 'Sunset Boulevard', 'Synthwave']);
-  assert.deepEqual(JSON.parse(JSON.stringify(scol.experimental.map(t => t.name))), ['Cozy Coding', 'Aurora'], 'the two redesign targets await approval');
+  assert.deepEqual(JSON.parse(JSON.stringify(scol.experimental.map(t => t.name))), ['Cozy Coding', 'Aurora', 'Messy Thoughts', 'Eternal Moon'], 'the two redesign targets and the new worlds await approval');
   // archived assignments still resolve (nothing destroyed)
   const keep = S.normalizeConfig({ repoAssignments: { 'a/s': 'preset-3', 'a/m': 'preset-2' }, ownerAssignments: { o: 'preset-14', l: 'preset-13' }, defaultThemeId: 'preset-18' });
   assert.equal(S.themeResolution(keep, 'https://github.com/a/s').id, 'preset-3'); assert.equal(S.themeResolution(keep, 'https://github.com/o/x').id, 'preset-14');
@@ -446,7 +452,7 @@ test('background curation: archived backgrounds leave the picker but stay availa
   for (const gone of ['pixel-island', 'galaxy-planet', 'neon-rain-street', 'alien-world', 'synthwave-grid', 'synthwave-highway']) assert.ok(!visible.includes(gone), `${gone} hidden from the picker`);
   for (const kept of ['alpine-lake', 'synthwave-3d', 'arctic-frost-3d', 'pixel-paradise-3d']) assert.ok(visible.includes(kept), `${kept} still offered`);
   assert.ok(K.pickerWallpapers('builtin:galaxy-planet').some(w => w.slug === 'galaxy-planet'), 'a theme already using an archived background still sees it');
-  assert.equal(K.WALLPAPERS.length, 38, 'nothing deleted: every background still resolves for saved themes');
+  assert.equal(K.WALLPAPERS.length, 40, 'nothing deleted: every background still resolves for saved themes (38 + the two new worlds)');
   // a Synthwave assignment keeps working
   const cfg = K.normalizeConfig({ repoAssignments: { 'a/b': 'preset-20' } });
   assert.equal(K.themeResolution(cfg, 'https://github.com/a/b').id, 'preset-20');
@@ -455,4 +461,22 @@ test('background curation: archived backgrounds leave the picker but stay availa
   assert.equal(K.motionFor(cyber, { motionMode: 'ambient' }, false).kind, 'rain');
   for (const ref of ['builtin:alpine-lake', 'builtin:synthwave-3d']) assert.equal(K.motionFor({ ...cyber, wallpaperRef: ref }, { motionMode: 'ambient' }, false).kind, 'none', `no rain over ${ref}`);
   assert.equal(K.motionFor({ ...K.PRESETS.find(p => p.id === 'preset-8'), wallpaperRef: 'builtin:alpine-lake' }, { motionMode: 'ambient' }, false).kind, 'none');
+});
+
+test('new built-in worlds never change what an existing repository resolves to: the automatic pool stays the original twenty', () => {
+  const cfg = C.normalizeConfig({ version: 2, autoAssign: true });
+  const original = new Set(Array.from({ length: 20 }, (_, i) => `preset-${i + 1}`));
+  for (let i = 0; i < 400; i++) {
+    const key = `owner${i % 37}/repo-${i}`, id = C.pickAutoTheme(key, cfg);
+    assert.ok(original.has(id), `${key} → ${id}`);
+    // same rule as before the batch: start at fnv1a(key) % 20 and walk forward past archived themes
+    let want = null; const start = C.fnv1a(key) % 20;
+    for (let k = 0; k < 20 && !want; k++) { const cand = `preset-${(start + k) % 20 + 1}`; if (C.themeStatus(cand) !== 'archived') want = cand; }
+    assert.equal(id, want, `${key}: automatic pick unchanged by the new presets`);
+  }
+  for (const id of ['preset-21', 'preset-22']) { assert.equal(C.themeStatus(id), 'experimental', `${id} is experimental until the owner approves it`); assert.ok(C.PRESETS.find(t => t.id === id).world); }
+  assert.ok(!C.featuredThemes().some(t => ['preset-21', 'preset-22'].includes(t.id)), 'experimental worlds are not in the popup quick grid');
+  // explicit assignments of the new worlds persist and resolve
+  const keep = C.normalizeConfig({ repoAssignments: { 'a/b': 'preset-21' }, ownerAssignments: { o: 'preset-22' } });
+  assert.equal(C.themeResolution(keep, 'https://github.com/a/b').id, 'preset-21'); assert.equal(C.themeResolution(keep, 'https://github.com/o/x').id, 'preset-22');
 });

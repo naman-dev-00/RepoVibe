@@ -27,5 +27,47 @@
    14.62,
    15.03
   ]
+ },
+ "messy-thoughts": {
+  "scene": "messy-thoughts",
+  "sprites": 2,
+  "popOuts": 0,
+  "quality": "auto→lite",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-draw",
+   "repv-draw-flow",
+   "repv-svg-breathe"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   3.87,
+   4.34,
+   4.23
+  ]
+ },
+ "eternal-moon": {
+  "scene": "eternal-moon",
+  "sprites": 12,
+  "popOuts": 0,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-drift",
+   "repv-glow",
+   "repv-tile"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   0,
+   0,
+   0
+  ]
  }
 }

@@ -16,7 +16,7 @@ const BEFORE = path.join(ROOT, 'docs/screenshots', DIRS[1]), BEFORE_LABEL = DIRS
 // Round 2 uses the default quality (Auto), which is what users get: on slow (software-rendered) machines it drops to Lite, where weather
 // used to freeze. Motion is also measured: the share of scene-band pixels that change between frames 0.5 s apart.
 const QUALITY = process.env.QUALITY || (ROUND === '1' ? 'full' : 'auto');
-const THEMES = [['preset-1', 'cyberpunk-neon', 'dark'], ['preset-3', 'sakura-dreams', 'dark'], ['preset-7', 'ocean-depths', 'dark'], ['preset-10', 'pixel-paradise', 'dark'], ['preset-12', 'arctic-frost', 'light'], ['preset-17', 'aurora', 'dark'], ['preset-5', 'matrix', 'dark'], ['preset-4', 'cozy-coding', 'dark'], ['preset-6', 'dracula', 'dark']];
+const THEMES = [['preset-1', 'cyberpunk-neon', 'dark'], ['preset-3', 'sakura-dreams', 'dark'], ['preset-7', 'ocean-depths', 'dark'], ['preset-10', 'pixel-paradise', 'dark'], ['preset-12', 'arctic-frost', 'light'], ['preset-17', 'aurora', 'dark'], ['preset-5', 'matrix', 'dark'], ['preset-4', 'cozy-coding', 'dark'], ['preset-6', 'dracula', 'dark'], ['preset-21', 'messy-thoughts', 'dark'], ['preset-22', 'eternal-moon', 'dark']];
 const SNAP = R.available().includes('actions-checkout-code') ? 'actions-checkout-code' : null;
 const only = process.argv.slice(2);
 const TUNE = { parallax: 100, motion: 100, particles: 100, foreground: 100 };

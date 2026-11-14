@@ -93,7 +93,8 @@
     const WORLD_EDGE = { 'enchanted-forest': ['#5fe0b9', '#9dffd8', 0.34], 'cosmic-galaxy': ['#a98bff', '#6f9bff', 0.38], 'neon-city-3d': ['#ff4fd8', '#3ff0ff', 0.5], 'scifi-ai': ['#7fe6ff', '#e8fbff', 0.4],
       'sakura-garden': ['#ff8fb8', '#ffd0e0', 0.34], 'ocean-kingdom': ['#4fd5e8', '#9af0ff', 0.36], 'arctic-frost-3d': ['#4a9fe6', '#bfe4ff', 0.3], 'aurora-borealis': ['#5fe8b0', '#9a8cff', 0.38],
       'synthwave-highway': ['#ff4fd8', '#3ff0ff', 0.5], 'dark-library': ['#d9a441', '#ffd27a', 0.3], 'pixel-paradise-3d': ['#3ad6d0', '#ffe27a', 0.34], 'sunset-coast': ['#ff9a4d', '#ffd08a', 0.34],
-      'digital-rain': ['#2cff7a', '#9dffbf', 0.42], 'gothic-castle': ['#b98cff', '#ffc56a', 0.36], 'cozy-room': ['#ffb86a', '#ffd9a0', 0.32] };
+      'digital-rain': ['#2cff7a', '#9dffbf', 0.42], 'gothic-castle': ['#b98cff', '#ffc56a', 0.36], 'cozy-room': ['#ffb86a', '#ffd9a0', 0.32],
+      'messy-thoughts': ['#f2f2f5', '#ffffff', 0.26], 'eternal-moon': ['#cfd5de', '#ffffff', 0.28] };
     const wslug = (/^builtin:([a-z0-9-]+)$/.exec(v.wallpaperRef || '') || [])[1];
     const [edgeC, glowC, glowS] = WORLD_EDGE[wslug] || [v.accent, v.accent, { neon: 0.45, glass: 0.3, soft: 0.24, minimal: 0.14, pixel: 0.2 }[v.vibe] ?? 0.24];
     const edgeLine = rgba(edgeC, light ? 0.68 : 0.8), edgeRing = rgba(edgeC, light ? 0.42 : 0.5); // major surfaces: border 1 px + ring 2 px ≈ 3 px themed edge (box-shadow ring: no layout change)
@@ -376,8 +377,8 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
   /* ---- Depth engine (2.5D). Scenes rendered as separate depth slabs from the same 3D camera (far, mid, near,
      decorative front, light rays — real occlusion + alpha, see scripts/wallpapers/shaders) are stacked in ONE injected
      element, #repovibe-depth, a sibling of <body> (GitHub's DOM tree is not touched), fixed, pointer-events:none, behind
-     all content. Each layer moves in proportion to its depth (parallax factor k): the pointer drives a smoothed offset
-     (rAF only while it changes), Cinematic adds a slow camera drift that is itself parallaxed per layer, swaying
+     all content. Nothing follows the pointer (mouse parallax was removed by request and stays removed): each layer has a depth
+     factor k that only scales its share of Cinematic's slow autonomous camera drift (flagship scenes), swaying
      foreground leaves and breathing light rays. Particle planes sit between the slabs at their own depths. Only
      transform/opacity animate (compositor). Static mode, reduced motion, uploads, custom position/size or wallpaper blur
      use the flat root scene instead (no engine). This is layered 2.5D, not real-time 3D geometry. */
@@ -530,7 +531,28 @@ ${M}.repv-motion-cinematic body::before { animation:repv-parallax 48s ease-in-ou
   const spritesOf = slug => SPRITES[slug] || WORLDS[slug]?.sprites || [];
   function spriteUrl(slug, n) { return chrome.runtime.getURL(`wallpapers/depth/${slug}/s-${n}.webp`); }
   function tuning() { const t = config.depthTuning || {}; return { parallax: (t.parallax ?? 100) / 100, motion: (t.motion ?? 100) / 100, particles: (t.particles ?? 100) / 100, foreground: (t.foreground ?? 100) / 100 }; }
+  /* Vector line sprite (worlds.js `draw`): an inline SVG whose strokes draw themselves and fade, each on its own clock. Resolution-independent
+     (sharp at any monitor size), pointer-events none like the rest of the scene. `still` strokes never animate; at rest (Static, reduced
+     motion) every stroke is fully drawn. Path data comes only from the bundled, data-only shared/worlds.js. */
+  function buildDraw(s, cinematic) {
+    const NS = 'http://www.w3.org/2000/svg', wrap = document.createElement('div');
+    wrap.className = 'repv-s'; wrap.dataset.sprite = s.n; wrap.dataset.depth = String(s.k);
+    const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', `0 0 ${s.vb[0]} ${s.vb[1]}`); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
+    if (s.breathe) { svg.dataset.breathe = ''; svg.style.setProperty('--bd', `${s.breathe / (cinematic ? 1.3 : 1)}s`); svg.style.setProperty('--bo', s.origin || '50% 50%'); }
+    const add = (st, live) => {
+      const p = document.createElementNS(NS, 'path'); p.setAttribute('d', st.d); p.setAttribute('pathLength', '1'); p.setAttribute('stroke-width', String(st.sw || 2));
+      if (st.op !== undefined) p.style.setProperty('--so', String(st.op));
+      if (live) { p.dataset.draw = st.flow ? 'flow' : ''; p.style.setProperty('--dd', `${st.dur / (cinematic ? 1.3 : 1)}s`); p.style.animationDelay = `${st.delay || 0}s`; }
+      svg.appendChild(p);
+    };
+    for (const st of s.still || []) add(st, false);
+    for (const st of s.draw || []) add(st, true);
+    wrap.appendChild(svg);
+    wrap.style.left = `${s.x}%`; wrap.style.top = `${s.y}%`; wrap.style.width = `${s.w}%`; if (s.z) wrap.style.zIndex = String(s.z);
+    return wrap;
+  }
   function buildSprite(slug, s, cinematic) {
+    if (s.draw || s.still) return buildDraw(s, cinematic);
     const wrap = document.createElement('div');
     wrap.className = 'repv-s'; if (s.plane === 'pop') wrap.dataset.k = String(s.k); wrap.dataset.sprite = s.n; wrap.dataset.depth = String(s.k);
     const img = document.createElement('img');
@@ -874,6 +896,16 @@ html.repv-depth body::before { animation:none !important; will-change:auto !impo
 @media (prefers-reduced-motion:no-preference) { :is(#repovibe-depth, #repovibe-popout) .repv-s[data-flap] > img { animation-name:repv-drift, repv-flap; animation-duration:var(--dur, 30s), var(--fp, .22s); animation-timing-function:ease-in-out; animation-iteration-count:infinite; animation-direction:alternate; }
  #repovibe-depth .repv-s[data-flap] > img[data-swim][data-cross] { animation-name:repv-cross, repv-swim, repv-flap; animation-duration:var(--dur, 30s), var(--wp, 5s), var(--fp, .22s); animation-timing-function:linear, ease-in-out, ease-in-out; animation-direction:normal, alternate, alternate; }
  #repovibe-depth .repv-s[data-flap] > img[data-swim][data-cross="rev"] { animation-name:repv-cross-rev, repv-swim, repv-flap; } }
+#repovibe-depth .repv-s > svg { display:block; width:100%; height:auto; overflow:visible; }
+#repovibe-depth .repv-s > svg path { fill:none; stroke:#fff; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:1; stroke-dashoffset:0; opacity:var(--so, 1); }
+@media (prefers-reduced-motion:no-preference) {
+ #repovibe-depth .repv-s > svg path[data-draw] { animation:repv-draw var(--dd, 14s) ease-in-out infinite; }
+ #repovibe-depth .repv-s > svg path[data-draw="flow"] { animation-name:repv-draw-flow; }
+ #repovibe-depth .repv-s > svg[data-breathe] { transform-origin:var(--bo, 50% 50%); animation:repv-svg-breathe var(--bd, 19s) ease-in-out infinite alternate; } }
+/* a stroke draws itself, rests, then fades (repv-draw) or runs on through and off its own end (repv-draw-flow) */
+@keyframes repv-draw { 0% { stroke-dashoffset:1; opacity:var(--so, 1); } 36% { stroke-dashoffset:0; opacity:var(--so, 1); } 74% { stroke-dashoffset:0; opacity:var(--so, 1); } 100% { stroke-dashoffset:0; opacity:0; } }
+@keyframes repv-draw-flow { 0% { stroke-dashoffset:1; } 38% { stroke-dashoffset:0; } 62% { stroke-dashoffset:0; } 100% { stroke-dashoffset:-1; } }
+@keyframes repv-svg-breathe { from { transform:rotate(-1.6deg) scale(.985); } to { transform:rotate(1.8deg) scale(1.02); } }
 @keyframes repv-flap { from { scale:1 1; } to { scale:1 .32; } }
 @keyframes repv-stream { from { transform:translate3d(0, 0, 0); } to { transform:translate3d(0, calc(max(56.25vw, 100vh) + 100%), 0); } }
 @keyframes repv-drop { 0%, 87.5% { transform:translate3d(0, -560%, 0); opacity:0; } 88.5% { opacity:.95; } 99.6% { transform:translate3d(0, 0, 0); opacity:.95; } 100% { transform:translate3d(0, 0, 0); opacity:0; } } /* falls, lands as its ring starts (0 % of the shared cycle) */

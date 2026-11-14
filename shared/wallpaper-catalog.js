@@ -779,6 +779,49 @@
         "veilA",
         "veilB"
       ]
+    },
+    {
+      "slug": "messy-thoughts",
+      "name": "Messy Thoughts",
+      "category": "Abstract",
+      "style": "3d",
+      "tone": [
+        "#a7a7a8",
+        "#050505"
+      ],
+      "toneSoft": [
+        "#9d9d9f",
+        "#050506"
+      ],
+      "depth": [
+        "far"
+      ]
+    },
+    {
+      "slug": "eternal-moon",
+      "name": "Eternal Moon",
+      "category": "Nature",
+      "style": "3d",
+      "tone": [
+        "#f1f6ff",
+        "#020202"
+      ],
+      "toneSoft": [
+        "#9b9fa7",
+        "#020202"
+      ],
+      "depth": [
+        "far",
+        "mid",
+        "near",
+        "front",
+        "rays"
+      ],
+      "sprites": [
+        "glitter",
+        "halo",
+        "sparkle"
+      ]
     }
   ].map(Object.freeze));
 })(globalThis);
