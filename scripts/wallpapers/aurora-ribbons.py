@@ -28,7 +28,7 @@ def ribbon(seed, hem_y, amp, c_hem, c_mid, c_top, ray_h, strength):
     fold = 0.5 + 0.5 * np.sin(2 * np.pi * 2 * x + seed * 1.3)               # where the curtain folds toward us (brighter)
     fine = (0.5 + 0.5 * periodic_noise(x, seed + 1, 40, 30, 160)) ** 2.0     # fine vertical rays
     broad = (0.5 + 0.5 * periodic_noise(x, seed + 5, 14, 5, 28)) ** 1.4     # broad bright curtains of light
-    rays = 0.6 * broad + 0.4 * fine
+    rays = 0.74 * broad + 0.26 * fine                                         # softer veils: broad light dominates the fine rays
     tall = 0.55 + 0.45 * (0.5 + 0.5 * periodic_noise(x, seed + 2, 10, 3, 14))   # ray height varies along the ribbon
     yy = np.arange(H, dtype=np.float32)[:, None] / H                          # 0 top → 1 bottom
     above = (hem[None, :] - yy) / (ray_h * tall[None, :])                     # 0 at the hem, 1 at the ray tops
@@ -51,10 +51,10 @@ def ribbon(seed, hem_y, amp, c_hem, c_mid, c_top, ray_h, strength):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    defs = [
-        ('ribbonA', 1.0, 0.72, 0.1, hexc('#b8ffd8'), hexc('#3df0a0'), hexc('#8a5cff'), 0.62, 1.15),
-        ('ribbonB', 4.0, 0.7, 0.13, hexc('#c8fff0'), hexc('#36e0c8'), hexc('#c050f0'), 0.55, 0.9),
-        ('ribbonC', 9.0, 0.66, 0.08, hexc('#d8ffc8'), hexc('#7af07a'), hexc('#5c7cff'), 0.5, 0.7),
+    defs = [   # palette from the owner's reference: teal / cyan hems rising into blue and violet
+        ('ribbonA', 1.0, 0.72, 0.1, hexc('#d0fff4'), hexc('#2ee8c8'), hexc('#5a6cff'), 0.62, 1.1),
+        ('ribbonB', 4.0, 0.7, 0.13, hexc('#d8f6ff'), hexc('#40b8ff'), hexc('#b860f0'), 0.55, 0.85),
+        ('ribbonC', 9.0, 0.66, 0.08, hexc('#d0fff0'), hexc('#48f0c0'), hexc('#7a5cff'), 0.5, 0.7),
     ]
     for name, seed, hy, amp, ch, cm, ct, rh, st in defs:
         img = ribbon(seed, hy, amp, ch, cm, ct, rh, st)

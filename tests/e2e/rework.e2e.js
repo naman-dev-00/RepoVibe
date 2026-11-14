@@ -267,7 +267,7 @@ test('Dracula, Cozy Coding, Aurora: each world shows its layers and its own live
   const WORLDS = [
     ['preset-6', 'gothic-castle', ['far', 'mid', 'near', 'front'], ['repv-cross', 'repv-flap', 'repv-swim', 'repv-glow', 'repv-tile'], s => s.filter(n => /^bat\d/.test(n)).length >= 5 && s.filter(n => /^lamp\d/.test(n)).length === 7 && s.includes('moonHalo')],
     ['preset-4', 'cozy-room', ['far', 'mid', 'near', 'front'], ['repv-glow', 'repv-tile', 'repv-gust-r', 'repv-flick'], s => ['steam', 'lampGlow', 'screenGlow', 'fairy', 'tail', 'cursor', 'leaf'].every(n => s.includes(n))],
-    ['preset-17', 'aurora-borealis', ['far', 'mid', 'near', 'front'], ['repv-flow', 'repv-aurora-sway', 'repv-glow', 'repv-gust-r'], s => ['ribbonA', 'ribbonB', 'ribbonC', 'cabinGlow', 'smoke', 'shimmer', 'pineL', 'pineR'].every(n => s.includes(n)) && s.filter(n => /^star\d/.test(n)).length === 9]];
+    ['preset-17', 'aurora-borealis', ['far', 'mid', 'near', 'front'], ['repv-flow', 'repv-aurora-sway', 'repv-glow', 'repv-gust-r'], s => ['ribbonA', 'ribbonB', 'ribbonC', 'veilA', 'veilB', 'veilC', 'iceGlow', 'shimmer', 'shrub'].every(n => s.includes(n)) && s.filter(n => /^star\d/.test(n)).length === 9]];
   for (const [id, slug, layers, must, roster] of WORLDS) {
     const { context, errors, close } = await launch({ colorScheme: 'dark' });
     try {

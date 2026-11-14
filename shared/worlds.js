@@ -112,27 +112,34 @@
   /* ---- Aurora: three flowing aurora ribbons (rays stream along each ribbon, the ribbon undulates and breathes, in different directions and
      tempos), a clear star field drifting slowly across the sky; pines sway on a still night; a meteor streaks. */
   W['aurora-borealis'] = {
+    // Frozen fjord valley painted by scripts/wallpapers/aurora-paint.py (art direction from the owner's reference). The great massif and the dark
+    // rocks are in the front layer, so the aurora (ribbons + veils, mid-depth sprites) hangs behind them and in front of the distant ranges.
     tiles: [
-      // the sky turns: both star planes drift slowly and seamlessly to the west (the shader's baked stars stay as the deep field)
-      { plane: 'pfar', shape: 'dot', seed: 2, w: 900, h: 600, n: 64, colors: ['#ffffff', '#dff0ff', '#fff6d6'], r: [1.1, 2.0], sx: -1, sy: 0, t: 320 },
-      { plane: 'pmid', shape: 'dot', seed: 6, w: 1000, h: 700, n: 26, colors: ['#ffffff', '#e8fff6'], r: [1.8, 3.0], sx: -1, sy: 0, t: 210 }
+      // the sky turns: a star plane drifts slowly and seamlessly to the west (the painted stars stay as the deep field)
+      { plane: 'pfar', shape: 'dot', seed: 2, w: 900, h: 600, n: 64, colors: ['#ffffff', '#dff0ff', '#ffe6f6'], r: [1.1, 2.0], sx: -1, sy: 0, t: 320 },
+      // ground mist slides across the ice (the one plane that keeps moving in Lite)
+      { plane: 'pmid', image: 't-mist', mask: 't-mask-low', region: [0, 0.6, 1, 1], rel: 1.0, w: 2048, h: 512, sx: 1, sy: 0, t: 110 }
     ],
     sprites: [
+      // soft plumes behind the ribbons: they breathe, drift and tilt slowly, each on its own clock
+      { n: 'veilA', plane: 'scene', k: 0.46, x: 46, y: 30, w: 50, dx: 46, dy: -14, rot: 5, dur: 23, fx: 'pulse', gl: 8, z: 1 },
+      { n: 'veilB', plane: 'scene', k: 0.46, x: 74, y: 26, w: 44, dx: -40, dy: 10, rot: -6, dur: 31, fx: 'pulse', gl: 11, z: 1 },
+      { n: 'veilC', src: 'veilA', plane: 'scene', k: 0.46, x: 14, y: 24, w: 34, dx: 30, dy: 12, rot: 7, dur: 27, fx: 'pulse', gl: 6.5, z: 1, flip: 1, op: 0.8 },
       // ribbons: 3200×640 = two periods of 1600×640; w is one period's width on the stage. flow 1 streams right→left, -1 left→right; dur = one period
       at('ribbonA', 0.02, 0.28, 1600 / 640, 0.74, { k: 0.46, z: 1, fx: 'flow', dur: 70, flow: 1, gl: 7, sway: 13, skew: 3 }),
       at('ribbonB', -0.38, 0.25, 1600 / 640, 0.6, { k: 0.46, z: 1, fx: 'flow', dur: 95, flow: -1, gl: 9, sway: 17, skew: -2.5 }),
       at('ribbonC', 0.42, 0.33, 1600 / 640, 0.52, { k: 0.46, z: 1, fx: 'flow', dur: 120, flow: 1, gl: 11, sway: 21, skew: 2 }),
-      base('pineL', -0.66, -0.1, 900 / 1300, 0.62, { k: 0.86, z: 3, wind: 1.1, fl: 6.2 }), base('pineR', 0.7, -0.1, 760 / 1200, 0.56, { k: 0.86, z: 3, wind: 1.2, fl: 5.8 }),
-      // the painted world's live details (scripts/wallpapers/aurora-paint.py): stage px → %: x / 25.6, y / 14.4
-      { n: 'cabinGlow', plane: 'scene', k: 0.86, x: 75.4, y: 61.5, w: 11, dx: 0, dy: 0, rot: 0, dur: 6, fx: 'pulse', gl: 3.4, z: 3 },
-      { n: 'smoke', plane: 'scene', k: 0.86, x: 78.6, y: 42.6, w: 4.6, dx: 16, dy: -20, rot: 4, dur: 6, fx: 'pulse', gl: 3.2, z: 3, op: 0.6 },
-      { n: 'shimmer', plane: 'scene', k: 0.64, x: 46, y: 66, w: 30, dx: 34, dy: 0, rot: 0, dur: 7, fx: 'pulse', gl: 2.1, z: 2 },
-      { n: 'shimmerB', src: 'shimmer', plane: 'scene', k: 0.64, x: 52, y: 78, w: 24, dx: -28, dy: 0, rot: 0, dur: 9, fx: 'pulse', gl: 2.9, z: 2, flip: 1 },
-      ...[[9, 9, 2.4, 1.6], [24, 21, 1.7, 2.3], [41, 6, 2.8, 1.9], [57, 15, 1.9, 2.7], [69, 5, 2.3, 1.4], [84, 12, 2.9, 2.1], [93, 24, 1.8, 3.0], [33, 30, 1.6, 2.5], [76, 28, 1.7, 1.7]]
+      { n: 'iceGlow', plane: 'scene', k: 0.64, x: 44, y: 82, w: 46, dx: 30, dy: 0, rot: 0, dur: 12, fx: 'pulse', gl: 5, z: 2 },
+      { n: 'shimmer', plane: 'scene', k: 0.64, x: 50, y: 80, w: 30, dx: 34, dy: 0, rot: 0, dur: 7, fx: 'pulse', gl: 2.1, z: 2 },
+      { n: 'shimmerB', src: 'shimmer', plane: 'scene', k: 0.64, x: 62, y: 90, w: 24, dx: -28, dy: 0, rot: 0, dur: 9, fx: 'pulse', gl: 2.9, z: 2, flip: 1 },
+      ...[[9, 9, 2.4, 1.6], [27, 14, 1.7, 2.3], [41, 6, 2.8, 1.9], [57, 15, 1.9, 2.7], [69, 5, 2.3, 1.4], [84, 12, 2.9, 2.1], [93, 24, 1.8, 3.0], [36, 28, 1.6, 2.5], [64, 30, 1.7, 1.7]]
         .map(([x, y, w, gl], i) => ({ n: `star${i + 1}`, src: 'sparkle', plane: 'scene', k: 0.46, x, y, w, dx: 0, dy: 0, rot: 0, dur: 8, fx: 'pulse', gl, z: 1 })),
       at('meteor', 0.2, 0.3, 8, 0.05, { k: 0.46, cross: 22, dx: 0, dy: 0, rot: 0, delay: -9 }),
-      { n: 'bough', plane: 'pop', at: 'band', x: 0.97, y: 0.5, h: 0.9, k: 2.6, dx: -8, dy: 3, rot: 1.5, dur: 10, noShadow: 1, wind: 1.4, ox: '100%', oy: '50%' },
-      { n: 'boughB', src: 'bough', plane: 'pop', at: 'band', x: 0.03, y: 0.45, h: 0.8, k: 2.8, dx: 8, dy: -3, rot: -1.5, dur: 12, noShadow: 1, flip: 1, wind: 1.6, ox: '0%', oy: '50%' }
+      // frosted shrubs on the foreground rocks sway on the shared gust
+      { n: 'shrub', plane: 'scene', k: 1.28, x: 90.5, y: 66, w: 7, z: 4, wind: 2.2, ox: '50%', oy: '100%', fl: 4.6 },
+      { n: 'shrubB', src: 'shrub', plane: 'scene', k: 1.28, x: 5, y: 62, w: 5, z: 4, wind: 2.6, ox: '50%', oy: '100%', fl: 5.3, flip: 1 },
+      { n: 'shrubP', src: 'shrub', plane: 'pop', at: 'band', x: 0.975, y: 0.62, h: 0.7, k: 2.6, dx: -4, dy: 0, rot: 1.2, dur: 10, noShadow: 1, wind: 1.6, ox: '50%', oy: '100%' },
+      { n: 'shrubQ', src: 'shrub', plane: 'pop', at: 'band', x: 0.025, y: 0.66, h: 0.6, k: 2.8, dx: 4, dy: 0, rot: -1.2, dur: 12, noShadow: 1, flip: 1, wind: 1.8, ox: '50%', oy: '100%' }
     ]
   };
 
