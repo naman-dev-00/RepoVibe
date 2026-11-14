@@ -1,0 +1,104 @@
+{
+ "source": "real github.com page replay (actions-checkout-code, logged out, captured locally; not committed)",
+ "matrix": {
+  "scene": "digital-rain",
+  "sprites": 22,
+  "popOuts": 0,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-stream",
+   "repv-tile"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   5.55,
+   5.5,
+   5.84
+  ]
+ },
+ "dracula": {
+  "scene": "gothic-castle",
+  "sprites": 13,
+  "popOuts": 2,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-cross",
+   "repv-cross-rev",
+   "repv-drift",
+   "repv-flap",
+   "repv-flick",
+   "repv-flutter",
+   "repv-glow",
+   "repv-gust-r",
+   "repv-swim",
+   "repv-tile"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   1.88,
+   0.99,
+   1.99
+  ]
+ },
+ "cozy-coding": {
+  "scene": "cozy-room",
+  "sprites": 9,
+  "popOuts": 2,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-drift",
+   "repv-flick",
+   "repv-flutter",
+   "repv-glow",
+   "repv-gust-r",
+   "repv-tile",
+   "repv-tile-gust"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   1.85,
+   1.01,
+   1.96
+  ]
+ },
+ "aurora": {
+  "scene": "aurora-borealis",
+  "sprites": 19,
+  "popOuts": 2,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-aurora-glow",
+   "repv-aurora-sway",
+   "repv-cross",
+   "repv-drift",
+   "repv-flow",
+   "repv-flow-rev",
+   "repv-flutter",
+   "repv-glow",
+   "repv-gust-r",
+   "repv-tile"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   20.88,
+   23.43,
+   19.24
+  ]
+ }
+}

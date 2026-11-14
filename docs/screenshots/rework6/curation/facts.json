@@ -1,0 +1,71 @@
+{
+ "alpine-lake": {
+  "rainClass": false,
+  "rainAnimations": 0
+ },
+ "synthwave-valley": {
+  "rainClass": false,
+  "rainAnimations": 0
+ },
+ "gallery": {
+  "count": "14 backgrounds · 10 approved · 4 experimental · 0 custom",
+  "groups": {
+   "approved": [
+    "Cyberpunk Neon",
+    "Enchanted Forest",
+    "Futuristic Sci-Fi",
+    "Cosmic Galaxy",
+    "Ocean Depths",
+    "Pixel Paradise",
+    "Arctic Frost",
+    "Solar Flare",
+    "Retro Terminal",
+    "Obsidian"
+   ],
+   "experimental": [
+    "Cozy Coding",
+    "Matrix",
+    "Dracula",
+    "Aurora"
+   ],
+   "custom": []
+  }
+ },
+ "picker": [
+  "Holographic AI hall",
+  "Cosmic galaxy",
+  "Enchanted forest",
+  "Alpine lake at golden hour",
+  "Neon rain canyon",
+  "Aurora fjord",
+  "Synthwave valley",
+  "Desert dunes at dusk",
+  "Ocean twilight",
+  "Sakura street",
+  "Cozy room",
+  "Digital rain",
+  "Gothic castle",
+  "Ocean depths",
+  "Forest waterfall",
+  "Pixel dusk",
+  "Solar sunset",
+  "Snow peaks",
+  "Academia library",
+  "Monochrome lines",
+  "Obsidian shards",
+  "Aurora lake",
+  "Sunset village",
+  "Ocean Depths",
+  "Arctic Frost",
+  "Pixel Paradise",
+  "Aurora"
+ ],
+ "popupFeatured": [
+  "Cyberpunk Neon",
+  "Ocean Depths",
+  "Enchanted Forest",
+  "Retro Terminal",
+  "Pixel Paradise",
+  "Solar Flare"
+ ]
+}

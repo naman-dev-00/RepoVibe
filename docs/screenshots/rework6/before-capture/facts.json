@@ -1,0 +1,80 @@
+{
+ "source": "real github.com page replay (actions-checkout-code, logged out, captured locally; not committed)",
+ "aurora": {
+  "scene": "aurora-borealis",
+  "sprites": 7,
+  "popOuts": 2,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-aurora-glow",
+   "repv-aurora-sway",
+   "repv-cross",
+   "repv-flow",
+   "repv-flow-rev",
+   "repv-flutter",
+   "repv-gust-r",
+   "repv-tile"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   14.97,
+   15.72,
+   14.04
+  ]
+ },
+ "matrix": {
+  "sprites": 0,
+  "popOuts": 0,
+  "quality": "full",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   0,
+   0,
+   0
+  ]
+ },
+ "cozy-coding": {
+  "sprites": 0,
+  "popOuts": 0,
+  "quality": "full",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   0,
+   0,
+   0
+  ]
+ },
+ "dracula": {
+  "sprites": 0,
+  "popOuts": 0,
+  "quality": "full",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   0,
+   0,
+   0
+  ]
+ }
+}

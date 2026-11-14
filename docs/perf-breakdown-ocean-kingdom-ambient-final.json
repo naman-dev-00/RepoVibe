@@ -1,0 +1,74 @@
+{
+  "id": "preset-7",
+  "mode": "ambient",
+  "size": "1366x768",
+  "groups": {
+    "baseline": {
+      "fps": 19.8,
+      "p95": 83.3,
+      "mainMsPerS": 49.8
+    },
+    "tile planes (caustics/clouds/snow/bubbles)": {
+      "fps": 29.9,
+      "p95": 50,
+      "mainMsPerS": 65.1
+    },
+    "plane pfar (caustics A)": {
+      "fps": 23.1,
+      "p95": 83.3,
+      "mainMsPerS": 48.7
+    },
+    "plane mist (caustics B)": {
+      "fps": 24.1,
+      "p95": 83.3,
+      "mainMsPerS": 58.1
+    },
+    "plane pmid (marine snow / petals)": {
+      "fps": 23.3,
+      "p95": 83.3,
+      "mainMsPerS": 57.2
+    },
+    "plane pnear (bubbles / big petals)": {
+      "fps": 22.6,
+      "p95": 83.3,
+      "mainMsPerS": 56.4
+    },
+    "masked planes only (caustics)": {
+      "fps": 25.3,
+      "p95": 83.3,
+      "mainMsPerS": 55.2
+    },
+    "scene sprites (wind + swim + rise)": {
+      "fps": 25.5,
+      "p95": 66.7,
+      "mainMsPerS": 35.9
+    },
+    "wind sprites only": {
+      "fps": 23.1,
+      "p95": 66.7,
+      "mainMsPerS": 67.8
+    },
+    "pop-out layer": {
+      "fps": 22.1,
+      "p95": 83.4,
+      "mainMsPerS": 47.7
+    },
+    "light shafts (rays)": {
+      "fps": 27.4,
+      "p95": 50.1,
+      "mainMsPerS": 63.9
+    },
+    "vignette (near)": {
+      "fps": 23,
+      "p95": 83.3,
+      "mainMsPerS": 50.5
+    },
+    "animations paused (compositing cost of layers only)": {
+      "fps": 60,
+      "p95": 16.8,
+      "mainMsPerS": 15.2
+    }
+  },
+  "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "scene": "ocean-kingdom"
+}

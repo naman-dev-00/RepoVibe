@@ -15,50 +15,69 @@ RepoVibe is an installable, local-first Chrome extension that makes GitHub visua
 
 **Note:** After editing this extension's source locally, return to `chrome://extensions` and press its Reload button. A hard reload of the GitHub tab might be needed after an extension reload.
 
-## What works in v0.1.0
+## What works in v0.3.0
 
-- Chrome Manifest V3 with host access limited to `https://github.com/*` and local `storage` permission.
-- 20 designed color/gradient themes; CSS variables integrated with GitHub's current color token convention plus scoped panel, code, and navigation styling.
-- Settings priority: **repository → account/organization owner → global**, with an independent native/unmodified appearance override.
-- GitHub repository detection, supported navigations using `turbo:load`, `turbo:render`, history events, and a URL-only observer fallback.
-- Popup: current repository, on/off toggle, six quick themes, repo/global scope, native appearance override, Studio launcher.
-- Full Studio: browse all 20 presets; edit 10 theme colors, name, description, font, radii, glass blur/opacity, gradient, code font size, and compact/wide layout.
-- Local wallpaper upload (PNG/JPEG/WebP). Images are resized/compressed by the Studio to fit extension-local storage. No remote images.
-- Connected GitHub tab previews: change the editor, see CSS change immediately. **Save** persists; closing or switching scope clears uncommitted previews.
-- Session undo/redo of appearance edits, safe theme JSON import/export, custom theme library, native appearance restore.
-- Local-only architecture; no backend, analytics, GitHub login, API requests, or remote code.
-- Node built-in unit test suite covering preset catalog, GitHub URL parsing, priority, and input sanitization.
+- **Crisp Immersive (default):** sharp 3D scenes with no blur, minimal overlay and clean, readable panels. A **scene window** between the repository tabs and the content shows the environment at full sharpness. **Balanced** and **Frosted Glass** are one click away in the popup. The six visual controls are independent. **Studio → Settings** has *Restore visual defaults* and *Diagnostics* (installed version, duplicate installations, effective blur and opacity).
+
+- **Four flagship live worlds:** Cyberpunk Neon (neon rain canyon), Enchanted Forest (moonlit glade with fireflies), Cosmic Galaxy (ringed giant and nebula) and Futuristic Sci-Fi (dark cyan-lit holographic AI hall). Each is an original raymarched 3D render. The motion setting is **Static / Ambient (default) / Cinematic** and is always off when the system asks for reduced motion. See `docs/FLAGSHIP_REPORT.md` §0b.
+- **Open reading (default).** Text keeps readable backing only where it exists. README headings, paragraphs and list items, sidebar text and issue/PR rows each get a compact backing, so empty space shows the scene. Studio → Appearance → *Readability backing* switches back to *Full panels*.
+- **Layered depth (2.5D).** In Ambient and Cinematic the four worlds are split into pre-rendered depth layers: far, mid and near scenery, a foreground framing the scene window, light shafts, plus particles at three depths. Objects at several depths move on their own (drifting asteroids, falling leaves, flickering neon, holograms); the scene does not follow the mouse. Cinematic adds a slow camera drift. This is layered artwork rather than real-time 3D geometry. It sits behind all page content, never takes clicks, and runs only on repository pages. Popup: *3D depth*. Studio → Appearance: *3D depth effects*, *Depth quality* (Auto/Full/Lite), *Scene window height*.
+- **Eight more immersive worlds (layered 2.5D).** Sakura Dreams (cherry-blossom garden at sunrise, preset-3), Ocean Depths (reef, kelp and sea life, preset-7), Arctic Frost (bright frozen valley, the light theme, preset-12), Aurora (preset-17), Synthwave (preset-20), Dark Academia (gothic library, preset-14), Pixel Paradise (voxel-style pixel art island, preset-10) and Sunset Boulevard (golden-hour coastal road, preset-18) use the same depth engine with data-only world definitions (`shared/worlds.js`): a shared 23-second gust curve sways trees, kelp and palms and pushes petals, flakes and pages; schools of fish, a turtle, a manta, jellyfish, a fox, gulls and cars move on their own; pop-out boughs, crystals and palms reach into the page margins without ever taking a click. These are painted **layered 2.5D scenes, not real-time 3D geometry**. Static shows the full artwork with nothing moving. Original artwork only; the butterfly that used to land on the page has been removed, and nothing in RepoVibe reacts to the cursor.
+- **Themed Top repositories on GitHub Home.** On the signed-in dashboard, each sidebar row shows a miniature of its own repository's theme behind readable glass. Links are unchanged, and the cards stay in sync with the repository pages. Verified against an authenticated-page fixture; real signed-in GitHub is unverified.
+- **Default development mappings**, seeded once: `naman-dev-00/tradPro` → Cyberpunk Neon, `RepoVibe` → Enchanted Forest, `Pool-Souls` → Cosmic Galaxy, `ai-powered-inbox-assistant` → Futuristic Sci-Fi.
+
+- **Immersive wallpapers.** Every one of the 20 presets ships with its own original artwork (bundled WebP, no remote service): neon rain street, cherry-blossom street, cozy room, gothic castle, ocean depths, forest waterfall, pixel-art dusk and island, solar sunset, snow peaks, lavender fantasy, academia library, aurora lake, sunset village, galaxy, synthwave and more. See `wallpapers/LICENSE.md`.
+- **Glass layering on GitHub.** With a wallpaper, GitHub's page canvas becomes transparent and its panels become translucent "glass" (adjustable opacity and blur), so the artwork shows around and behind content. Menus, dialogs and popovers stay opaque; code stays ≥ 90% opaque; links remain clickable; the wallpaper is a fixed layer that stays put while scrolling.
+- **Background controls with live preview:** wallpaper, opacity, brightness, blur, overlay darkness, position, cover/contain, glass panel opacity and glass blur.
+- **Every repository gets its own vibe.** Unconfigured repositories receive a deterministic automatic theme (stable hash of `owner/repo`, avoiding themes already used by the same owner's other repositories) that is saved on first visit and never changes. Precedence: **your repository choice → owner choice → automatic → global**. Manual choices — including "Restore GitHub appearance" — are never overwritten. Turn automatic themes off in Studio → Settings to use one shared global theme. With 20 presets, themes repeat once an owner has more than 20 repositories.
+- **Repository-first controls.** The popup and Studio show the repository, the active theme and where it comes from (manual, automatic, owner, global), with *Customize this repository*, *Save to this repository*, *Reset repository theme* and *Restore GitHub appearance*.
+- **Your own wallpapers in IndexedDB.** PNG/JPEG/WebP up to 25 MB, downscaled to ≤ 3840 px WebP, content-addressed (identical images stored once), referenced by id from themes; v0.1 inline wallpapers migrate automatically; missing or corrupted images fall back to the theme's colors; unused images can be cleaned up.
+- **Artwork gallery** with real previews, accent swatches, glass panel mock-ups and *Apply* / *Customize* actions.
+- Everything from v0.1.1: GitHub light/dark base-mode handling, exact restoration, client-side navigation support, safe JSON import/export, local-only privacy, no new permissions (`storage` + `https://github.com/*`).
 
 ## Scope and known limitations
 
-This is a **functional Phase 1 MVP**, not the complete 24-section product vision. Features left for later releases include time/language-based automatic rules, full page-type styling, advanced layout manipulation, motion/particle engines, community galleries, a large-wallpaper IndexedDB store, synchronization and a comprehensive GitHub-version compatibility matrix. Most controls apply to broadly shared Github components; some newer, changing GitHub views will retain original styles. Styling of security-sensitive views is deliberately conservative. A color token or selector might need adjustment after GitHub UI updates.
+This is a **functional Phase 1 MVP**, not the complete 24-section product vision. Features left for later releases include time/language-based automatic rules, full page-type styling, advanced layout manipulation, motion/particle engines, community galleries, synchronization and a comprehensive GitHub-version compatibility matrix. Most controls apply to broadly shared Github components; some newer, changing GitHub views will retain original styles. Styling of security-sensitive views is deliberately conservative. A color token or selector might need adjustment after GitHub UI updates.
 
 **Technology choice:** This standalone initial release deliberately uses dependency-free JavaScript, HTML and CSS rather than the specification's preferred React/TypeScript/Vite architecture. This makes it directly loadable in Chrome without installing dependencies or compiling. The code is modular and can be migrated to the preferred stack in Phase 2; the goal here is to provide an actual working extension immediately. Chromium integration with the live github.com UI was **not** fully verified in this environment; manual browser acceptance is required before public distribution.
 
-**Wallpaper storage:** This MVP stores locally compressed JPEG data in `chrome.storage.local`, which has a typical quota of 10 MB. It compresses each wallpaper to around 750 KB or less. Avoid assigning many distinct wallpapers. For Phase 2, replace this with IndexedDB in the extension origin plus a safe delivery mechanism to the content script.
+**Wallpaper storage:** bundled artwork needs no storage. Your uploads live in IndexedDB in the extension's own origin (not visible to github.com) and are delivered to GitHub pages by the extension's service worker; theme settings only hold a reference id.
 
 ## Test
 
 Requires Node.js 18+ (Node.js 22 recommended):
 
 ```sh
-npm test
+npm test            # unit tests (no dependencies)
+npm run check       # syntax check of all scripts
+npm ci && npx playwright install chromium   # once: dev dependency + browser
+npm run test:e2e    # Chromium E2E with the unpacked extension loaded
 ```
 
-There are no npm runtime or development dependencies. `npm test` runs `node --test tests/*.test.js`.
+The E2E suite needs Playwright with a Chromium build available (`require('playwright')`). It intercepts `https://github.com/*` and serves `tests/e2e/fixture.html`, so it runs offline and does not replace manual testing on live GitHub. Visual baselines are in `tests/e2e/__screenshots__`; refresh them with `UPDATE_SNAPSHOTS=1 npm run test:e2e`. Latest results and the defect list are in `docs/ACCEPTANCE_REPORT.md`.
+
+Build a loadable ZIP with `npm run package` (produces `RepoVibe-Extension.zip`) and check it with `npm run verify:package`.
+
+Live github.com acceptance (real site, logged out, no credentials) runs separately with `npm run test:live` and in `.github/workflows/live-github.yml` (pull requests touching extension files, weekly, manual dispatch). It reports BLOCKED, not PASS, when GitHub or its assets are unreachable. Results: `docs/ACCEPTANCE_REPORT.md`.
+
+CI (`.github/workflows/ci.yml`) runs all of the above on every pull request and push to `main`. Install dev dependencies with `npm ci` and Chromium with `npx playwright install --with-deps chromium`.
 
 ## Project files
 
 | File | Purpose |
 | --- | --- |
 | `manifest.json` | MV3 installation and GitHub-only permissions |
-| `shared/core.js` | Theme definitions, sanitizers, repository detection, resolver, local persistence |
+| `shared/core.js` | Theme + wallpaper catalogue, sanitizers, repository detection, resolver and automatic assignment, local persistence |
+| `shared/wallpaper-store.js` | IndexedDB wallpaper store (validation, dedup, cleanup) |
+| `background.js` | Service worker: serves uploaded wallpapers to GitHub pages, migrates v0.1 wallpapers, cleanup |
+| `wallpapers/` | 20 original bundled wallpapers + thumbnails (`LICENSE.md`); generator in `scripts/wallpapers/` |
 | `content.js` | Safe CSS presentation on GitHub, route awareness, editor preview connection |
 | `popup.html`, `popup.js` | Compact extension popup and quick theme assignment |
 | `studio.html`, `studio.js` | Full gallery and visual customization studio |
 | `ui.css` | Responsive popup and studio design |
 | `icons/` | Local icons |
-| `tests/` | Pure Node unit tests |
+| `tests/` | Node unit tests and Chromium E2E tests (`tests/e2e/`) |
+| `docs/ACCEPTANCE_REPORT.md` | Defects found, fixes, and test evidence |
 | `docs/ROADMAP.md` | Future roadmap and acceptance criteria |
 
 ## Chrome compatibility/acceptance checklist

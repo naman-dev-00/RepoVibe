@@ -30,33 +30,87 @@
       <div class="studio-content">
         <div class="workspace-strip">
           <div><div class="label-mini">APPLY TO</div><select id="scopeSelect" aria-label="Theme application scope"><option value="repository">This repository</option><option value="owner">This owner / organization</option><option value="global">All GitHub pages</option></select></div>
-          <div><div class="label-mini">CURRENT TARGET</div><strong id="targetLabel">GitHub globally</strong></div>
-          <div class="workspace-right"><div class="label-mini">SELECTED THEME</div><strong id="selectedName">Not set</strong></div>
+          <div><div class="label-mini">CURRENT TARGET</div><strong id="targetLabel">GitHub globally</strong><div class="source-chip" id="themeSource">—</div></div>
+          <div class="workspace-right"><div class="label-mini">ACTIVE THEME</div><strong id="selectedName">Not set</strong>
+            <div class="repo-actions"><button id="resetRepoTheme" class="outline-button" type="button" title="Remove the manual choice for this repository; it returns to its automatic or owner/global theme">↺ Reset repository theme</button><button id="restoreGitHub" class="outline-button" type="button" title="Show original GitHub styling on this repository">◌ Restore GitHub appearance</button></div></div>
         </div>
         <section id="view-gallery" class="view active-view">
-          <div class="intro"><h2>Find your frequency.</h2><p>Choose a complete visual style. Customize the colors and wallpaper after selecting a preset.</p></div>
-          <div class="gallery-grid" id="themeGallery"></div>
+          <div class="intro"><h2 id="galleryHeading">Find your frequency.</h2><p>Every theme ships with original bundled artwork. <b>Apply</b> saves it to the current target; <b>Customize</b> opens it in the editor first.</p></div>
+          <div class="gallery-tools">
+            <input id="gallerySearch" type="search" placeholder="Search themes by name" aria-label="Search themes by name" autocomplete="off" />
+            <div class="gallery-filters" role="group" aria-label="Show collection">
+              <button type="button" class="filter-chip active" data-filter="all" aria-pressed="true">All <span class="chip-count"></span></button>
+              <button type="button" class="filter-chip" data-filter="approved" aria-pressed="false">Approved <span class="chip-count"></span></button>
+              <button type="button" class="filter-chip" data-filter="experimental" aria-pressed="false">Experimental <span class="chip-count"></span></button>
+              <button type="button" class="filter-chip" data-filter="custom" aria-pressed="false">My custom themes <span class="chip-count"></span></button>
+            </div>
+            <span id="galleryCount" class="gallery-count" role="status" aria-live="polite"></span>
+          </div>
+          <div id="themeGallery" class="gallery-groups"></div>
         </section>
         <section id="view-customize" class="view">
           <div class="intro"><h2>Make it yours.</h2><p>Fine-tune your palette, panels, typography, and the little details that give a theme personality.</p></div>
           <div class="editor-grid">
             <div class="settings-card"><h3>Theme identity</h3><label class="field-label" for="themeName">Theme name</label><input id="themeName" maxlength="60" placeholder="My custom theme" /><label class="field-label" for="themeDescription">Description</label><input id="themeDescription" maxlength="120" placeholder="A different kind of GitHub" /><label class="field-label" for="fontSelect">Interface font</label><select id="fontSelect"><option value="system">System default</option><option value="rounded">Rounded</option><option value="serif">Serif</option><option value="mono">Monospace</option></select></div>
             <div class="settings-card"><h3>Color palette</h3><div class="color-grid" id="colorControls"></div></div>
-            <div class="settings-card"><h3>Surfaces</h3><label class="range-row"><span>Corner radius <output id="radiusVal"></output></span><input id="radius" type="range" min="0" max="28" /></label><label class="range-row"><span>Glass blur <output id="glassVal"></output></span><input id="glass" type="range" min="0" max="30" /></label><label class="range-row"><span>Panel opacity <output id="glassOpacityVal"></output></span><input id="glassOpacity" type="range" min="55" max="100" /></label></div>
+            <div class="settings-card"><h3>Surfaces</h3><label class="range-row"><span>Corner radius <output id="radiusVal"></output></span><input id="radius" type="range" min="0" max="28" /></label><label class="range-row"><span>Panel backdrop blur <output id="glassVal"></output></span><input id="glass" type="range" min="0" max="30" /></label><label class="range-row"><span>Panel opacity <output id="glassOpacityVal"></output></span><input id="glassOpacity" type="range" min="40" max="100" /></label><p class="helper" id="glassGuardNote" role="status"></p></div>
             <div class="settings-card preview-card"><div class="label-mini">COLOR PREVIEW</div><div class="preview-art" id="palettePreview"><div class="preview-nav"><i></i><i></i><i></i><span></span></div><div class="preview-content"><div class="fake-title"></div><div class="fake-line"></div><div class="fake-line short"></div><div class="fake-button"></div></div></div><p>Changes preview live in the connected GitHub tab. Save when it looks right.</p></div>
           </div>
         </section>
         <section id="view-background" class="view">
-          <div class="intro"><h2>Set the scene.</h2><p>From soft gradients to your own wallpaper. Images stay on your computer.</p></div>
-          <div class="editor-grid"><div class="settings-card"><h3>Background style</h3><label class="field-label" for="backgroundMode">Mode</label><select id="backgroundMode"><option value="gradient">Gradient</option><option value="solid">Solid color</option><option value="image">Uploaded image</option></select><label class="range-row"><span>Gradient angle <output id="gradientAngleVal"></output></span><input id="gradientAngle" type="range" min="0" max="360" /></label><p class="helper">The gradient uses the colors from the Appearance palette.</p></div><div class="settings-card"><h3>Your wallpaper</h3><label class="upload-zone" for="wallpaperInput"><span class="upload-icon">▧</span><b>Choose a local image</b><span>PNG, JPG or WebP · up to 20 MB input</span></label><input hidden id="wallpaperInput" type="file" accept="image/png,image/jpeg,image/webp" /><button id="removeWallpaper" class="outline-button full">Remove wallpaper</button><label class="range-row"><span>Image opacity <output id="wallpaperOpacityVal"></output></span><input id="wallpaperOpacity" type="range" min="15" max="100" /></label><label class="range-row"><span>Image blur <output id="wallpaperBlurVal"></output></span><input id="wallpaperBlur" type="range" min="0" max="20" /></label></div></div>
+          <div class="intro"><h2>Set the scene.</h2><p>Pick bundled artwork or your own image. Images stay on your computer (IndexedDB); themes only store a reference.</p></div>
+          <div class="editor-grid">
+            <div class="settings-card wide-card"><div class="library-heading"><h3>Wallpaper</h3><div><label class="outline-button upload-button" for="wallpaperInput">↑ Upload image</label><input hidden id="wallpaperInput" type="file" accept="image/png,image/jpeg,image/webp" /> <button id="removeWallpaper" class="outline-button" type="button">No wallpaper</button></div></div>
+              <p class="helper">PNG, JPEG or WebP up to 25 MB. Large images are resized to at most 3840 px and stored as WebP.</p>
+              <div class="wallpaper-grid" id="wallpaperGrid" role="listbox" aria-label="Wallpapers"></div></div>
+            <div class="settings-card"><h3>Appearance</h3>
+              <p class="helper">Applies to all built-in themes and to the theme you are editing. Each preset sets the six controls below; afterwards every control is independent.</p>
+              <div class="scope-controls scene-modes" role="radiogroup" aria-label="Appearance">
+                <button type="button" class="outline-button" data-appearance="crisp" title="Sharp 3D scene, no blur, clean reading panels (default)">Crisp Immersive</button>
+                <button type="button" class="outline-button" data-appearance="balanced" title="Sharp scene, subtle overlay, more solid panels">Balanced</button>
+                <button type="button" class="outline-button" data-appearance="frosted" title="Translucent panels with backdrop blur (opt-in)">Frosted Glass</button>
+              </div>
+              <label class="toggle-row"><span><b>Scene window</b><small>A clear band between GitHub's repository tabs and the content, showing the scene at full sharpness.</small></span><input id="sceneWindowToggle" type="checkbox" /></label>
+              <label class="toggle-row"><span><b>Readability backing</b><small>Text only keeps the scene open: each heading, paragraph, list item and label gets its own compact backing, and empty space stays clear. Full panels puts a surface behind whole README and sidebar areas.</small></span><select id="readingBacking" aria-label="Readability backing"><option value="text">Text only (open)</option><option value="panels">Full panels</option></select></label>
+              <label class="toggle-row"><span><b>Scene window height</b><small>How much of the scene the window shows above repository content.</small></span><select id="sceneHeight" aria-label="Scene window height"><option value="compact">Compact</option><option value="standard">Standard</option><option value="tall">Tall</option></select></label>
+              <label class="toggle-row"><span><b>3D depth effects</b><small>Layered parallax scenes with foreground, mid and distant planes on the flagship worlds (Ambient and Cinematic). Turn off to save GPU/battery; the flat sharp scene stays.</small></span><input id="depthEffectsToggle" type="checkbox" /></label>
+              <label class="toggle-row"><span><b>Depth quality</b><small>Auto measures the frame rate once per page and steps down a fixed ladder: Lite below 40 fps (fewer particle planes, resting distant objects), Minimal below 25 fps (no particle planes or light shafts; layers, moving objects and pop-out stay). It never switches back mid-page. Lite always uses Lite; Full never steps down.</small></span><select id="depthQuality" aria-label="Depth quality"><option value="auto">Auto</option><option value="full">Full</option><option value="lite">Lite</option></select></label>
+              <div class="depth-tuning" id="depthTuning">
+                <label class="range-row"><span>Animation intensity <output id="tuneMotionVal"></output></span><input id="tuneMotion" data-tune="motion" type="range" min="0" max="200" step="10" /></label>
+                <label class="range-row"><span>Particle density <output id="tuneParticlesVal"></output></span><input id="tuneParticles" data-tune="particles" type="range" min="0" max="100" step="10" /></label>
+                <label class="range-row"><span>Foreground / pop-out <output id="tuneForegroundVal"></output></span><input id="tuneForeground" data-tune="foreground" type="range" min="0" max="150" step="10" /></label>
+              </div>
+              <p class="helper" id="sceneGuardNote" role="status"></p></div>
+            <div class="settings-card"><h3>Image</h3>
+              <label class="range-row"><span>Wallpaper opacity <output id="wallpaperOpacityVal"></output></span><input id="wallpaperOpacity" type="range" min="15" max="100" /></label>
+              <label class="range-row"><span>Wallpaper brightness <output id="wallpaperBrightnessVal"></output></span><input id="wallpaperBrightness" type="range" min="40" max="140" /></label>
+              <label class="range-row"><span>Wallpaper blur <output id="wallpaperBlurVal"></output></span><input id="wallpaperBlur" type="range" min="0" max="20" /></label>
+              <label class="range-row"><span>Overlay darkness <output id="wallpaperOverlayVal"></output></span><input id="wallpaperOverlay" type="range" min="0" max="85" /></label></div>
+            <div class="settings-card"><h3>Placement &amp; fallback</h3>
+              <label class="field-label" for="wallpaperPosition">Position</label><select id="wallpaperPosition"><option value="center">Center</option><option value="top">Top</option><option value="bottom">Bottom</option><option value="left">Left</option><option value="right">Right</option></select>
+              <label class="field-label" for="wallpaperSize">Scaling</label><select id="wallpaperSize"><option value="cover">Cover (fill the page)</option><option value="contain">Contain (whole image)</option></select>
+              <label class="field-label" for="backgroundMode">Background mode</label><select id="backgroundMode"><option value="image">Wallpaper</option><option value="gradient">Gradient</option><option value="solid">Solid color</option></select>
+              <label class="range-row"><span>Gradient angle <output id="gradientAngleVal"></output></span><input id="gradientAngle" type="range" min="0" max="360" /></label>
+              <p class="helper">Panel opacity and panel backdrop blur are under Appearance → Surfaces.</p></div>
+          </div>
         </section>
         <section id="view-code" class="view"><div class="intro"><h2>Built for builders.</h2><p>Keep source code readable while shaping the workspace around the way you work.</p></div><div class="editor-grid"><div class="settings-card"><h3>Code viewer</h3><label class="range-row"><span>Code font size <output id="codeFontSizeVal"></output></span><input id="codeFontSize" type="range" min="11" max="20" /></label><div class="code-preview" id="codePreview"><span>01</span> <em>const</em> vibe = <b>'your own'</b>;<div><span>02</span> <em>export default</em> vibe;</div></div></div><div class="settings-card"><h3>Workspace layout</h3><label class="field-label" for="layoutSelect">Content density</label><select id="layoutSelect"><option value="standard">Balanced (default)</option><option value="wide">Wide coding space</option><option value="compact">Compact lists</option></select><p class="helper">Layout adjustments are conservative so repository navigation and GitHub actions stay usable.</p></div></div></section>
         <section id="view-library" class="view"><div class="intro"><h2>Your saved worlds.</h2><p>Reapply, export, or import themes. Themes can be shared as JSON data—never executable code.</p></div><div class="settings-card"><div class="library-heading"><h3>Custom themes</h3><div><button id="importTheme" class="outline-button">↑ Import JSON</button><input hidden id="importInput" type="file" accept=".json,application/json" /></div></div><div id="customThemes" class="library-list"></div></div></section>
-        <section id="view-settings" class="view"><div class="intro"><h2>You're in control.</h2><p>RepoVibe works entirely in your browser. Nothing is sent to a server.</p></div><div class="settings-card setting-actions"><h3>Appearance & settings</h3><label class="toggle-row"><span><b>Enable RepoVibe</b><small>Turn all GitHub visual changes on or off</small></span><input id="enableStudio" type="checkbox" /></label><button id="resetScope" class="outline-button">Restore default for current scope</button><button id="exportTheme" class="outline-button">↓ Export current theme</button><p class="helper">To remove RepoVibe entirely, use Chrome's extension management page. Your GitHub repository files are never changed.</p></div></section>
+        <section id="view-settings" class="view"><div class="intro"><h2>You're in control.</h2><p>RepoVibe works entirely in your browser. Nothing is sent to a server.</p></div>
+          <div class="settings-card setting-actions"><h3>Appearance &amp; settings</h3>
+            <label class="toggle-row"><span><b>Enable RepoVibe</b><small>Turn all GitHub visual changes on or off</small></span><input id="enableStudio" type="checkbox" /></label>
+            <label class="toggle-row"><span><b>Automatic theme per repository</b><small>Repositories without your own choice get a stable theme picked from the repository name. Turn off to use one shared global theme.</small></span><input id="autoAssignToggle" type="checkbox" /></label>
+            <label class="toggle-row"><span><b>Live wallpaper motion</b><small>Ambient rain, fireflies, twinkling stars or holographic grid on the flagship themes. Always off when your system asks for reduced motion.</small></span><select id="motionMode" aria-label="Live wallpaper motion"><option value="static">Static</option><option value="ambient">Ambient</option><option value="cinematic">Cinematic</option></select></label>
+            <div class="toggle-row"><span><b>Restore visual defaults</b><small>Crisp Immersive for built-in themes, and the six visual controls of your custom themes reset to Crisp values. Repository assignments, wallpapers, colours and names are kept.</small></span><button id="restoreVisual" class="outline-button" type="button">Restore</button></div>
+            <div class="toggle-row diagnostics"><span><b>Diagnostics</b><small id="diagnostics">Open a GitHub tab to see what is running there.</small></span><button id="refreshDiagnostics" class="outline-button" type="button">Check</button></div>
+            <button id="resetScope" class="outline-button">Restore default for current scope</button><button id="exportTheme" class="outline-button">↓ Export current theme</button>
+            <p class="helper">Precedence: your repository choice → owner choice → automatic theme → global theme. To remove RepoVibe entirely, use Chrome's extension management page. Your GitHub repository files are never changed.</p></div>
+          <div class="settings-card setting-actions"><h3>Wallpaper storage</h3><p class="helper" id="storageUsage">Loading…</p><div id="storageList" class="library-list"></div><button id="cleanupStorage" class="outline-button" type="button">Remove unused wallpapers</button></div>
+        </section>
       </div>
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </main>
   </div>
-  <script src="shared/core.js"></script><script src="studio.js"></script>
+  <script src="shared/wallpaper-catalog.js"></script><script src="shared/theme-review.js"></script><script src="shared/core.js"></script><script src="shared/wallpaper-store.js"></script><script src="studio.js"></script>
 </body>
 </html>

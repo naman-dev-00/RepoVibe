@@ -1,0 +1,11 @@
+node_modules/
+tests/e2e/output/
+RepoVibe-Extension.zip
+tests/live/output/
+
+# Real github.com page snapshots (MHTML, captured by tests/live/diagnose.live.js) contain GitHub-owned CSS and
+# content: local developer use only, never committed.
+tests/e2e/real-snapshots/
+
+# Owner-supplied master artwork (source files; the encoded results under wallpapers/ are what ships)
+art-masters/

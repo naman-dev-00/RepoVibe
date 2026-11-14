@@ -1,0 +1,9 @@
+{
+ "card": {
+  "bg": "rgba(0, 0, 0, 0)",
+  "frame": false,
+  "panel": false,
+  "radius": "6px",
+  "border": "1px"
+ }
+}

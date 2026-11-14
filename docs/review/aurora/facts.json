@@ -1,0 +1,79 @@
+{
+ "source": "real github.com page replay (actions-checkout-code, logged out)",
+ "preset": "preset-17",
+ "running": [
+  "prc-UnderlineNav-detect-overflow-6HuSH",
+  "repv-aurora-glow",
+  "repv-aurora-sway",
+  "repv-breathe",
+  "repv-cross",
+  "repv-drift",
+  "repv-flow",
+  "repv-flow-rev",
+  "repv-flutter",
+  "repv-glow",
+  "repv-gust-r",
+  "repv-tile"
+ ],
+ "motion": {
+  "secondsBetweenFrames": 2,
+  "changedPct": [
+   25.29,
+   31.9,
+   28.68
+  ],
+  "threshold": "a pixel counts when its R+G+B differs by more than 18 of 765 (JPEG noise is below that)"
+ },
+ "detail": [
+  {
+   "file": "detail-1.jpg",
+   "label": "the great massif: snow streaks and rim light",
+   "region": "200,150 1000×640 of 3840×2160, no resampling"
+  },
+  {
+   "file": "detail-2.jpg",
+   "label": "sky: stars and aurora",
+   "region": "1500,420 1000×640 of 3840×2160, no resampling"
+  },
+  {
+   "file": "detail-3.jpg",
+   "label": "ice lake: cracks and glow",
+   "region": "1500,1250 1000×640 of 3840×2160, no resampling"
+  }
+ ],
+ "assets": [
+  {
+   "layer": "far",
+   "natural": "2560×1440",
+   "upscaleAt3840": 1.5
+  },
+  {
+   "layer": "mid",
+   "natural": "2560×1440",
+   "upscaleAt3840": 1.5
+  },
+  {
+   "layer": "near",
+   "natural": "2560×1440",
+   "upscaleAt3840": 1.5
+  },
+  {
+   "layer": "rays",
+   "natural": "2560×1440",
+   "upscaleAt3840": 1.5
+  },
+  {
+   "layer": "front",
+   "natural": "2560×1440",
+   "upscaleAt3840": 1.5
+  }
+ ],
+ "vectorStrokes": 0,
+ "staticAnimations": 0,
+ "contrast": {
+  "min": 4.75,
+  "aaFailures": 0,
+  "summary": ""
+ },
+ "extensionErrors": 0
+}

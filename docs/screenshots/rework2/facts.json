@@ -1,0 +1,138 @@
+{
+ "source": "real github.com page replay (actions-checkout-code, logged out, captured locally; not committed)",
+ "cyberpunk-neon": {
+  "scene": "neon-city-3d",
+  "sprites": 23,
+  "popOuts": 3,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-cross",
+   "repv-cross-rev",
+   "repv-drift",
+   "repv-flick",
+   "repv-rain",
+   "repv-ripple"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   5.48,
+   6.88,
+   6.04
+  ]
+ },
+ "sakura-dreams": {
+  "scene": "sakura-garden",
+  "sprites": 12,
+  "popOuts": 2,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-fall",
+   "repv-flutter",
+   "repv-gust-r",
+   "repv-gust-x",
+   "repv-leaf-flutter",
+   "repv-leaf-sway",
+   "repv-leaf-turn",
+   "repv-tile",
+   "repv-tile-gust"
+  ],
+  "textMin": 4.58,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   36.7,
+   31.75,
+   26.6
+  ]
+ },
+ "ocean-depths": {
+  "scene": "ocean-kingdom",
+  "sprites": 33,
+  "popOuts": 5,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-cross",
+   "repv-cross-rev",
+   "repv-drift",
+   "repv-flutter",
+   "repv-gust-r",
+   "repv-leaf-flutter",
+   "repv-leaf-sway",
+   "repv-rise",
+   "repv-swim",
+   "repv-tile"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   8.39,
+   6.77,
+   5.49
+  ]
+ },
+ "arctic-frost": {
+  "scene": "arctic-frost-3d",
+  "sprites": 6,
+  "popOuts": 1,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-cross",
+   "repv-fall",
+   "repv-flutter",
+   "repv-gust-r",
+   "repv-gust-x",
+   "repv-leaf-flutter",
+   "repv-leaf-sway",
+   "repv-leaf-turn",
+   "repv-swim",
+   "repv-tile",
+   "repv-tile-gust"
+  ],
+  "textMin": 4.58,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   4.45,
+   2.62,
+   3.59
+  ]
+ },
+ "pixel-paradise": {
+  "scene": "pixel-paradise-3d",
+  "sprites": 6,
+  "popOuts": 2,
+  "quality": "auto→minimal",
+  "running": [
+   "prc-UnderlineNav-detect-overflow-6HuSH",
+   "repv-cross",
+   "repv-cross-rev",
+   "repv-drift",
+   "repv-flutter",
+   "repv-gust-r",
+   "repv-spin",
+   "repv-swim",
+   "repv-tile",
+   "repv-tile-gust"
+  ],
+  "textMin": 4.75,
+  "aaFails": 0,
+  "failSummary": "",
+  "errors": 0,
+  "motionChangedPct": [
+   4.02,
+   2.47,
+   3.73
+  ]
+ }
+}

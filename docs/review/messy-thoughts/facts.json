@@ -1,0 +1,46 @@
+{
+ "source": "real github.com page replay (actions-checkout-code, logged out)",
+ "preset": "preset-21",
+ "running": [
+  "prc-UnderlineNav-detect-overflow-6HuSH",
+  "repv-draw",
+  "repv-draw-flow",
+  "repv-svg-breathe"
+ ],
+ "motion": {
+  "secondsBetweenFrames": 2.5,
+  "changedPct": [
+   6.13,
+   6.46,
+   6.38
+  ],
+  "threshold": "a pixel counts when its R+G+B differs by more than 18 of 765 (JPEG noise is below that)"
+ },
+ "detail": [
+  {
+   "file": "detail-1.jpg",
+   "label": "the tangle: individual strokes",
+   "region": "1440,300 1000×640 of 3840×2160, no resampling"
+  },
+  {
+   "file": "detail-2.jpg",
+   "label": "figure linework: collar and drawstrings",
+   "region": "1240,1000 1000×640 of 3840×2160, no resampling"
+  }
+ ],
+ "assets": [
+  {
+   "layer": "far",
+   "natural": "3840×2160",
+   "upscaleAt3840": 1
+  }
+ ],
+ "vectorStrokes": 34,
+ "staticAnimations": 0,
+ "contrast": {
+  "min": 4.75,
+  "aaFailures": 0,
+  "summary": ""
+ },
+ "extensionErrors": 0
+}

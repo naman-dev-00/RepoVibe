@@ -1,0 +1,64 @@
+<!doctype html>
+<!-- Offline stand-in for a GitHub repository page. It mirrors the parts RepoVibe touches:
+     data-color-mode switching, Primer CSS tokens, common class names, a React-style code view
+     with the read-only cursor textarea, and client-side (pushState/turbo) navigation. -->
+<html lang="en" data-color-mode="__MODE__" data-light-theme="light" data-dark-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>__TITLE__ · GitHub</title>
+<style>
+  [data-color-mode=light] { --bgColor-default:#ffffff; --bgColor-muted:#f6f8fa; --bgColor-inset:#f6f8fa; --bgColor-emphasis:#25292e;
+    --fgColor-default:#1f2328; --fgColor-muted:#59636e; --fgColor-accent:#0969da; --fgColor-onEmphasis:#ffffff;
+    --borderColor-default:#d1d9e0; --overlay-bgColor:#ffffff; --bgColor-success-emphasis:#1f883d; color-scheme:light; }
+  [data-color-mode=dark] { --bgColor-default:#0d1117; --bgColor-muted:#151b23; --bgColor-inset:#010409; --bgColor-emphasis:#3d444d;
+    --fgColor-default:#f0f6fc; --fgColor-muted:#9198a1; --fgColor-accent:#4493f8; --fgColor-onEmphasis:#ffffff;
+    --borderColor-default:#3d444d; --overlay-bgColor:#151b23; --bgColor-success-emphasis:#238636; color-scheme:dark; }
+  body { margin:0; background:var(--bgColor-default); color:var(--fgColor-default); font:14px/1.5 sans-serif; }
+  .AppHeader { padding:12px 16px; background:var(--bgColor-inset); border-bottom:1px solid var(--borderColor-default); }
+  .container-xl { max-width:1280px; margin:0 auto; padding:16px; }
+  .Box { border:1px solid var(--borderColor-default); border-radius:6px; background:var(--bgColor-default); margin-bottom:16px; }
+  .Box-row { padding:8px 16px; border-top:1px solid var(--borderColor-default); }
+  a { color:var(--fgColor-accent); }
+  .Counter { background:var(--bgColor-emphasis); color:var(--fgColor-onEmphasis); border-radius:10px; padding:0 6px; }
+  .btn-primary { background:var(--bgColor-success-emphasis); color:var(--fgColor-onEmphasis); border:0; padding:5px 12px; border-radius:6px; }
+  .overlay { background:var(--overlay-bgColor); border:1px solid var(--borderColor-default); padding:8px; width:200px; }
+  .react-code-lines { position:relative; font-family:monospace; font-size:12px; line-height:20px; }
+  .react-code-line { white-space:pre; padding-left:8px; }
+  #read-only-cursor-text-area { position:absolute; inset:0; opacity:0; font-family:monospace; font-size:12px; line-height:20px; resize:none; }
+  .color-fg-muted { color:var(--fgColor-muted); }
+</style>
+</head>
+<body>
+  <header class="AppHeader"><strong id="repoTitle">__TITLE__</strong> <span class="Counter">12</span></header>
+  <main class="container-xl" id="main">
+    <div class="Box">
+      <div class="Box-row"><a id="toOther" href="/acme/other">acme/other (client-side)</a></div>
+      <div class="Box-row"><a id="toTurbo" href="/zeta/tools">zeta/tools (turbo)</a></div>
+      <div class="Box-row color-fg-muted">Secondary text sample · <button class="btn-primary">Code</button></div>
+    </div>
+    <div class="overlay" id="overlay">Menu overlay</div>
+    <div class="Box" data-testid="code-viewer">
+      <div class="react-code-lines">
+        <textarea id="read-only-cursor-text-area" aria-label="file content" readonly>const vibe = 'your own';
+export default vibe;</textarea>
+        <div class="react-code-line react-code-text">const vibe = 'your own';</div>
+        <div class="react-code-line react-code-text">export default vibe;</div>
+      </div>
+    </div>
+  </main>
+  <script>
+    // Simulates GitHub soft navigation: pushState with no reload, optionally followed by turbo:load.
+    function softNav(event, turbo) {
+      event.preventDefault();
+      const href = event.currentTarget.getAttribute('href');
+      history.pushState({}, '', href);
+      document.getElementById('repoTitle').textContent = href.slice(1);
+      const row = document.createElement('div'); row.className = 'Box-row'; row.textContent = 'navigated to ' + href;
+      document.querySelector('.Box').appendChild(row);
+      if (turbo) document.dispatchEvent(new Event('turbo:load'));
+    }
+    document.getElementById('toOther').addEventListener('click', e => softNav(e, false));
+    document.getElementById('toTurbo').addEventListener('click', e => softNav(e, true));
+  </script>
+</body>
+</html>

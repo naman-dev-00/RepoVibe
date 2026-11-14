@@ -1,0 +1,182 @@
+{
+ "preset-1": {
+  "scene": "neon-city-3d",
+  "layers": 9,
+  "sprites": 3,
+  "popOuts": 3,
+  "motionClass": "repv-motion-rain",
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-2": {
+  "scene": null,
+  "layers": 0,
+  "sprites": 0,
+  "popOuts": 0,
+  "motionClass": null,
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-3": {
+  "scene": "sakura-garden",
+  "layers": 8,
+  "sprites": 12,
+  "popOuts": 2,
+  "motionClass": null,
+  "textMin": 4.58,
+  "aaFails": 0
+ },
+ "preset-4": {
+  "scene": null,
+  "layers": 0,
+  "sprites": 0,
+  "popOuts": 0,
+  "motionClass": null,
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-5": {
+  "scene": null,
+  "layers": 0,
+  "sprites": 0,
+  "popOuts": 0,
+  "motionClass": null,
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-6": {
+  "scene": null,
+  "layers": 0,
+  "sprites": 0,
+  "popOuts": 0,
+  "motionClass": null,
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-7": {
+  "scene": "ocean-kingdom",
+  "layers": 9,
+  "sprites": 29,
+  "popOuts": 3,
+  "motionClass": null,
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-8": {
+  "scene": "enchanted-forest",
+  "layers": 9,
+  "sprites": 9,
+  "popOuts": 2,
+  "motionClass": "repv-motion-fireflies",
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-9": {
+  "scene": null,
+  "layers": 0,
+  "sprites": 0,
+  "popOuts": 0,
+  "motionClass": null,
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-10": {
+  "scene": "pixel-paradise-3d",
+  "layers": 6,
+  "sprites": 6,
+  "popOuts": 2,
+  "motionClass": null,
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-11": {
+  "scene": null,
+  "layers": 0,
+  "sprites": 0,
+  "popOuts": 0,
+  "motionClass": null,
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-12": {
+  "scene": "arctic-frost-3d",
+  "layers": 8,
+  "sprites": 8,
+  "popOuts": 2,
+  "motionClass": null,
+  "textMin": 4.58,
+  "aaFails": 0
+ },
+ "preset-13": {
+  "scene": null,
+  "layers": 0,
+  "sprites": 0,
+  "popOuts": 0,
+  "motionClass": null,
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-14": {
+  "scene": "dark-library",
+  "layers": 7,
+  "sprites": 7,
+  "popOuts": 2,
+  "motionClass": null,
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-15": {
+  "scene": "scifi-ai",
+  "layers": 9,
+  "sprites": 3,
+  "popOuts": 2,
+  "motionClass": "repv-motion-holo",
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-16": {
+  "scene": null,
+  "layers": 0,
+  "sprites": 0,
+  "popOuts": 0,
+  "motionClass": null,
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-17": {
+  "scene": "aurora-borealis",
+  "layers": 7,
+  "sprites": 7,
+  "popOuts": 2,
+  "motionClass": null,
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-18": {
+  "scene": "sunset-coast",
+  "layers": 6,
+  "sprites": 8,
+  "popOuts": 2,
+  "motionClass": null,
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-19": {
+  "scene": "cosmic-galaxy",
+  "layers": 7,
+  "sprites": 12,
+  "popOuts": 4,
+  "motionClass": "repv-motion-stars",
+  "textMin": 4.75,
+  "aaFails": 0
+ },
+ "preset-20": {
+  "scene": "synthwave-highway",
+  "layers": 6,
+  "sprites": 9,
+  "popOuts": 2,
+  "motionClass": null,
+  "textMin": 4.75,
+  "aaFails": 0
+ }
+}
